@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "esModuleInterop": true,
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "noEmit": true,
+        "pretty": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "strictPropertyInitialization": false,
+        "target": "ESNext"
+    },
+    "include": ["src/**/*.ts"],
+    "exclude": ["node_modules"]
+}

@@ -1,0 +1,31 @@
+{
+    "author": "tknight-dev",
+    "description": "A game that's definitely not inspired by Scorched Earth",
+    "name": "scorched-dirt",
+    "license": "CC-BY-NC-4.0",
+    "scripts": {
+        "assets:build": "node assets.cjs",
+        "assets:watch": "nodemon --ext \"*\" --exec \"node assets.cjs\" --watch assets",
+        "dev": "rimraf dist && concurrently --kill-others \"yarn assets:watch\" \"node esbuild.mjs dev\" -n A,C --pad-prefix",
+        "lint": "prettier assets.cjs esbuild.mjs src/. --write",
+        "prod": "rimraf dist && yarn assets:build && node esbuild.mjs"
+    },
+    "type": "module",
+    "version": "0.0.1",
+    "dependencies": {
+        "@tknight-dev/gaming-canvas": "~1.20.2",
+        "jszip": "^3.10.1",
+        "node-stream-zip": "^1.15.0"
+    },
+    "devDependencies": {
+        "@jgoz/esbuild-plugin-typecheck": "^4.0.0",
+        "concurrently": "^10.0.0",
+        "esbuild": "^0.25.12",
+        "esbuild-sass-plugin": "^3.0.0",
+        "nodemon": "^3.0.0",
+        "open": "^11.0.0",
+        "prettier": "^3.0.0",
+        "rimraf": "^6.0.0",
+        "typescript": "^6.0.0"
+    }
+}

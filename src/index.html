@@ -1,0 +1,187 @@
+<!-- @author tknight-dev -->
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<link rel="icon" type="image/x-icon" href="./favicon.ico">
+		<link rel="preconnect" href="https://fonts.gstatic.com">		
+		<link rel="stylesheet" href="./style.css">
+		<link rel='stylesheet' href="https://fonts.googleapis.com/css?family=Lato:400,700" type='text/css'>
+		<meta charset="utf-8">
+		<meta http-equiv="cache-control" content="public"> 
+  		<meta name="description" content="tknight-dev: Game - Scorched Dirt">
+  		<meta name="robots" content="none">
+		<meta name="viewport" id="viewport-app" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<title>Scorched Dirt</title>
+	</head>
+
+	<body id="body">
+		<input accept=".map" class="hidden" id="file" type="file" />
+		<div class="main wrapper">
+			<div class="header-menu">
+				<div class="wrapper">
+					<div class="logo" id="logo">
+	        			<a class="image" href="https://tknight.dev" rel="noreferrer" target="_blank"></a>
+					</div>
+					<div class="content" id="menu-content">
+						<span class="hyperlink menu" id="menu"></span>
+						<span class="hyperlink menu-item" id="menu-settings">Settings</span>
+					</div>
+				</div>
+			</div>
+			<div class="game" id="game">
+				<div class="wrapper">
+					<div class="debug" id="debug"></div>
+					<div class="error" id="error"><span>Error</span><br /><br /></div>
+					<div class="fps" id="stat-fps"></div>
+		<!-- 			<div class="spinner" id="spinner">
+						<div class="spinnet">
+							<div class="border"></div>
+							<div class="shadow"></div>
+						</div>
+					</div> -->
+					<div class="icons top intro" id="icons-top">
+						<span class="button" id="button-fullscreen"><span class="main-icon fullscreen"></span></span>
+<!-- 						<span class="spacer"></span>
+						<span class="button" id="button-play"><span class="main-icon play"></span></span>
+						<span class="spacer-thin"></span>
+						<span class="button" id="button-edit"><span class="main-icon edit"></span></span>
+						<span class="spacer-thin"></span>
+						<span class="button" id="button-performance"><span class="main-icon chart"></span></span>
+						<span class="spacer"></span>
+						<span class="button active" id="button-mute"><span class="main-icon volume"></span></span> -->
+					</div>
+					<div class="icons bottom" id="icons-bottom">
+<!-- 						<span class="button" id="button-eye"><span class="main-icon eye"></span></span>
+						<span class="button" id="button-move"><span class="main-icon move"></span></span>
+						<span class="button" id="button-apply"><span class="main-icon pencil"></span></span>
+						<span class="button" id="button-inspect"><span class="main-icon inspect"></span></span>
+						<span class="button" id="button-eraser"><span class="main-icon eraser"></span></span>
+						<span class="button" id="button-download"><span class="main-icon download"></span></span>
+						<span class="button" id="button-upload"><span class="main-icon upload"></span></span> -->
+					</div>
+					<div class="settings" id="settings">
+						<div class="wrapper">
+							<div class="header">Settings</div>
+							<div class="header-section">
+								<div class="hyperlink" id="settings-section-audio-select">Audio</div>
+								<div class="hyperlink" id="settings-section-game-select">Game</div>
+								<div class="hyperlink" id="settings-section-graphics-select">Graphics</div>
+							</div>
+							<div class="body" id="settings-section-audio">
+								<table>
+									<tbody>
+										<tr>
+											<td>Volume</td>
+											<td class="range">
+												<input autocomplete="off" id="settings-value-audio-volume" max="1" min="0" step="0.05" type="range" />
+												<input autocomplete="off" id="settings-value-audio-volume-readout" disabled />
+											</td>
+										</tr>
+										<tr>
+											<td></td>
+											<td></td>
+										</tr>
+										<tr>
+											<td>Effect Volume</td>
+											<td class="range">
+												<input autocomplete="off" id="settings-value-audio-volume-effect" max="1" min="0" step="0.05" type="range" />
+												<input autocomplete="off" id="settings-value-audio-volume-effect-readout" disabled />
+											</td>
+										</tr>
+										<tr>
+											<td>Music Volume</td>
+											<td class="range">
+												<input autocomplete="off" id="settings-value-audio-volume-music" max="1" min="0" step="0.05" type="range" />
+												<input autocomplete="off" id="settings-value-audio-volume-music-readout" disabled />
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+							<div class="body" id="settings-section-game">
+								<table>
+									<tbody>
+										<tr>
+											<td>Debug</td>
+											<td><input autocomplete="off" id="settings-value-game-debug" type="checkbox" /></td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+							<div class="body" id="settings-section-graphics">
+								<table>
+									<tbody>
+										<tr>
+											<td>Antialias</td>
+											<td><input autocomplete="off" id="settings-value-graphics-antialias" type="checkbox" /></td>
+										</tr>
+										<tr>
+											<td>DPI Support</td>
+											<td><input autocomplete="off" id="settings-value-graphics-dpi" type="checkbox" /></td>
+										</tr>
+										<tr>
+											<td>FPS</td>
+											<td>
+												<select autocomplete="off" id="settings-value-graphics-fps">
+													<option autocomplete="off" value="30">30 (MS-DOS)</option>
+													<option autocomplete="off" value="40">40</option>
+													<option autocomplete="off" value="60">60</option>
+													<option autocomplete="off" value="120">120</option>
+													<option autocomplete="off" value="144">144</option>
+													<option autocomplete="off" value="0">Unlimited</option>
+												</select>
+											</td>
+										</tr>
+										<tr>
+											<td>FPS: Show</td>
+											<td><input autocomplete="off" id="settings-value-graphics-fps-show" type="checkbox" /></td>
+										</tr>
+										<tr>
+											<td>Gamma Correction</td>
+											<td class="range">
+												<input autocomplete="off" id="settings-value-graphics-gamma" min="-100" max="100" step="1" type="range" />
+												<input autocomplete="off" id="settings-value-graphics-gamma-readout" disabled />
+											</td>
+										</tr>
+										<tr>
+											<td>Grayscale</td>
+											<td><input autocomplete="off" id="settings-value-graphics-grayscale" type="checkbox" /></td>
+										</tr>
+										<tr>
+											<td>Resolution</td>
+											<td>
+												<select autocomplete="off" id="settings-value-graphics-resolution">
+													<option autocomplete="off" value="null">Native</option>
+													<option autocomplete="off" value="160">160 by 90 (90p)</option>
+													<option autocomplete="off" value="320">320 by 180 (180p) (MS-DOS)</option>
+													<option autocomplete="off" value="640">640 by 360 (360p)</option>
+													<option autocomplete="off" value="1280">1280 by 720 (720p)</option>
+													<option autocomplete="off" value="1920">1920 by 1,080 (1080p)</option>
+													<option autocomplete="off" value="2560">2560 by 1,440 (1440p)</option>
+												</select>
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+							<div class="buttons">
+								<button class="cancel" id="settings-cancel">Cancel</button>
+								<button id="settings-apply">Apply</button>
+							</div>
+						</div>
+					</div>
+					<div class="spinner" id="spinner">
+						<div class="spinnet">
+							<div class="border"></div>
+							<div class="shadow"></div>
+						</div>
+					</div>
+					<div class="video" id="video"></div>
+					<div class="video-interactive" id="video-interactive"></div>
+				</div>
+			</div>
+		</div>
+		<a class="version" href="https://github.com/tknight-dev/wolfenstein3d" id="version" rel="noreferrer" target="_blank"></a>
+		<script src="./script.mjs" type="module"></script>
+	</body>
+</html>

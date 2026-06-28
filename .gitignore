@@ -1,0 +1,6 @@
+dist
+node_modules
+src/gaming-canvas
+
+*.sublime-project
+*.sublime-workspace
