@@ -1,5 +1,8 @@
 import { ModuleDOM } from './modules/dom.js';
 import { ModuleSettings } from './modules/settings.js';
+import { WorkerDirtCalcBus } from './workers/dirt-calc/dirt-calc.bus.js';
+import { WorkerDirtVideoBus } from './workers/dirt-video/dirt-video.bus.js';
+
 /**
  * @author tknight-dev
  */

@@ -27,8 +27,8 @@ var config = {
 		index: 'src/index.html',
 		style: 'src/style.scss',
 		script: 'src/script.ts',
-		// 'calc-main.engine': 'src/workers/calc-main/calc-main.engine.ts', // Worker entry point
-		// 'calc-path.engine': 'src/workers/calc-path/calc-path.engine.ts', // Worker entry point
+		'dirt-calc.engine': 'src/workers/dirt-calc/dirt-calc.engine.ts', // Worker entry point
+		'dirt-video.engine': 'src/workers/dirt-video/dirt-video.engine.ts', // Worker entry point
 		// 'video-editor.engine': 'src/workers/video-editor/video-editor.engine.ts', // Worker entry point
 		// 'video-main.engine': 'src/workers/video-main/video-main.engine.ts', // Worker entry point
 		// 'video-overlay.engine': 'src/workers/video-overlay/video-overlay.engine.ts', // Worker entry point

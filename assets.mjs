@@ -1,14 +1,22 @@
-const archiver = require('archiver');
-const { mkdir } = require('node:fs/promises');
-const fs = require('fs');
+import fs from 'fs';
+import { mkdir } from 'node:fs/promises';
+import path from 'path';
+import { ZipArchive } from 'archiver';
 
 setTimeout(async () => {
-	// create a file to stream archive data to.
+	// Prep
+	const __dirname = path.resolve(path.dirname(''));
 	await mkdir(__dirname + '/dist', { recursive: true });
-	const archive = archiver('zip', {
-		zlib: { level: 9 }, // Sets the compression level.
-	});
 
+	// Config
+	const archive = new ZipArchive({
+			zlib: {
+				level: 9, // Compression level
+			},
+		}),
+		output = fs.createWriteStream(__dirname + '/dist/assets');
+
+	// Listeners
 	archive.on('error', function (err) {
 		console.error('error', err);
 		throw err;
@@ -24,7 +32,8 @@ setTimeout(async () => {
 		}
 	});
 
-	archive.pipe(fs.createWriteStream(__dirname + '/dist/assets'));
+	// Done
+	archive.pipe(output);
 	archive.directory(__dirname + '/assets', false);
 	archive.finalize();
 });
