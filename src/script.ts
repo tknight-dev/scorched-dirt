@@ -1,5 +1,7 @@
 import { ModuleDOM } from './modules/dom.js';
+import { ModuleGame } from './modules/game.js';
 import { ModuleSettings } from './modules/settings.js';
+import { GamingCanvasGridCamera, GamingCanvasGridViewport } from './gaming-canvas/modules/grid/index.js';
 import { WorkerDirtCalcBus } from './workers/dirt-calc/dirt-calc.bus.js';
 import { WorkerDirtVideoBus } from './workers/dirt-video/dirt-video.bus.js';
 
@@ -46,13 +48,42 @@ class ScorchedDirt {
 		};
 	}
 
+	private static async initializeWorkers(): Promise<void> {
+		let gridCamera: GamingCanvasGridCamera = ModuleGame.gridCamera,
+			gridViewport: GamingCanvasGridViewport = ModuleGame.gridViewport,
+			then: number = performance.now();
+
+		return new Promise<void>((resolve: any) => {
+			WorkerDirtCalcBus.initialize(ModuleSettings.data.workerDirtCalc, () => {
+				// Done
+				console.log('WorkerDirtCalcBus: Loaded in', (performance.now() - then) | 0, 'ms');
+
+				// Load video-editor
+				then = performance.now();
+				WorkerDirtVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerDirtVideo, () => {
+					// Done
+					console.log('WorkerDirtVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
+
+					// Resolve initial promise
+					resolve();
+				});
+			});
+		});
+	}
+
 	public static async main(): Promise<void> {
 		// Initialize: Base
 		await ModuleDOM.initialize();
 		await ModuleSettings.initialize(ScorchedDirt.localStoragePrefix);
 
-		// Initialize: Abstractions
+		// Initialize: Game
+		await ModuleGame.initialize();
+
+		// Initialize: Final hooks
 		await ScorchedDirt.initialize();
+
+		// Initialize: Workers
+		await ScorchedDirt.initializeWorkers();
 	}
 }
 ScorchedDirt.main();

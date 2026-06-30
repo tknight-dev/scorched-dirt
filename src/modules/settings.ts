@@ -1,6 +1,10 @@
 import { GamingCanvas, GamingCanvasAudioType, GamingCanvasOptions, GamingCanvasOrientation, GamingCanvasRenderStyle } from '../gaming-canvas/main/index.js';
 import { ModuleDOM } from './dom.js';
 import { FPS } from '../models/settings.model.js';
+import { WorkerDirtCalcBus } from '../workers/dirt-calc/dirt-calc.bus.js';
+import { WorkerDirtCalcBusInputDataSettings } from '../workers/dirt-calc/dirt-calc.model.js';
+import { WorkerDirtVideoBus } from '../workers/dirt-video/dirt-video.bus.js';
+import { WorkerDirtVideoBusInputDataSettings } from '../workers/dirt-video/dirt-video.model.js';
 
 /**
  * @author tknight-dev
@@ -10,10 +14,11 @@ export type ResolutionWidthPx = undefined | 320 | 640 | 1280 | 1920 | 2560;
 
 export class ModuleSettings {
 	public static data = {
-		threadMain: {
+		main: {
 			audioVolume: 1,
 			audioVolumeEffect: 0.8,
 			audioVolumeMusic: 0.8,
+			edgesWrap: true,
 			fps: FPS._60,
 			fpsDisplay: true,
 			gamingCanvas: <GamingCanvasOptions>{
@@ -25,11 +30,13 @@ export class ModuleSettings {
 			gammaCorrection: 0,
 			grayscale: false,
 		},
-		threadDirtCalc: {
+		workerDirtCalc: <WorkerDirtCalcBusInputDataSettings>{
+			edgesWrap: true,
 			fps: FPS._60,
 		},
-		threadDirtVideo: {
+		workerDirtVideo: <WorkerDirtVideoBusInputDataSettings>{
 			debug: false,
+			edgesWrap: true,
 			fps: FPS._60,
 			gammaCorrection: 0,
 			grayscale: false,
@@ -39,10 +46,10 @@ export class ModuleSettings {
 	private static localStorageSettings: string = 'SETTINGS';
 
 	private static apply(): void {
-		GamingCanvas.audioVolumeGlobal(ModuleSettings.data.threadMain.audioVolume, GamingCanvasAudioType.ALL);
-		GamingCanvas.audioVolumeGlobal(ModuleSettings.data.threadMain.audioVolumeEffect, GamingCanvasAudioType.EFFECT);
-		GamingCanvas.audioVolumeGlobal(ModuleSettings.data.threadMain.audioVolumeMusic, GamingCanvasAudioType.MUSIC);
-		GamingCanvas.setOptions(ModuleSettings.data.threadMain.gamingCanvas);
+		GamingCanvas.audioVolumeGlobal(ModuleSettings.data.main.audioVolume, GamingCanvasAudioType.ALL);
+		GamingCanvas.audioVolumeGlobal(ModuleSettings.data.main.audioVolumeEffect, GamingCanvasAudioType.EFFECT);
+		GamingCanvas.audioVolumeGlobal(ModuleSettings.data.main.audioVolumeMusic, GamingCanvasAudioType.MUSIC);
+		GamingCanvas.setOptions(ModuleSettings.data.main.gamingCanvas);
 	}
 
 	/**
@@ -50,34 +57,43 @@ export class ModuleSettings {
 	 */
 	public static domParse(): void {
 		// Audio
-		ModuleSettings.data.threadMain.audioVolume = Number(ModuleDOM.elSettingsValueAudioVolume.value);
-		ModuleSettings.data.threadMain.audioVolumeEffect = Number(ModuleDOM.elSettingsValueAudioVolumeEffect.value);
-		ModuleSettings.data.threadMain.audioVolumeMusic = Number(ModuleDOM.elSettingsValueAudioVolumeMusic.value);
+		ModuleSettings.data.main.audioVolume = Number(ModuleDOM.elSettingsValueAudioVolume.value);
+		ModuleSettings.data.main.audioVolumeEffect = Number(ModuleDOM.elSettingsValueAudioVolumeEffect.value);
+		ModuleSettings.data.main.audioVolumeMusic = Number(ModuleDOM.elSettingsValueAudioVolumeMusic.value);
 
 		// Game
-		ModuleSettings.data.threadMain.gamingCanvas.debug = ModuleDOM.elSettingsValueGameDebug.checked;
+		ModuleSettings.data.main.gamingCanvas.debug = ModuleDOM.elSettingsValueGameDebug.checked;
+		ModuleSettings.data.main.edgesWrap = ModuleDOM.elSettingsValueGameEdgesWrap.checked;
 
 		// Graphics
-		ModuleSettings.data.threadMain.gamingCanvas.renderStyle = ModuleDOM.elSettingsValueGraphicsAntialias.checked
+		ModuleSettings.data.main.gamingCanvas.renderStyle = ModuleDOM.elSettingsValueGraphicsAntialias.checked
 			? GamingCanvasRenderStyle.ANTIALIAS
 			: GamingCanvasRenderStyle.PIXELATED;
-		ModuleSettings.data.threadMain.gamingCanvas.dpiSupportEnable = ModuleDOM.elSettingsValueGraphicsDPI.checked;
-		ModuleSettings.data.threadMain.fps = Number(ModuleDOM.elSettingsValueGraphicsFPS.value);
-		ModuleSettings.data.threadMain.fpsDisplay = ModuleDOM.elSettingsValueGraphicsFPSShow.checked;
-		ModuleSettings.data.threadMain.gammaCorrection = Number(ModuleDOM.elSettingsValueGraphicsGamma.value);
-		ModuleSettings.data.threadMain.grayscale = ModuleDOM.elSettingsValueGraphicsGrayscale.checked;
+		ModuleSettings.data.main.gamingCanvas.dpiSupportEnable = ModuleDOM.elSettingsValueGraphicsDPI.checked;
+		ModuleSettings.data.main.fps = Number(ModuleDOM.elSettingsValueGraphicsFPS.value);
+		ModuleSettings.data.main.fpsDisplay = ModuleDOM.elSettingsValueGraphicsFPSShow.checked;
+		ModuleSettings.data.main.gammaCorrection = Number(ModuleDOM.elSettingsValueGraphicsGamma.value);
+		ModuleSettings.data.main.grayscale = ModuleDOM.elSettingsValueGraphicsGrayscale.checked;
 		if (ModuleDOM.elSettingsValueGraphicsResolution.value === 'null') {
-			ModuleSettings.data.threadMain.gamingCanvas.resolutionWidthPx = undefined;
+			ModuleSettings.data.main.gamingCanvas.resolutionWidthPx = undefined;
 		} else {
-			ModuleSettings.data.threadMain.gamingCanvas.resolutionWidthPx = <ResolutionWidthPx>Number(ModuleDOM.elSettingsValueGraphicsResolution.value);
+			ModuleSettings.data.main.gamingCanvas.resolutionWidthPx = <ResolutionWidthPx>Number(ModuleDOM.elSettingsValueGraphicsResolution.value);
 		}
 
 		// Normalize
-		ModuleSettings.data.threadDirtCalc.fps = ModuleSettings.data.threadMain.fps;
-		ModuleSettings.data.threadDirtVideo.debug = ModuleSettings.data.threadMain.gamingCanvas.debug;
-		ModuleSettings.data.threadDirtVideo.fps = ModuleSettings.data.threadMain.fps;
-		ModuleSettings.data.threadDirtVideo.gammaCorrection = ModuleSettings.data.threadMain.gammaCorrection;
-		ModuleSettings.data.threadDirtVideo.grayscale = ModuleSettings.data.threadMain.grayscale;
+		ModuleSettings.data.workerDirtCalc.edgesWrap = ModuleSettings.data.main.edgesWrap;
+		ModuleSettings.data.workerDirtCalc.fps = ModuleSettings.data.main.fps;
+		ModuleSettings.data.workerDirtVideo.debug = ModuleSettings.data.main.gamingCanvas.debug;
+		ModuleSettings.data.workerDirtVideo.edgesWrap = ModuleSettings.data.main.edgesWrap;
+		ModuleSettings.data.workerDirtVideo.fps = ModuleSettings.data.main.fps;
+		ModuleSettings.data.workerDirtVideo.gammaCorrection = ModuleSettings.data.main.gammaCorrection;
+		ModuleSettings.data.workerDirtVideo.grayscale = ModuleSettings.data.main.grayscale;
+
+		// Save
+		ModuleSettings.save();
+
+		// Workers: Update
+		ModuleSettings.workersUpdate();
 	}
 
 	/**
@@ -85,25 +101,26 @@ export class ModuleSettings {
 	 */
 	public static domUpdate(): void {
 		// Audio
-		ModuleDOM.elSettingsValueAudioVolume.value = String(ModuleSettings.data.threadMain.audioVolume);
+		ModuleDOM.elSettingsValueAudioVolume.value = String(ModuleSettings.data.main.audioVolume);
 		ModuleDOM.elSettingsValueAudioVolumeReadout.value = (Number(ModuleDOM.elSettingsValueAudioVolume.value) * 100).toFixed(0) + '%';
-		ModuleDOM.elSettingsValueAudioVolumeEffect.value = String(ModuleSettings.data.threadMain.audioVolumeEffect);
+		ModuleDOM.elSettingsValueAudioVolumeEffect.value = String(ModuleSettings.data.main.audioVolumeEffect);
 		ModuleDOM.elSettingsValueAudioVolumeEffectReadout.value = (Number(ModuleDOM.elSettingsValueAudioVolumeEffect.value) * 100).toFixed(0) + '%';
-		ModuleDOM.elSettingsValueAudioVolumeMusic.value = String(ModuleSettings.data.threadMain.audioVolumeMusic);
+		ModuleDOM.elSettingsValueAudioVolumeMusic.value = String(ModuleSettings.data.main.audioVolumeMusic);
 		ModuleDOM.elSettingsValueAudioVolumeMusicReadout.value = (Number(ModuleDOM.elSettingsValueAudioVolumeMusic.value) * 100).toFixed(0) + '%';
 
 		// Game
-		ModuleDOM.elSettingsValueGameDebug.checked = ModuleSettings.data.threadMain.gamingCanvas.debug === true;
+		ModuleDOM.elSettingsValueGameDebug.checked = ModuleSettings.data.main.gamingCanvas.debug === true;
+		ModuleDOM.elSettingsValueGameEdgesWrap.checked = ModuleSettings.data.main.edgesWrap;
 
 		// Graphics
-		ModuleDOM.elSettingsValueGraphicsAntialias.checked = ModuleSettings.data.threadMain.gamingCanvas.renderStyle === GamingCanvasRenderStyle.ANTIALIAS;
-		ModuleDOM.elSettingsValueGraphicsDPI.checked = ModuleSettings.data.threadMain.gamingCanvas.dpiSupportEnable === true;
-		ModuleDOM.elSettingsValueGraphicsGamma.value = String(ModuleSettings.data.threadMain.gammaCorrection);
+		ModuleDOM.elSettingsValueGraphicsAntialias.checked = ModuleSettings.data.main.gamingCanvas.renderStyle === GamingCanvasRenderStyle.ANTIALIAS;
+		ModuleDOM.elSettingsValueGraphicsDPI.checked = ModuleSettings.data.main.gamingCanvas.dpiSupportEnable === true;
+		ModuleDOM.elSettingsValueGraphicsGamma.value = String(ModuleSettings.data.main.gammaCorrection);
 		ModuleDOM.elSettingsValueGraphicsGammaReadout.value = ModuleDOM.elSettingsValueGraphicsGamma.value + '%';
-		ModuleDOM.elSettingsValueGraphicsGrayscale.checked = ModuleSettings.data.threadMain.grayscale;
-		ModuleDOM.elSettingsValueGraphicsFPSShow.checked = ModuleSettings.data.threadMain.fpsDisplay;
-		ModuleDOM.elSettingsValueGraphicsFPS.value = String(ModuleSettings.data.threadMain.fps);
-		ModuleDOM.elSettingsValueGraphicsResolution.value = String(ModuleSettings.data.threadMain.gamingCanvas.resolutionWidthPx || 'null');
+		ModuleDOM.elSettingsValueGraphicsGrayscale.checked = ModuleSettings.data.main.grayscale;
+		ModuleDOM.elSettingsValueGraphicsFPSShow.checked = ModuleSettings.data.main.fpsDisplay;
+		ModuleDOM.elSettingsValueGraphicsFPS.value = String(ModuleSettings.data.main.fps);
+		ModuleDOM.elSettingsValueGraphicsResolution.value = String(ModuleSettings.data.main.gamingCanvas.resolutionWidthPx || 'null');
 	}
 
 	public static async initialize(localStoragePrefix: string): Promise<void> {
@@ -124,8 +141,8 @@ export class ModuleSettings {
 			aspectRatio: 16 / 9,
 			audioEnable: true,
 			canvasCount: 1,
-			debug: ModuleSettings.data.threadMain.gamingCanvas.debug,
-			dpiSupportEnable: ModuleSettings.data.threadMain.gamingCanvas.dpiSupportEnable,
+			debug: ModuleSettings.data.main.gamingCanvas.debug,
+			dpiSupportEnable: ModuleSettings.data.main.gamingCanvas.dpiSupportEnable,
 			elementInteractive: ModuleDOM.elVideoInteractive,
 			inputGamepadEnable: true,
 			inputKeyboardEnable: true,
@@ -133,9 +150,9 @@ export class ModuleSettings {
 			inputTouchEnable: true,
 			orientation: GamingCanvasOrientation.LANDSCAPE,
 			orientationCanvasRotateEnable: false,
-			renderStyle: ModuleSettings.data.threadMain.gamingCanvas.renderStyle,
+			renderStyle: ModuleSettings.data.main.gamingCanvas.renderStyle,
 			resolutionScaleToFit: true,
-			resolutionWidthPx: ModuleSettings.data.threadMain.gamingCanvas.resolutionWidthPx,
+			resolutionWidthPx: ModuleSettings.data.main.gamingCanvas.resolutionWidthPx,
 		});
 		ModuleSettings.apply();
 	}
@@ -172,20 +189,20 @@ export class ModuleSettings {
 		for (let [name, value] of params.entries()) {
 			switch (name.toLowerCase()) {
 				case 'dpi':
-					ModuleSettings.data.threadMain.gamingCanvas.dpiSupportEnable = String(value).toLowerCase() === 'true';
+					ModuleSettings.data.main.gamingCanvas.dpiSupportEnable = String(value).toLowerCase() === 'true';
 					break;
 				case 'fps':
-					ModuleSettings.data.threadMain.fpsDisplay = String(value).toLowerCase() === 'true';
+					ModuleSettings.data.main.fpsDisplay = String(value).toLowerCase() === 'true';
 					break;
 				case 'effect':
-					ModuleSettings.data.threadMain.audioVolumeEffect = Math.max(0, Math.min(100, Number(value) | 0)) / 100;
+					ModuleSettings.data.main.audioVolumeEffect = Math.max(0, Math.min(100, Number(value) | 0)) / 100;
 					break;
 				case 'music':
-					ModuleSettings.data.threadMain.audioVolumeMusic = Math.max(0, Math.min(100, Number(value) | 0)) / 100;
+					ModuleSettings.data.main.audioVolumeMusic = Math.max(0, Math.min(100, Number(value) | 0)) / 100;
 					break;
 				case 'res':
 					if (String(value).toLowerCase() === 'null') {
-						ModuleSettings.data.threadMain.gamingCanvas.resolutionWidthPx = undefined;
+						ModuleSettings.data.main.gamingCanvas.resolutionWidthPx = undefined;
 					} else {
 						switch (<ResolutionWidthPx>Number(value)) {
 							case 320:
@@ -193,13 +210,13 @@ export class ModuleSettings {
 							case 1280:
 							case 1920:
 							case 2560:
-								ModuleSettings.data.threadMain.gamingCanvas.resolutionWidthPx = <ResolutionWidthPx>Number(value);
+								ModuleSettings.data.main.gamingCanvas.resolutionWidthPx = <ResolutionWidthPx>Number(value);
 								break;
 						}
 					}
 					break;
 				case 'volume':
-					ModuleSettings.data.threadMain.audioVolume = Math.max(0, Math.min(1, Number(value)));
+					ModuleSettings.data.main.audioVolume = Math.max(0, Math.min(1, Number(value)));
 					break;
 			}
 		}
@@ -207,5 +224,10 @@ export class ModuleSettings {
 
 	public static save(): void {
 		localStorage.setItem(ModuleSettings.localStoragePrefix + ModuleSettings.localStorageSettings, JSON.stringify(ModuleSettings.data));
+	}
+
+	private static workersUpdate(): void {
+		WorkerDirtCalcBus.sendSettings(ModuleSettings.data.workerDirtCalc);
+		WorkerDirtVideoBus.sendSettings(ModuleSettings.data.workerDirtVideo);
 	}
 }

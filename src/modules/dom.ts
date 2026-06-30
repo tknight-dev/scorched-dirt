@@ -27,6 +27,7 @@ export class ModuleDOM {
 	public static elSettingsValueAudioVolumeMusic: HTMLInputElement;
 	public static elSettingsValueAudioVolumeMusicReadout: HTMLInputElement;
 	public static elSettingsValueGameDebug: HTMLInputElement;
+	public static elSettingsValueGameEdgesWrap: HTMLInputElement;
 	public static elSettingsValueGraphicsAntialias: HTMLInputElement;
 	public static elSettingsValueGraphicsDPI: HTMLInputElement;
 	public static elSettingsValueGraphicsFPS: HTMLInputElement;
@@ -129,6 +130,7 @@ export class ModuleDOM {
 
 		// Settings: Values - Game
 		ModuleDOM.elSettingsValueGameDebug = <HTMLInputElement>document.getElementById('settings-value-game-debug');
+		ModuleDOM.elSettingsValueGameEdgesWrap = <HTMLInputElement>document.getElementById('settings-value-game-edges-wrap');
 
 		// Settings: Values - Graphics
 		ModuleDOM.elSettingsValueGraphicsAntialias = <HTMLInputElement>document.getElementById('settings-value-graphics-antialias');

@@ -16,11 +16,13 @@ export enum WorkerDirtCalcBusStats {
  */
 export enum WorkerDirtCalcBusInputCmd {
 	INIT,
+	SETTINGS,
 }
 
 export interface WorkerDirtCalcBusInputDataInit extends WorkerDirtCalcBusInputDataSettings {}
 
 export interface WorkerDirtCalcBusInputDataSettings {
+	edgesWrap: boolean;
 	fps: FPS;
 }
 

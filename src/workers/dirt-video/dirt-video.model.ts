@@ -1,3 +1,4 @@
+import { GamingCanvasReport } from '../../gaming-canvas/main/index.js';
 import { FPS } from '../../models/settings.model.js';
 
 /**
@@ -16,12 +17,22 @@ export enum WorkerDirtVideoBusStats {
  */
 export enum WorkerDirtVideoBusInputCmd {
 	INIT,
+	SETTINGS,
 }
 
-export interface WorkerDirtVideoBusInputDataInit extends WorkerDirtVideoBusInputDataSettings {}
+export interface WorkerDirtVideoBusInputDataInit extends WorkerDirtVideoBusInputDataSettings {
+	gamingCanvasReport: GamingCanvasReport;
+	gridCameraEncoded: Float64Array;
+	gridViewportEncoded: Float64Array;
+	offscreenCanvas: OffscreenCanvas;
+}
 
 export interface WorkerDirtVideoBusInputDataSettings {
+	debug: boolean;
+	edgesWrap: boolean;
 	fps: FPS;
+	gammaCorrection: number;
+	grayscale: boolean;
 }
 
 export interface WorkerDirtVideoBusInputPayload {

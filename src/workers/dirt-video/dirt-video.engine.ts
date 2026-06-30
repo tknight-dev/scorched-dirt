@@ -1,11 +1,13 @@
+import { GamingCanvasReport, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
+import { GamingCanvasGridCamera, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
 import {
 	WorkerDirtVideoBusInputCmd,
 	WorkerDirtVideoBusInputDataInit,
 	WorkerDirtVideoBusInputDataSettings,
 	WorkerDirtVideoBusInputPayload,
 	WorkerDirtVideoBusOutputCmd,
-	WorkerDirtVideoBusOutputDataStats,
 	WorkerDirtVideoBusOutputPayload,
+	WorkerDirtVideoBusStats,
 } from './dirt-video.model.js';
 
 /**
@@ -22,31 +24,66 @@ self.onmessage = (event: MessageEvent) => {
 		case WorkerDirtVideoBusInputCmd.INIT:
 			WorkerDirtVideoEngine.initialize(<WorkerDirtVideoBusInputDataInit>payload.data);
 			break;
-		// case WorkerDirtVideoBusInputCmd.SETTINGS:
-		// 	WorkerDirtVideoEngine.inputSettings(<WorkerDirtVideoBusInputDataSettings>payload.data);
-		// 	break;
+		case WorkerDirtVideoBusInputCmd.SETTINGS:
+			WorkerDirtVideoEngine.inputSettings(<WorkerDirtVideoBusInputDataSettings>payload.data);
+			break;
 	}
 };
 
 class WorkerDirtVideoEngine {
+	private static animationFrameRequest: number;
+	private static gamingCanvasReport: GamingCanvasReport;
+	private static gridCamera: GamingCanvasGridCamera;
+	private static gridViewport: GamingCanvasGridViewport;
+	private static offscreenCanvas: OffscreenCanvas;
+	private static offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
+	private static settings: WorkerDirtVideoBusInputDataSettings;
+	private static settingsNew: boolean;
+	private static stats: { [key: number]: GamingCanvasStat } = {};
+
 	public static async initialize(data: WorkerDirtVideoBusInputDataInit): Promise<void> {
-		// Stats
-		// WorkerDirtVideoEngine.stats[WorkerDirtVideoBusStats.ALL] = new GamingCanvasStat(50);
+		gridCameraEncoded: Float64Array;
+		gridViewportEncoded: Float64Array;
+
+		// Config: Canvas
+		WorkerDirtVideoEngine.offscreenCanvas = data.offscreenCanvas;
+		WorkerDirtVideoEngine.offscreenCanvasContext = data.offscreenCanvas.getContext('2d', {
+			alpha: true,
+			antialias: false,
+			depth: true,
+			desynchronized: true,
+			powerPreference: 'high-performance',
+		}) as OffscreenCanvasRenderingContext2D;
+
+		// Config: GamingCanvas
+		WorkerDirtVideoEngine.gamingCanvasReport = data.gamingCanvasReport;
+
+		// Config: Grid
+		WorkerDirtVideoEngine.gridCamera = GamingCanvasGridCamera.from(data.gridCameraEncoded);
+		WorkerDirtVideoEngine.gridViewport = GamingCanvasGridViewport.from(data.gridViewportEncoded);
 
 		// Config: Settings
-		// WorkerDirtVideoEngine.inputSettings(data as WorkerDirtVideoBusInputDataSettings);
+		WorkerDirtVideoEngine.inputSettings(data as WorkerDirtVideoBusInputDataSettings);
 
-		// Start
+		// Stats
+		WorkerDirtVideoEngine.stats[WorkerDirtVideoBusStats.ALL] = new GamingCanvasStat(50);
+
+		// Done
+		WorkerDirtVideoEngine.animationLoop();
 		WorkerDirtVideoEngine.post([
 			{
 				cmd: WorkerDirtVideoBusOutputCmd.INIT_COMPLETE,
 				data: true,
 			},
 		]);
+	}
 
-		// Start rendering thread
-		// WorkerDirtVideoEngine.go__funcForward();
-		// WorkerDirtVideoEngine.request = requestAnimationFrame(WorkerDirtVideoEngine.go);
+	/*
+	 * Input
+	 */
+	public static inputSettings(data: WorkerDirtVideoBusInputDataSettings): void {
+		WorkerDirtVideoEngine.settings = data;
+		WorkerDirtVideoEngine.settingsNew = true;
 	}
 
 	/*
@@ -59,9 +96,76 @@ class WorkerDirtVideoEngine {
 	/*
 	 * Main Loop
 	 */
-	public static go(_timestampNow: number): void {}
-	public static go__funcForward(): void {
-		const go = (timestampNow: number) => {};
-		WorkerDirtVideoEngine.go = go;
+	private static animationLoop(): void {
+		let gamingCanvasReport: GamingCanvasReport = WorkerDirtVideoEngine.gamingCanvasReport,
+			gridCamera: GamingCanvasGridCamera = WorkerDirtVideoEngine.gridCamera,
+			gridViewport: GamingCanvasGridViewport = WorkerDirtVideoEngine.gridViewport,
+			offscreenCanvas: OffscreenCanvas = WorkerDirtVideoEngine.offscreenCanvas,
+			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerDirtVideoEngine.offscreenCanvasContext,
+			settingsDebug: boolean,
+			settingsEdgesWrap: boolean,
+			settingsFPMS: number = 16.666,
+			settingsGammaCorrection: number,
+			settingsGrayscale: boolean,
+			statAll: GamingCanvasStat = WorkerDirtVideoEngine.stats[WorkerDirtVideoBusStats.ALL],
+			statAllRaw: Float32Array,
+			timestampDelta: number,
+			timestampStats: number = performance.now(),
+			timestampThen: number = performance.now();
+
+		const go = (timestampNow: number) => {
+			// Always start the request for the next frame first!
+			WorkerDirtVideoEngine.animationFrameRequest = requestAnimationFrame(go);
+
+			// Timing
+			timestampDelta = timestampNow - timestampThen;
+
+			// Settings
+			if (WorkerDirtVideoEngine.settingsNew === true) {
+				WorkerDirtVideoEngine.settingsNew = false;
+
+				settingsDebug = WorkerDirtVideoEngine.settings.debug;
+				settingsEdgesWrap = WorkerDirtVideoEngine.settings.edgesWrap;
+				settingsFPMS = Math.round((1000 / WorkerDirtVideoEngine.settings.fps) * 1000) / 1000;
+				settingsGammaCorrection = WorkerDirtVideoEngine.settings.gammaCorrection;
+				settingsGrayscale = WorkerDirtVideoEngine.settings.grayscale;
+			}
+
+			// Animate
+			if (timestampDelta > settingsFPMS) {
+				// More accurately calculate for more stable FPS
+				timestampThen = timestampNow - (timestampDelta % settingsFPMS);
+
+				// Start
+				statAll.watchStart();
+
+				// Draw dirt
+
+				// Done
+				statAll.watchStop();
+			}
+
+			// Stats
+			if (timestampNow - timestampStats > 999) {
+				timestampStats = timestampNow;
+
+				statAllRaw = <Float32Array>statAll.encode();
+
+				// Output
+				WorkerDirtVideoEngine.post(
+					[
+						{
+							cmd: WorkerDirtVideoBusOutputCmd.STATS,
+							data: {
+								all: statAllRaw,
+							},
+						},
+					],
+					[statAllRaw.buffer],
+				);
+			}
+		};
+
+		WorkerDirtVideoEngine.animationFrameRequest = requestAnimationFrame(go);
 	}
 }

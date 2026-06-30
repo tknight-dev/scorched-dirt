@@ -1,5 +1,6 @@
 import {
 	WorkerDirtCalcBusInputCmd,
+	WorkerDirtCalcBusInputDataInit,
 	WorkerDirtCalcBusInputDataSettings,
 	WorkerDirtCalcBusOutputCmd,
 	WorkerDirtCalcBusOutputDataStats,
@@ -12,7 +13,6 @@ import {
 
 export class WorkerDirtCalcBus {
 	private static callbackInitComplete: (status: boolean) => void;
-	private static callbackPathUpdate: (data: Map<number, number[]>) => void;
 	private static callbackStats: (data: WorkerDirtCalcBusOutputDataStats) => void;
 	private static worker: Worker;
 
@@ -27,12 +27,12 @@ export class WorkerDirtCalcBus {
 			});
 
 			// Listen for a response from the WebWorker
-			WorkerDirtCalcBus.input();
+			WorkerDirtCalcBus.listen();
 
 			// Init the webworker
 			WorkerDirtCalcBus.worker.postMessage({
 				cmd: WorkerDirtCalcBusInputCmd.INIT,
-				data: Object.assign({}, settings),
+				data: Object.assign(<WorkerDirtCalcBusInputDataInit>{}, settings),
 			});
 		} else {
 			alert('Web Workers are not supported by your browser');
@@ -40,7 +40,7 @@ export class WorkerDirtCalcBus {
 		}
 	}
 
-	private static input(): void {
+	private static listen(): void {
 		let payload: WorkerDirtCalcBusOutputPayload, payloads: WorkerDirtCalcBusOutputPayload[];
 
 		WorkerDirtCalcBus.worker.onmessage = async (event: MessageEvent) => {
@@ -52,7 +52,9 @@ export class WorkerDirtCalcBus {
 						WorkerDirtCalcBus.callbackInitComplete(<boolean>payload.data);
 						break;
 					case WorkerDirtCalcBusOutputCmd.STATS:
-						WorkerDirtCalcBus.callbackStats(<WorkerDirtCalcBusOutputDataStats>payload.data);
+						if (WorkerDirtCalcBus.callbackStats !== undefined) {
+							WorkerDirtCalcBus.callbackStats(<WorkerDirtCalcBusOutputDataStats>payload.data);
+						}
 						break;
 				}
 			}
@@ -60,8 +62,14 @@ export class WorkerDirtCalcBus {
 	}
 
 	/*
-	 * Output
+	 * Send
 	 */
+	public static sendSettings(data: WorkerDirtCalcBusInputDataSettings): void {
+		WorkerDirtCalcBus.worker.postMessage({
+			cmd: WorkerDirtCalcBusInputCmd.SETTINGS,
+			data: data,
+		});
+	}
 
 	public static setCallbackStats(callbackStats: (data: WorkerDirtCalcBusOutputDataStats) => void): void {
 		WorkerDirtCalcBus.callbackStats = callbackStats;
