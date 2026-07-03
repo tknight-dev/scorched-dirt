@@ -1,6 +1,7 @@
 import { GamingCanvas } from '../gaming-canvas/main/index.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from '../gaming-canvas/modules/grid/index.js';
 import { Map } from '../models/map.model.js';
+import { ModuleDOM } from './dom.js';
 import { ModuleMap } from './map.js';
 import { ModuleSettings } from './settings.js';
 
@@ -8,9 +9,21 @@ import { ModuleSettings } from './settings.js';
  * @author tknight-dev
  */
 
+export enum ModuleGameView {
+	EDITOR,
+	GAME,
+	PERFORMANCE,
+}
+
 export class ModuleGame {
+	public static fullscreen: boolean;
 	public static gridCamera: GamingCanvasGridCamera;
 	public static gridViewport: GamingCanvasGridViewport;
+	public static view: ModuleGameView;
+
+	public static gameMenuStart(pauseAudio?: boolean): void {}
+
+	public static gameMenuStop(): void {}
 
 	public static async initialize(): Promise<void> {
 		let resolutionWidthPx: number = ModuleSettings.data.main.gamingCanvas.resolutionWidthPx || 640;
@@ -29,5 +42,56 @@ export class ModuleGame {
 
 		// Map
 		ModuleMap.mapActive = ModuleMap.generate(ModuleSettings.data.main.mapSize, Math.round(Math.random() * 1000000));
+	}
+
+	public static viewGame(): void {
+		if (ModuleGame.view === ModuleGameView.GAME) {
+			return;
+		}
+		ModuleGame.view = ModuleGameView.GAME;
+
+		// DOM
+		ModuleDOM.elButtonEdit.classList.remove('active');
+		ModuleDOM.elButtonPerformance.classList.remove('active');
+		ModuleDOM.elButtonPlay.classList.add('active');
+		ModuleDOM.elIconsTop.style.display = 'flex';
+		ModuleDOM.elIconsTop.classList.remove('intro');
+
+		// Overlay
+		ModuleDOM.elPerformance.style.display = 'none';
+	}
+
+	public static viewEditor(): void {
+		if (ModuleGame.view === ModuleGameView.EDITOR) {
+			return;
+		}
+		ModuleGame.view = ModuleGameView.EDITOR;
+
+		// DOM
+		ModuleDOM.elButtonEdit.classList.add('active');
+		ModuleDOM.elButtonPerformance.classList.remove('active');
+		ModuleDOM.elButtonPlay.classList.remove('active');
+		ModuleDOM.elIconsTop.style.display = 'flex';
+		ModuleDOM.elIconsTop.classList.remove('intro');
+
+		// Overlay
+		ModuleDOM.elPerformance.style.display = 'none';
+	}
+
+	public static viewPerformance(): void {
+		if (ModuleGame.view === ModuleGameView.PERFORMANCE) {
+			return;
+		}
+		ModuleGame.view = ModuleGameView.PERFORMANCE;
+
+		// DOM
+		ModuleDOM.elButtonEdit.classList.remove('active');
+		ModuleDOM.elButtonPerformance.classList.add('active');
+		ModuleDOM.elButtonPlay.classList.remove('active');
+		ModuleDOM.elIconsTop.style.display = 'flex';
+		ModuleDOM.elIconsTop.classList.remove('intro');
+
+		// Overlay
+		ModuleDOM.elPerformance.style.display = 'flex';
 	}
 }

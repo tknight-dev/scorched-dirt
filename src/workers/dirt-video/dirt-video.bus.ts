@@ -1,10 +1,11 @@
-import { GamingCanvas } from '../../gaming-canvas/main/index.js';
+import { GamingCanvas, GamingCanvasReport } from '../../gaming-canvas/main/index.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
 import { Map } from '../../models/map.model.js';
 import {
 	WorkerDirtVideoBusInputCmd,
 	WorkerDirtVideoBusInputDataInit,
 	WorkerDirtVideoBusInputDataSettings,
+	WorkerDirtVideoBusInputDataView,
 	WorkerDirtVideoBusOutputCmd,
 	WorkerDirtVideoBusOutputDataStats,
 	WorkerDirtVideoBusOutputPayload,
@@ -48,11 +49,11 @@ export class WorkerDirtVideoBus {
 					cmd: WorkerDirtVideoBusInputCmd.INIT,
 					data: Object.assign(
 						<WorkerDirtVideoBusInputDataInit>{
-							gamingCanvasReport: GamingCanvas.getReport(),
 							gridCameraEncoded: gridCameraEncoded,
 							gridViewportEncoded: gridViewportEncoded,
 							map: map,
 							offscreenCanvas: offscreenCanvas,
+							report: GamingCanvas.getReport(),
 						},
 						settings,
 					),
@@ -89,11 +90,35 @@ export class WorkerDirtVideoBus {
 	/*
 	 * Send
 	 */
+	public static sendMap(data: Map): void {
+		WorkerDirtVideoBus.worker.postMessage({
+			cmd: WorkerDirtVideoBusInputCmd.MAP,
+			data: data,
+		});
+	}
+
+	public static sendReport(data: GamingCanvasReport): void {
+		WorkerDirtVideoBus.worker.postMessage({
+			cmd: WorkerDirtVideoBusInputCmd.REPORT,
+			data: data,
+		});
+	}
+
 	public static sendSettings(data: WorkerDirtVideoBusInputDataSettings): void {
 		WorkerDirtVideoBus.worker.postMessage({
 			cmd: WorkerDirtVideoBusInputCmd.SETTINGS,
 			data: data,
 		});
+	}
+
+	public static sendView(data: WorkerDirtVideoBusInputDataView): void {
+		WorkerDirtVideoBus.worker.postMessage(
+			{
+				cmd: WorkerDirtVideoBusInputCmd.VIEW,
+				data: data,
+			},
+			[data.gridCameraEncoded, data.gridViewportEncoded],
+		);
 	}
 
 	public static setCallbackStats(callbackStats: (data: WorkerDirtVideoBusOutputDataStats) => void): void {

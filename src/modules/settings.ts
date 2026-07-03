@@ -11,44 +11,68 @@ import { WorkerDirtVideoBusInputDataSettings } from '../workers/dirt-video/dirt-
  */
 
 export class ModuleSettings {
-	public static data = {
-		main: {
-			audioVolume: 1,
-			audioVolumeEffect: 0.8,
-			audioVolumeMusic: 0.8,
-			edgesWrap: true,
-			fps: FPS._60,
-			fpsDisplay: true,
-			gamingCanvas: <GamingCanvasOptions>{
-				debug: false,
-				dpiSupportEnable: true,
-				renderStyle: GamingCanvasRenderStyle.PIXELATED,
-				resolutionWidthPx: <ResolutionWidthPx>640,
-			},
-			gammaCorrection: 0,
-			grayscale: false,
-			mapSize: <MapSize>640,
-		},
-		workerDirtCalc: <WorkerDirtCalcBusInputDataSettings>{
-			edgesWrap: true,
-			fps: FPS._60,
-		},
-		workerDirtVideo: <WorkerDirtVideoBusInputDataSettings>{
-			debug: false,
-			edgesWrap: true,
-			fps: FPS._60,
-			gammaCorrection: 0,
-			grayscale: false,
-		},
-	};
+	public static data: any;
 	private static localStoragePrefix: string; // Set by initialize()
 	private static localStorageSettings: string = 'SETTINGS';
+
+	static {
+		ModuleSettings.applyDefault();
+	}
 
 	private static apply(): void {
 		GamingCanvas.audioVolumeGlobal(ModuleSettings.data.main.audioVolume, GamingCanvasAudioType.ALL);
 		GamingCanvas.audioVolumeGlobal(ModuleSettings.data.main.audioVolumeEffect, GamingCanvasAudioType.EFFECT);
 		GamingCanvas.audioVolumeGlobal(ModuleSettings.data.main.audioVolumeMusic, GamingCanvasAudioType.MUSIC);
 		GamingCanvas.setOptions(ModuleSettings.data.main.gamingCanvas);
+	}
+
+	public static applyDefault(): void {
+		ModuleSettings.data = {
+			main: {
+				audioVolume: 1,
+				audioVolumeEffect: 0.8,
+				audioVolumeMusic: 0.8,
+				edgesWrap: true,
+				fps: FPS._60,
+				fpsDisplay: true,
+				gamingCanvas: <GamingCanvasOptions>{
+					aspectRatio: 16 / 9,
+					audioEnable: true,
+					canvasCount: 1,
+					debug: true,
+					dpiSupportEnable: true,
+					elementInteractive: ModuleDOM.elVideoInteractive,
+					inputGamepadEnable: true,
+					inputKeyboardEnable: true,
+					inputMouseEnable: true,
+					inputTouchEnable: true,
+					orientation: GamingCanvasOrientation.LANDSCAPE,
+					orientationCanvasRotateEnable: false,
+					renderStyle: GamingCanvasRenderStyle.PIXELATED,
+					resolutionScaleToFit: true,
+					resolutionWidthPx: <ResolutionWidthPx>640,
+				},
+				gammaCorrection: 0,
+				grayscale: false,
+				mapSize: <MapSize>640,
+			},
+			workerDirtCalc: <WorkerDirtCalcBusInputDataSettings>{
+				edgesWrap: true,
+				fps: FPS._60,
+			},
+			workerDirtVideo: <WorkerDirtVideoBusInputDataSettings>{
+				debug: false,
+				edgesWrap: true,
+				fps: FPS._60,
+				gammaCorrection: 0,
+				grayscale: false,
+				renderStyle: GamingCanvasRenderStyle.PIXELATED,
+			},
+		};
+	}
+
+	public static delete(): void {
+		localStorage.removeItem(ModuleSettings.localStoragePrefix + ModuleSettings.localStorageSettings);
 	}
 
 	/**
@@ -79,15 +103,6 @@ export class ModuleSettings {
 		} else {
 			ModuleSettings.data.main.gamingCanvas.resolutionWidthPx = <ResolutionWidthPx>Number(ModuleDOM.elSettingsValueGraphicsResolution.value);
 		}
-
-		// Normalize
-		ModuleSettings.data.workerDirtCalc.edgesWrap = ModuleSettings.data.main.edgesWrap;
-		ModuleSettings.data.workerDirtCalc.fps = ModuleSettings.data.main.fps;
-		ModuleSettings.data.workerDirtVideo.debug = ModuleSettings.data.main.gamingCanvas.debug;
-		ModuleSettings.data.workerDirtVideo.edgesWrap = ModuleSettings.data.main.edgesWrap;
-		ModuleSettings.data.workerDirtVideo.fps = ModuleSettings.data.main.fps;
-		ModuleSettings.data.workerDirtVideo.gammaCorrection = ModuleSettings.data.main.gammaCorrection;
-		ModuleSettings.data.workerDirtVideo.grayscale = ModuleSettings.data.main.grayscale;
 
 		// Save
 		ModuleSettings.save();
@@ -122,6 +137,9 @@ export class ModuleSettings {
 		ModuleDOM.elSettingsValueGraphicsFPSShow.checked = ModuleSettings.data.main.fpsDisplay;
 		ModuleDOM.elSettingsValueGraphicsFPS.value = String(ModuleSettings.data.main.fps);
 		ModuleDOM.elSettingsValueGraphicsResolution.value = String(ModuleSettings.data.main.gamingCanvas.resolutionWidthPx || 'null');
+
+		// Done
+		ModuleSettings.normalize();
 	}
 
 	public static async initialize(localStoragePrefix: string): Promise<void> {
@@ -132,29 +150,15 @@ export class ModuleSettings {
 		ModuleSettings.initializeDOM();
 
 		// Load
+		ModuleSettings.applyDefault();
+		ModuleSettings.delete(); // TMP
 		ModuleSettings.load();
 
 		// URLs
 		ModuleSettings.parseURL();
 
 		// Done
-		ModuleDOM.canvases = GamingCanvas.initialize(ModuleDOM.elVideo, {
-			aspectRatio: 16 / 9,
-			audioEnable: true,
-			canvasCount: 1,
-			debug: ModuleSettings.data.main.gamingCanvas.debug,
-			dpiSupportEnable: ModuleSettings.data.main.gamingCanvas.dpiSupportEnable,
-			elementInteractive: ModuleDOM.elVideoInteractive,
-			inputGamepadEnable: true,
-			inputKeyboardEnable: true,
-			inputMouseEnable: true,
-			inputTouchEnable: true,
-			orientation: GamingCanvasOrientation.LANDSCAPE,
-			orientationCanvasRotateEnable: false,
-			renderStyle: ModuleSettings.data.main.gamingCanvas.renderStyle,
-			resolutionScaleToFit: true,
-			resolutionWidthPx: ModuleSettings.data.main.gamingCanvas.resolutionWidthPx,
-		});
+		ModuleDOM.canvases = GamingCanvas.initialize(ModuleDOM.elVideo, ModuleSettings.data.main.gamingCanvas);
 		ModuleSettings.apply();
 	}
 
@@ -182,7 +186,19 @@ export class ModuleSettings {
 
 		if (dataRaw !== null) {
 			Object.assign(ModuleSettings.data, JSON.parse(dataRaw));
+			ModuleSettings.normalize();
 		}
+	}
+
+	private static normalize(): void {
+		ModuleSettings.data.workerDirtCalc.edgesWrap = ModuleSettings.data.main.edgesWrap;
+		ModuleSettings.data.workerDirtCalc.fps = ModuleSettings.data.main.fps;
+		ModuleSettings.data.workerDirtVideo.debug = <boolean>ModuleSettings.data.main.gamingCanvas.debug;
+		ModuleSettings.data.workerDirtVideo.edgesWrap = ModuleSettings.data.main.edgesWrap;
+		ModuleSettings.data.workerDirtVideo.fps = ModuleSettings.data.main.fps;
+		ModuleSettings.data.workerDirtVideo.gammaCorrection = ModuleSettings.data.main.gammaCorrection;
+		ModuleSettings.data.workerDirtVideo.grayscale = ModuleSettings.data.main.grayscale;
+		ModuleSettings.data.workerDirtVideo.renderStyle = <GamingCanvasRenderStyle>ModuleSettings.data.main.gamingCanvas.renderStyle;
 	}
 
 	private static parseURL(): void {
@@ -224,7 +240,7 @@ export class ModuleSettings {
 	}
 
 	public static save(): void {
-		localStorage.setItem(ModuleSettings.localStoragePrefix + ModuleSettings.localStorageSettings, JSON.stringify(ModuleSettings.data));
+		// localStorage.setItem(ModuleSettings.localStoragePrefix + ModuleSettings.localStorageSettings, JSON.stringify(ModuleSettings.data));
 	}
 
 	private static workersUpdate(): void {

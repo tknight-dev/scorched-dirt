@@ -17,15 +17,16 @@ export class ModuleMap {
 			},
 			x: number,
 			xEff: number,
-			y: number;
+			y: number,
+			yLimit: number = (mapSize * 9) / 16;
 
-		console.log(`ModuleMap > generate: mapPixels=${mapSize * mapSize}, mapSize=${mapSize}, seed=${seed}`);
+		// console.log(`ModuleMap > generate: mapPixels=${mapSize * mapSize}, mapSize=${mapSize}, seed=${seed}`);
 
 		// Dirt
 		for (x = 0; x < mapSize; x++) {
 			xEff = x * mapSize;
 
-			for (y = Math.round(mapSize * 0.3); y < mapSize; y++) {
+			for (y = yLimit; y >= Math.min(yLimit - 10, x); y--) {
 				gridData[xEff + y] = 0x1 << mapGridShiftActive;
 			}
 		}

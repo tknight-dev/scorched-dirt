@@ -8,6 +8,9 @@ import { WorkerDirtCalcBus } from './workers/dirt-calc/dirt-calc.bus.js';
 import { WorkerDirtCalcBusOutputDataStats } from './workers/dirt-calc/dirt-calc.model.js';
 import { WorkerDirtVideoBus } from './workers/dirt-video/dirt-video.bus.js';
 import { WorkerDirtVideoBusOutputDataStats } from './workers/dirt-video/dirt-video.model.js';
+import { GamingCanvas } from './gaming-canvas/main/gaming-canvas.js';
+import { GamingCanvasReport } from './gaming-canvas/main/models.js';
+import { GamingCanvasStat, GamingCanvasStatCalcType } from './gaming-canvas/main/stat.js';
 
 /**
  * @author tknight-dev
@@ -17,10 +20,134 @@ import { WorkerDirtVideoBusOutputDataStats } from './workers/dirt-video/dirt-vid
 new EventSource('/esbuild').addEventListener('change', () => location.reload());
 
 class ScorchedDirt {
+	private static statFPS: { [key: string]: number } = {};
 	public static readonly localStoragePrefix: string = 'TKNIGHT_DEV__SCORCHED_DIRT__';
 
-	private static async initialize(): Promise<void> {
-		// DOM
+	private static displayNumber(value: number, precision: number, prefix: string, postfix: string = 'ms'): string {
+		return prefix.padStart(3, '#').replaceAll('#', '&nbsp;') + ' ' + value.toFixed(precision).padStart(8, '#').replaceAll('#', '&nbsp;') + postfix;
+	}
+
+	private static displayNumberAll(stat: GamingCanvasStat, precision: number): string {
+		const displayNumber = ScorchedDirt.displayNumber;
+		return `${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MAX), precision, 'max')}<br>
+${displayNumber(<number>GamingCanvasStat.calc(stat), precision, 'avg')}<br>
+${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.STD_DEV), precision, 'std')}<br>
+${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN), precision, 'min')}`;
+	}
+
+	private static displayStatFPS(value: number = Infinity, hardLimit?: boolean): void {
+		const element: HTMLElement = ModuleDOM.elStatFPS,
+			fpsTarget: number = ModuleSettings.data.main.fps;
+
+		if (value === Infinity) {
+			let fps: number;
+			for (fps of Object.values(ScorchedDirt.statFPS)) {
+				value = Math.min(value, fps);
+			}
+		}
+
+		element.innerText = String(value);
+		if (hardLimit === true) {
+			if (value < ModuleSettings.data.main.fps) {
+				element.style.color = 'red';
+			} else {
+				element.style.color = 'green';
+			}
+		} else {
+			if (value < fpsTarget * 0.8) {
+				element.style.color = 'red';
+			} else if (value < fpsTarget * 0.9) {
+				element.style.color = 'yellow';
+			} else {
+				element.style.color = 'green';
+			}
+		}
+	}
+
+	private static async initializeCallbacks(): Promise<void> {
+		const displayNumber = ScorchedDirt.displayNumber,
+			displayNumberAll = ScorchedDirt.displayNumberAll,
+			precision: number = 2;
+
+		// Stats
+		WorkerDirtCalcBus.setCallbackStats((data: WorkerDirtCalcBusOutputDataStats) => {
+			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
+
+			ModuleDOM.elPerformanceDirtCalcAll.innerHTML = displayNumberAll(all, precision);
+		});
+		WorkerDirtVideoBus.setCallbackStats((data: WorkerDirtVideoBusOutputDataStats) => {
+			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
+
+			ModuleDOM.elPerformanceDirtVideoAll.innerHTML = displayNumberAll(all, precision);
+
+			ScorchedDirt.statFPS['dirt-video'] = data.fps;
+			ScorchedDirt.displayStatFPS();
+		});
+	}
+	private static async initializeDOM(): Promise<void> {
+		ModuleDOM.elButtonEdit.onclick = () => {
+			ModuleGame.viewEditor();
+		};
+
+		ModuleDOM.elButtonPerformance.onclick = () => {
+			ModuleGame.viewPerformance();
+		};
+
+		ModuleDOM.elButtonPlay.onclick = () => {
+			ModuleGame.viewGame();
+		};
+
+		// Fullscreen
+		ModuleDOM.elButtonFullscreen.onclick = async () => {
+			if (ModuleDOM.elButtonFullscreen.classList.contains('active') === true) {
+				ModuleGame.fullscreen = false;
+				await GamingCanvas.setFullscreen(false);
+				await GamingCanvas.wakeLock(false);
+			} else {
+				ModuleGame.fullscreen = true;
+				await GamingCanvas.setFullscreen(true, ModuleDOM.elGame);
+				await GamingCanvas.wakeLock(true);
+			}
+		};
+		GamingCanvas.setCallbackFullscreen((state: boolean) => {
+			if (state === true) {
+				ModuleDOM.elButtonFullscreen.classList.add('active');
+				ModuleDOM.elButtonFullscreen.children[0].classList.remove('fullscreen');
+
+				ModuleDOM.elButtonFullscreen.children[0].classList.add('fullscreen-exit');
+			} else {
+				ModuleDOM.elButtonFullscreen.classList.remove('active');
+				ModuleDOM.elButtonFullscreen.children[0].classList.add('fullscreen');
+
+				ModuleDOM.elButtonFullscreen.children[0].classList.remove('fullscreen-exit');
+
+				// Game menu if not clicked() (EG Escape key)
+				if (ModuleGame.fullscreen !== false) {
+					ModuleGame.gameMenuStart();
+				}
+			}
+
+			ModuleGame.fullscreen = state;
+		});
+
+		// Mute
+		ModuleDOM.elButtonMute.onclick = () => {
+			if (ModuleDOM.elButtonMute.classList.contains('active') === true) {
+				GamingCanvas.audioMute(true);
+				ModuleDOM.elButtonMute.classList.remove('active');
+				ModuleDOM.elButtonMute.children[0].classList.remove('volume');
+
+				ModuleDOM.elButtonMute.children[0].classList.add('volume-mute');
+			} else {
+				GamingCanvas.audioMute(false);
+				ModuleDOM.elButtonMute.classList.add('active');
+				ModuleDOM.elButtonMute.children[0].classList.add('volume');
+
+				ModuleDOM.elButtonMute.children[0].classList.remove('volume-mute');
+			}
+		};
+
+		// Settings
 		ModuleDOM.elMenuSettings.onclick = () => {
 			ModuleDOM.spinner(true);
 
@@ -50,14 +177,6 @@ class ScorchedDirt {
 			ModuleDOM.elSettings.style.display = 'none';
 			ModuleDOM.spinner(false);
 		};
-
-		// Stats
-		WorkerDirtCalcBus.setCallbackStats((data: WorkerDirtCalcBusOutputDataStats) => {
-			// console.log('WorkerDirtCalcBus > stats:', data);
-		});
-		WorkerDirtVideoBus.setCallbackStats((data: WorkerDirtVideoBusOutputDataStats) => {
-			// console.log('WorkerDirtVideoBus > stats:', data);
-		});
 	}
 
 	private static async initializeWorkers(): Promise<void> {
@@ -91,9 +210,11 @@ class ScorchedDirt {
 
 		// Initialize: Game
 		await ModuleGame.initialize();
+		ModuleGame.viewGame(); // Use this until the intro screen is ready
 
 		// Initialize: Final hooks
-		await ScorchedDirt.initialize();
+		await ScorchedDirt.initializeCallbacks();
+		await ScorchedDirt.initializeDOM();
 
 		// Initialize: Workers
 		await ScorchedDirt.initializeWorkers();

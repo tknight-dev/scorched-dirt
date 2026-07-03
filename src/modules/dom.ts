@@ -6,11 +6,24 @@ import packageJSON from '../../package.json' with { type: 'json' };
 
 export class ModuleDOM {
 	public static canvases: HTMLCanvasElement[];
+	public static elButtonEdit: HTMLElement;
+	public static elButtonFullscreen: HTMLElement;
+	public static elButtonMute: HTMLElement;
+	public static elButtonPerformance: HTMLElement;
+	public static elButtonPlay: HTMLElement;
 	public static elError: HTMLElement;
+	public static elGame: HTMLElement;
+	public static elIconsBottom: HTMLElement;
+	public static elIconsTop: HTMLElement;
 	public static elLogo: HTMLElement;
 	public static elMenu: HTMLElement;
 	public static elMenuContent: HTMLElement;
 	public static elMenuSettings: HTMLElement;
+	public static elPerformance: HTMLElement;
+	public static elPerformanceDirtCalc: HTMLElement;
+	public static elPerformanceDirtCalcAll: HTMLElement;
+	public static elPerformanceDirtVideo: HTMLElement;
+	public static elPerformanceDirtVideoAll: HTMLElement;
 	public static elSettings: HTMLElement;
 	public static elSettingsApply: HTMLElement;
 	public static elSettingsCancel: HTMLElement;
@@ -48,12 +61,22 @@ export class ModuleDOM {
 	public static async initialize(): Promise<void> {
 		// General
 		ModuleDOM.elError = <HTMLElement>document.getElementById('error');
+		ModuleDOM.elGame = <HTMLElement>document.getElementById('game');
 		ModuleDOM.elLogo = <HTMLElement>document.getElementById('logo');
 		ModuleDOM.elSpinner = <HTMLElement>document.getElementById('spinner');
 		ModuleDOM.elStatFPS = <HTMLElement>document.getElementById('stat-fps');
 		ModuleDOM.elVideo = <HTMLElement>document.getElementById('video');
 		ModuleDOM.elVideoInteractive = <HTMLElement>document.getElementById('video-interactive');
 		ModuleDOM.elVersion = <HTMLAnchorElement>document.getElementById('version');
+
+		// Icons
+		ModuleDOM.elButtonEdit = <HTMLElement>document.getElementById('button-edit');
+		ModuleDOM.elButtonFullscreen = <HTMLElement>document.getElementById('button-fullscreen');
+		ModuleDOM.elButtonMute = <HTMLElement>document.getElementById('button-mute');
+		ModuleDOM.elButtonPerformance = <HTMLElement>document.getElementById('button-performance');
+		ModuleDOM.elButtonPlay = <HTMLElement>document.getElementById('button-play');
+		ModuleDOM.elIconsBottom = <HTMLElement>document.getElementById('icons-bottom');
+		ModuleDOM.elIconsTop = <HTMLElement>document.getElementById('icons-top');
 
 		// Menu
 		ModuleDOM.elMenu = <HTMLElement>document.getElementById('menu');
@@ -69,6 +92,13 @@ export class ModuleDOM {
 				ModuleDOM.elMenuContent.classList.remove('open');
 			}
 		});
+
+		// Performance
+		ModuleDOM.elPerformance = <HTMLElement>document.getElementById('performance');
+		ModuleDOM.elPerformanceDirtCalc = <HTMLElement>document.getElementById('performance-dirt-calc');
+		ModuleDOM.elPerformanceDirtCalcAll = <HTMLElement>document.getElementById('performance-dirt-calc-all');
+		ModuleDOM.elPerformanceDirtVideo = <HTMLElement>document.getElementById('performance-dirt-video');
+		ModuleDOM.elPerformanceDirtVideoAll = <HTMLElement>document.getElementById('performance-dirt-video-all');
 
 		// Settings: Menu
 		ModuleDOM.elSettings = <HTMLElement>document.getElementById('settings');
