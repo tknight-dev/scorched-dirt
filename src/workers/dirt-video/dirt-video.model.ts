@@ -1,5 +1,6 @@
-import { GamingCanvasReport } from '../../gaming-canvas/main/index.js';
 import { FPS } from '../../models/settings.model.js';
+import { GamingCanvasReport } from '../../gaming-canvas/main/index.js';
+import { Map } from '../../models/map.model.js';
 
 /**
  * @author tknight-dev
@@ -17,14 +18,19 @@ export enum WorkerDirtVideoBusStats {
  */
 export enum WorkerDirtVideoBusInputCmd {
 	INIT,
+	MAP,
 	SETTINGS,
 }
 
-export interface WorkerDirtVideoBusInputDataInit extends WorkerDirtVideoBusInputDataSettings {
+export interface WorkerDirtVideoBusInputDataInit extends WorkerDirtVideoBusInputDataMap, WorkerDirtVideoBusInputDataSettings {
 	gamingCanvasReport: GamingCanvasReport;
 	gridCameraEncoded: Float64Array;
 	gridViewportEncoded: Float64Array;
 	offscreenCanvas: OffscreenCanvas;
+}
+
+export interface WorkerDirtVideoBusInputDataMap {
+	map: Map;
 }
 
 export interface WorkerDirtVideoBusInputDataSettings {
@@ -48,7 +54,10 @@ export enum WorkerDirtVideoBusOutputCmd {
 	STATS,
 }
 
-export interface WorkerDirtVideoBusOutputDataStats {}
+export interface WorkerDirtVideoBusOutputDataStats {
+	all: Float32Array;
+	fps: number;
+}
 
 export interface WorkerDirtVideoBusOutputPayload {
 	cmd: WorkerDirtVideoBusOutputCmd;

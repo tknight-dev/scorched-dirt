@@ -1,8 +1,10 @@
 import { GamingCanvasReport, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
+import { Map } from '../../models/map.model.js';
 import {
 	WorkerDirtVideoBusInputCmd,
 	WorkerDirtVideoBusInputDataInit,
+	WorkerDirtVideoBusInputDataMap,
 	WorkerDirtVideoBusInputDataSettings,
 	WorkerDirtVideoBusInputPayload,
 	WorkerDirtVideoBusOutputCmd,
@@ -24,6 +26,9 @@ self.onmessage = (event: MessageEvent) => {
 		case WorkerDirtVideoBusInputCmd.INIT:
 			WorkerDirtVideoEngine.initialize(<WorkerDirtVideoBusInputDataInit>payload.data);
 			break;
+		case WorkerDirtVideoBusInputCmd.MAP:
+			WorkerDirtVideoEngine.inputMap(<WorkerDirtVideoBusInputDataMap>payload.data);
+			break;
 		case WorkerDirtVideoBusInputCmd.SETTINGS:
 			WorkerDirtVideoEngine.inputSettings(<WorkerDirtVideoBusInputDataSettings>payload.data);
 			break;
@@ -35,6 +40,8 @@ class WorkerDirtVideoEngine {
 	private static gamingCanvasReport: GamingCanvasReport;
 	private static gridCamera: GamingCanvasGridCamera;
 	private static gridViewport: GamingCanvasGridViewport;
+	private static map: Map;
+	private static mapNew: boolean;
 	private static offscreenCanvas: OffscreenCanvas;
 	private static offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
 	private static settings: WorkerDirtVideoBusInputDataSettings;
@@ -62,6 +69,9 @@ class WorkerDirtVideoEngine {
 		WorkerDirtVideoEngine.gridCamera = GamingCanvasGridCamera.from(data.gridCameraEncoded);
 		WorkerDirtVideoEngine.gridViewport = GamingCanvasGridViewport.from(data.gridViewportEncoded);
 
+		// Config: Map
+		WorkerDirtVideoEngine.inputMap(data as WorkerDirtVideoBusInputDataMap);
+
 		// Config: Settings
 		WorkerDirtVideoEngine.inputSettings(data as WorkerDirtVideoBusInputDataSettings);
 
@@ -81,6 +91,11 @@ class WorkerDirtVideoEngine {
 	/*
 	 * Input
 	 */
+	public static inputMap(data: WorkerDirtVideoBusInputDataMap): void {
+		WorkerDirtVideoEngine.map = data.map;
+		WorkerDirtVideoEngine.mapNew = true;
+	}
+
 	public static inputSettings(data: WorkerDirtVideoBusInputDataSettings): void {
 		WorkerDirtVideoEngine.settings = data;
 		WorkerDirtVideoEngine.settingsNew = true;
@@ -97,7 +112,8 @@ class WorkerDirtVideoEngine {
 	 * Main Loop
 	 */
 	private static animationLoop(): void {
-		let gamingCanvasReport: GamingCanvasReport = WorkerDirtVideoEngine.gamingCanvasReport,
+		let frameCount: number = 0,
+			gamingCanvasReport: GamingCanvasReport = WorkerDirtVideoEngine.gamingCanvasReport,
 			gridCamera: GamingCanvasGridCamera = WorkerDirtVideoEngine.gridCamera,
 			gridViewport: GamingCanvasGridViewport = WorkerDirtVideoEngine.gridViewport,
 			offscreenCanvas: OffscreenCanvas = WorkerDirtVideoEngine.offscreenCanvas,
@@ -138,6 +154,7 @@ class WorkerDirtVideoEngine {
 
 				// Start
 				statAll.watchStart();
+				frameCount++;
 
 				// Draw dirt
 
@@ -158,11 +175,13 @@ class WorkerDirtVideoEngine {
 							cmd: WorkerDirtVideoBusOutputCmd.STATS,
 							data: {
 								all: statAllRaw,
+								fps: frameCount,
 							},
 						},
 					],
 					[statAllRaw.buffer],
 				);
+				frameCount = 0;
 			}
 		};
 

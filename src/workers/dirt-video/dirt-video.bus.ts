@@ -1,3 +1,6 @@
+import { GamingCanvas } from '../../gaming-canvas/main/index.js';
+import { GamingCanvasGridCamera, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
+import { Map } from '../../models/map.model.js';
 import {
 	WorkerDirtVideoBusInputCmd,
 	WorkerDirtVideoBusInputDataInit,
@@ -6,8 +9,6 @@ import {
 	WorkerDirtVideoBusOutputDataStats,
 	WorkerDirtVideoBusOutputPayload,
 } from './dirt-video.model.js';
-import { GamingCanvas } from '../../gaming-canvas/main/index.js';
-import { GamingCanvasGridCamera, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
 
 /**
  * @author tknight-dev
@@ -22,6 +23,7 @@ export class WorkerDirtVideoBus {
 		canvas: HTMLCanvasElement,
 		gridCamera: GamingCanvasGridCamera,
 		gridViewport: GamingCanvasGridViewport,
+		map: Map,
 		settings: WorkerDirtVideoBusInputDataSettings,
 		callback: (status: boolean) => void,
 	): void {
@@ -49,6 +51,7 @@ export class WorkerDirtVideoBus {
 							gamingCanvasReport: GamingCanvas.getReport(),
 							gridCameraEncoded: gridCameraEncoded,
 							gridViewportEncoded: gridViewportEncoded,
+							map: map,
 							offscreenCanvas: offscreenCanvas,
 						},
 						settings,

@@ -1,9 +1,13 @@
+import { Map } from './models/map.model.js';
 import { ModuleDOM } from './modules/dom.js';
 import { ModuleGame } from './modules/game.js';
+import { ModuleMap } from './modules/map.js';
 import { ModuleSettings } from './modules/settings.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from './gaming-canvas/modules/grid/index.js';
 import { WorkerDirtCalcBus } from './workers/dirt-calc/dirt-calc.bus.js';
+import { WorkerDirtCalcBusOutputDataStats } from './workers/dirt-calc/dirt-calc.model.js';
 import { WorkerDirtVideoBus } from './workers/dirt-video/dirt-video.bus.js';
+import { WorkerDirtVideoBusOutputDataStats } from './workers/dirt-video/dirt-video.model.js';
 
 /**
  * @author tknight-dev
@@ -46,21 +50,30 @@ class ScorchedDirt {
 			ModuleDOM.elSettings.style.display = 'none';
 			ModuleDOM.spinner(false);
 		};
+
+		// Stats
+		WorkerDirtCalcBus.setCallbackStats((data: WorkerDirtCalcBusOutputDataStats) => {
+			// console.log('WorkerDirtCalcBus > stats:', data);
+		});
+		WorkerDirtVideoBus.setCallbackStats((data: WorkerDirtVideoBusOutputDataStats) => {
+			// console.log('WorkerDirtVideoBus > stats:', data);
+		});
 	}
 
 	private static async initializeWorkers(): Promise<void> {
 		let gridCamera: GamingCanvasGridCamera = ModuleGame.gridCamera,
 			gridViewport: GamingCanvasGridViewport = ModuleGame.gridViewport,
+			map: Map = ModuleMap.mapActive,
 			then: number = performance.now();
 
 		return new Promise<void>((resolve: any) => {
-			WorkerDirtCalcBus.initialize(ModuleSettings.data.workerDirtCalc, () => {
+			WorkerDirtCalcBus.initialize(ModuleSettings.data.workerDirtCalc, map, () => {
 				// Done
 				console.log('WorkerDirtCalcBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
 				// Load video-editor
 				then = performance.now();
-				WorkerDirtVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerDirtVideo, () => {
+				WorkerDirtVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, map, ModuleSettings.data.workerDirtVideo, () => {
 					// Done
 					console.log('WorkerDirtVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
 

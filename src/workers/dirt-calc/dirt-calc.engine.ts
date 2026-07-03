@@ -1,7 +1,9 @@
 import { GamingCanvasStat } from '../../gaming-canvas/main/index.js';
+import { Map } from '../../models/map.model.js';
 import {
 	WorkerDirtCalcBusInputCmd,
 	WorkerDirtCalcBusInputDataInit,
+	WorkerDirtCalcBusInputDataMap,
 	WorkerDirtCalcBusInputDataSettings,
 	WorkerDirtCalcBusInputPayload,
 	WorkerDirtCalcBusOutputCmd,
@@ -23,6 +25,9 @@ self.onmessage = (event: MessageEvent) => {
 		case WorkerDirtCalcBusInputCmd.INIT:
 			WorkerDirtCalcEngine.initialize(<WorkerDirtCalcBusInputDataInit>payload.data);
 			break;
+		case WorkerDirtCalcBusInputCmd.MAP:
+			WorkerDirtCalcEngine.inputMap(<WorkerDirtCalcBusInputDataMap>payload.data);
+			break;
 		case WorkerDirtCalcBusInputCmd.SETTINGS:
 			WorkerDirtCalcEngine.inputSettings(<WorkerDirtCalcBusInputDataSettings>payload.data);
 			break;
@@ -31,6 +36,8 @@ self.onmessage = (event: MessageEvent) => {
 
 class WorkerDirtCalcEngine {
 	private static animationFrameRequest: number;
+	private static map: Map;
+	private static mapNew: boolean;
 	private static settings: WorkerDirtCalcBusInputDataSettings;
 	private static settingsNew: boolean;
 	private static stats: { [key: number]: GamingCanvasStat } = {};
@@ -38,6 +45,9 @@ class WorkerDirtCalcEngine {
 	public static async initialize(data: WorkerDirtCalcBusInputDataInit): Promise<void> {
 		// Stats
 		WorkerDirtCalcEngine.stats[WorkerDirtCalcBusStats.ALL] = new GamingCanvasStat(50);
+
+		// Config: Map
+		WorkerDirtCalcEngine.inputMap(data as WorkerDirtCalcBusInputDataMap);
 
 		// Config: Settings
 		WorkerDirtCalcEngine.inputSettings(data as WorkerDirtCalcBusInputDataSettings);
@@ -55,6 +65,11 @@ class WorkerDirtCalcEngine {
 	/*
 	 * Input
 	 */
+	public static inputMap(data: WorkerDirtCalcBusInputDataMap): void {
+		WorkerDirtCalcEngine.map = data.map;
+		WorkerDirtCalcEngine.mapNew = true;
+	}
+
 	public static inputSettings(data: WorkerDirtCalcBusInputDataSettings): void {
 		WorkerDirtCalcEngine.settings = data;
 		WorkerDirtCalcEngine.settingsNew = true;

@@ -1,6 +1,6 @@
 import { GamingCanvas, GamingCanvasAudioType, GamingCanvasOptions, GamingCanvasOrientation, GamingCanvasRenderStyle } from '../gaming-canvas/main/index.js';
 import { ModuleDOM } from './dom.js';
-import { FPS } from '../models/settings.model.js';
+import { FPS, MapSize, ResolutionWidthPx } from '../models/settings.model.js';
 import { WorkerDirtCalcBus } from '../workers/dirt-calc/dirt-calc.bus.js';
 import { WorkerDirtCalcBusInputDataSettings } from '../workers/dirt-calc/dirt-calc.model.js';
 import { WorkerDirtVideoBus } from '../workers/dirt-video/dirt-video.bus.js';
@@ -9,8 +9,6 @@ import { WorkerDirtVideoBusInputDataSettings } from '../workers/dirt-video/dirt-
 /**
  * @author tknight-dev
  */
-
-export type ResolutionWidthPx = undefined | 320 | 640 | 1280 | 1920 | 2560;
 
 export class ModuleSettings {
 	public static data = {
@@ -29,6 +27,7 @@ export class ModuleSettings {
 			},
 			gammaCorrection: 0,
 			grayscale: false,
+			mapSize: <MapSize>640,
 		},
 		workerDirtCalc: <WorkerDirtCalcBusInputDataSettings>{
 			edgesWrap: true,
@@ -64,6 +63,7 @@ export class ModuleSettings {
 		// Game
 		ModuleSettings.data.main.gamingCanvas.debug = ModuleDOM.elSettingsValueGameDebug.checked;
 		ModuleSettings.data.main.edgesWrap = ModuleDOM.elSettingsValueGameEdgesWrap.checked;
+		ModuleSettings.data.main.mapSize = <MapSize>Number(ModuleDOM.elSettingsValueGameMapSize.value);
 
 		// Graphics
 		ModuleSettings.data.main.gamingCanvas.renderStyle = ModuleDOM.elSettingsValueGraphicsAntialias.checked
@@ -111,6 +111,7 @@ export class ModuleSettings {
 		// Game
 		ModuleDOM.elSettingsValueGameDebug.checked = ModuleSettings.data.main.gamingCanvas.debug === true;
 		ModuleDOM.elSettingsValueGameEdgesWrap.checked = ModuleSettings.data.main.edgesWrap;
+		ModuleDOM.elSettingsValueGameMapSize.value = String(ModuleSettings.data.main.mapSize);
 
 		// Graphics
 		ModuleDOM.elSettingsValueGraphicsAntialias.checked = ModuleSettings.data.main.gamingCanvas.renderStyle === GamingCanvasRenderStyle.ANTIALIAS;

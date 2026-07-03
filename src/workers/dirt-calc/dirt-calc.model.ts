@@ -1,4 +1,5 @@
 import { FPS } from '../../models/settings.model.js';
+import { Map } from '../../models/map.model.js';
 
 /**
  * @author tknight-dev
@@ -16,10 +17,15 @@ export enum WorkerDirtCalcBusStats {
  */
 export enum WorkerDirtCalcBusInputCmd {
 	INIT,
+	MAP,
 	SETTINGS,
 }
 
-export interface WorkerDirtCalcBusInputDataInit extends WorkerDirtCalcBusInputDataSettings {}
+export interface WorkerDirtCalcBusInputDataInit extends WorkerDirtCalcBusInputDataMap, WorkerDirtCalcBusInputDataSettings {}
+
+export interface WorkerDirtCalcBusInputDataMap {
+	map: Map;
+}
 
 export interface WorkerDirtCalcBusInputDataSettings {
 	edgesWrap: boolean;
@@ -39,7 +45,9 @@ export enum WorkerDirtCalcBusOutputCmd {
 	STATS,
 }
 
-export interface WorkerDirtCalcBusOutputDataStats {}
+export interface WorkerDirtCalcBusOutputDataStats {
+	all: Float32Array;
+}
 
 export interface WorkerDirtCalcBusOutputPayload {
 	cmd: WorkerDirtCalcBusOutputCmd;

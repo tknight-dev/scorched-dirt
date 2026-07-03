@@ -1,3 +1,4 @@
+import { Map } from '../../models/map.model.js';
 import {
 	WorkerDirtCalcBusInputCmd,
 	WorkerDirtCalcBusInputDataInit,
@@ -16,7 +17,7 @@ export class WorkerDirtCalcBus {
 	private static callbackStats: (data: WorkerDirtCalcBusOutputDataStats) => void;
 	private static worker: Worker;
 
-	public static initialize(settings: WorkerDirtCalcBusInputDataSettings, callback: (status: boolean) => void): void {
+	public static initialize(settings: WorkerDirtCalcBusInputDataSettings, map: Map, callback: (status: boolean) => void): void {
 		WorkerDirtCalcBus.callbackInitComplete = callback;
 
 		// Spawn the WebWorker
@@ -32,7 +33,12 @@ export class WorkerDirtCalcBus {
 			// Init the webworker
 			WorkerDirtCalcBus.worker.postMessage({
 				cmd: WorkerDirtCalcBusInputCmd.INIT,
-				data: Object.assign(<WorkerDirtCalcBusInputDataInit>{}, settings),
+				data: Object.assign(
+					<WorkerDirtCalcBusInputDataInit>{
+						map: map,
+					},
+					settings,
+				),
 			});
 		} else {
 			alert('Web Workers are not supported by your browser');
