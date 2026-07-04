@@ -14,3 +14,12 @@ export enum FPS {
 export type MapSize = 320 | 640 | 1280 | 1920 | 2560;
 
 export type ResolutionWidthPx = undefined | 320 | 640 | 1280 | 1920 | 2560;
+
+export enum WindStrength {
+	BREEZY = 2,
+	CALM = 1,
+	NONE = 0,
+	STORM = 4,
+	TORNADO = 5,
+	WINDY = 3,
+}

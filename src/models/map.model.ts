@@ -24,4 +24,6 @@ export const mapGridMaskType: number = mapGridValueType << mapGridShiftType;
  */
 export interface Map {
 	grid: GamingCanvasGridUint8ClampedArray;
+	windX: number;
+	windY: number;
 }

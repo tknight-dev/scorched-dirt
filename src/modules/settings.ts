@@ -1,6 +1,6 @@
 import { GamingCanvas, GamingCanvasAudioType, GamingCanvasOptions, GamingCanvasOrientation, GamingCanvasRenderStyle } from '../gaming-canvas/main/index.js';
 import { ModuleDOM } from './dom.js';
-import { FPS, MapSize, ResolutionWidthPx } from '../models/settings.model.js';
+import { FPS, MapSize, ResolutionWidthPx, WindStrength } from '../models/settings.model.js';
 import { WorkerDirtCalcBus } from '../workers/dirt-calc/dirt-calc.bus.js';
 import { WorkerDirtCalcBusInputDataSettings } from '../workers/dirt-calc/dirt-calc.model.js';
 import { WorkerDirtVideoBus } from '../workers/dirt-video/dirt-video.bus.js';
@@ -55,10 +55,14 @@ export class ModuleSettings {
 				gammaCorrection: 0,
 				grayscale: false,
 				mapSize: <MapSize>640,
+				windRandomize: false,
+				windStrength: WindStrength.NONE,
 			},
 			workerDirtCalc: <WorkerDirtCalcBusInputDataSettings>{
 				edgesWrap: true,
 				fps: FPS._60,
+				windRandomize: false,
+				windStrength: WindStrength.NONE,
 			},
 			workerDirtVideo: <WorkerDirtVideoBusInputDataSettings>{
 				debug: false,
@@ -88,6 +92,8 @@ export class ModuleSettings {
 		ModuleSettings.data.main.gamingCanvas.debug = ModuleDOM.elSettingsValueGameDebug.checked;
 		ModuleSettings.data.main.edgesWrap = ModuleDOM.elSettingsValueGameEdgesWrap.checked;
 		ModuleSettings.data.main.mapSize = <MapSize>Number(ModuleDOM.elSettingsValueGameMapSize.value);
+		ModuleSettings.data.main.windRandomize = ModuleDOM.elSettingsValueGameWindRandomize.checked;
+		ModuleSettings.data.main.windStrength = <WindStrength>Number(ModuleDOM.elSettingsValueGameWindStrength.value);
 
 		// Graphics
 		ModuleSettings.data.main.gamingCanvas.renderStyle = ModuleDOM.elSettingsValueGraphicsAntialias.checked
@@ -127,6 +133,8 @@ export class ModuleSettings {
 		ModuleDOM.elSettingsValueGameDebug.checked = ModuleSettings.data.main.gamingCanvas.debug === true;
 		ModuleDOM.elSettingsValueGameEdgesWrap.checked = ModuleSettings.data.main.edgesWrap;
 		ModuleDOM.elSettingsValueGameMapSize.value = String(ModuleSettings.data.main.mapSize);
+		ModuleDOM.elSettingsValueGameWindRandomize.value = ModuleSettings.data.main.windRandomize;
+		ModuleDOM.elSettingsValueGameWindStrength.value = String(ModuleSettings.data.main.windStrength);
 
 		// Graphics
 		ModuleDOM.elSettingsValueGraphicsAntialias.checked = ModuleSettings.data.main.gamingCanvas.renderStyle === GamingCanvasRenderStyle.ANTIALIAS;
@@ -193,6 +201,8 @@ export class ModuleSettings {
 	private static normalize(): void {
 		ModuleSettings.data.workerDirtCalc.edgesWrap = ModuleSettings.data.main.edgesWrap;
 		ModuleSettings.data.workerDirtCalc.fps = ModuleSettings.data.main.fps;
+		ModuleSettings.data.workerDirtCalc.windRandomize = ModuleSettings.data.main.windRandomize;
+		ModuleSettings.data.workerDirtCalc.windStrength = ModuleSettings.data.main.windStrength;
 		ModuleSettings.data.workerDirtVideo.debug = <boolean>ModuleSettings.data.main.gamingCanvas.debug;
 		ModuleSettings.data.workerDirtVideo.edgesWrap = ModuleSettings.data.main.edgesWrap;
 		ModuleSettings.data.workerDirtVideo.fps = ModuleSettings.data.main.fps;

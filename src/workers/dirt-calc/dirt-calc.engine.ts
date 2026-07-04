@@ -1,5 +1,8 @@
-import { GamingCanvasStat } from '../../gaming-canvas/main/index.js';
+import { GamingCanvasDoubleLinkedList, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
+import { GamingCanvasGridUint8ClampedArray } from '../../gaming-canvas/modules/grid/grid.js';
 import { Map } from '../../models/map.model.js';
+import { WindStrength } from '../../models/settings.model.js';
+import { Shot, ShotType } from '../../models/weapon.models.js';
 import {
 	WorkerDirtCalcBusInputCmd,
 	WorkerDirtCalcBusInputDataInit,
@@ -31,6 +34,9 @@ self.onmessage = (event: MessageEvent) => {
 		case WorkerDirtCalcBusInputCmd.SETTINGS:
 			WorkerDirtCalcEngine.inputSettings(<WorkerDirtCalcBusInputDataSettings>payload.data);
 			break;
+		case WorkerDirtCalcBusInputCmd.SHOT:
+			WorkerDirtCalcEngine.inputShot(<Shot>payload.data);
+			break;
 	}
 };
 
@@ -40,6 +46,7 @@ class WorkerDirtCalcEngine {
 	private static mapNew: boolean;
 	private static settings: WorkerDirtCalcBusInputDataSettings;
 	private static settingsNew: boolean;
+	private static shots: GamingCanvasDoubleLinkedList<Shot> = new GamingCanvasDoubleLinkedList();
 	private static stats: { [key: number]: GamingCanvasStat } = {};
 
 	public static async initialize(data: WorkerDirtCalcBusInputDataInit): Promise<void> {
@@ -75,6 +82,11 @@ class WorkerDirtCalcEngine {
 		WorkerDirtCalcEngine.settingsNew = true;
 	}
 
+	public static inputShot(data: Shot): void {
+		console.log('shot', data);
+		WorkerDirtCalcEngine.shots.pushStart(data);
+	}
+
 	/*
 	 * Output: to Main Thread
 	 */
@@ -86,8 +98,14 @@ class WorkerDirtCalcEngine {
 	 * Main Loop
 	 */
 	private static animationLoop(): void {
-		let settingsEdgesWrap: boolean,
+		let grid: GamingCanvasGridUint8ClampedArray,
+			gridData: Uint8ClampedArray,
+			map: Map,
+			settingsEdgesWrap: boolean,
 			settingsFPMS: number = 16.666,
+			settingsWindRandomize: boolean,
+			settingsWindStrength: WindStrength,
+			shots: GamingCanvasDoubleLinkedList<Shot> = WorkerDirtCalcEngine.shots,
 			statAll: GamingCanvasStat = WorkerDirtCalcEngine.stats[WorkerDirtCalcBusStats.ALL],
 			statAllRaw: Float32Array,
 			timestampDelta: number,
@@ -101,12 +119,24 @@ class WorkerDirtCalcEngine {
 			// Timing
 			timestampDelta = timestampNow - timestampThen;
 
-			// Settings
+			// Config
+			if (WorkerDirtCalcEngine.mapNew === true) {
+				WorkerDirtCalcEngine.mapNew = false;
+
+				map = WorkerDirtCalcEngine.map;
+
+				// Grid
+				grid = map.grid;
+				gridData = grid.data;
+			}
+
 			if (WorkerDirtCalcEngine.settingsNew === true) {
 				WorkerDirtCalcEngine.settingsNew = false;
 
 				settingsEdgesWrap = WorkerDirtCalcEngine.settings.edgesWrap;
 				settingsFPMS = Math.round((1000 / WorkerDirtCalcEngine.settings.fps) * 1000) / 1000;
+				settingsWindRandomize = WorkerDirtCalcEngine.settings.windRandomize;
+				settingsWindStrength = WorkerDirtCalcEngine.settings.windStrength;
 			}
 
 			// Animate

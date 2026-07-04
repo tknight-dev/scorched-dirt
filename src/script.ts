@@ -11,6 +11,7 @@ import { WorkerDirtVideoBusOutputDataStats } from './workers/dirt-video/dirt-vid
 import { GamingCanvas } from './gaming-canvas/main/gaming-canvas.js';
 import { GamingCanvasReport } from './gaming-canvas/main/models.js';
 import { GamingCanvasStat, GamingCanvasStatCalcType } from './gaming-canvas/main/stat.js';
+import { ModuleInput } from './modules/input.js';
 
 /**
  * @author tknight-dev
@@ -211,6 +212,9 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 		// Initialize: Game
 		await ModuleGame.initialize();
 		ModuleGame.viewGame(); // Use this until the intro screen is ready
+
+		// Initialize: Inputs
+		await ModuleInput.initialize();
 
 		// Initialize: Final hooks
 		await ScorchedDirt.initializeCallbacks();

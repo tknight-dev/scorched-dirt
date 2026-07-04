@@ -1,4 +1,5 @@
 import { Map } from '../../models/map.model.js';
+import { Shot } from '../../models/weapon.models.js';
 import {
 	WorkerDirtCalcBusInputCmd,
 	WorkerDirtCalcBusInputDataInit,
@@ -73,6 +74,13 @@ export class WorkerDirtCalcBus {
 	public static sendSettings(data: WorkerDirtCalcBusInputDataSettings): void {
 		WorkerDirtCalcBus.worker.postMessage({
 			cmd: WorkerDirtCalcBusInputCmd.SETTINGS,
+			data: data,
+		});
+	}
+
+	public static sendShot(data: Shot): void {
+		WorkerDirtCalcBus.worker.postMessage({
+			cmd: WorkerDirtCalcBusInputCmd.SHOT,
 			data: data,
 		});
 	}

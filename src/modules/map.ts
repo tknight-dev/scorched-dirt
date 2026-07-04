@@ -14,6 +14,8 @@ export class ModuleMap {
 			gridData: Uint8ClampedArray = grid.data,
 			map: Map = {
 				grid: grid,
+				windX: 0,
+				windY: 0,
 			},
 			x: number,
 			xEff: number,

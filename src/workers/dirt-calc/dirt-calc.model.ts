@@ -1,5 +1,6 @@
-import { FPS } from '../../models/settings.model.js';
+import { FPS, WindStrength } from '../../models/settings.model.js';
 import { Map } from '../../models/map.model.js';
+import { Shot } from '../../models/weapon.models.js';
 
 /**
  * @author tknight-dev
@@ -19,6 +20,7 @@ export enum WorkerDirtCalcBusInputCmd {
 	INIT,
 	MAP,
 	SETTINGS,
+	SHOT,
 }
 
 export interface WorkerDirtCalcBusInputDataInit extends WorkerDirtCalcBusInputDataMap, WorkerDirtCalcBusInputDataSettings {}
@@ -30,11 +32,13 @@ export interface WorkerDirtCalcBusInputDataMap {
 export interface WorkerDirtCalcBusInputDataSettings {
 	edgesWrap: boolean;
 	fps: FPS;
+	windRandomize: false;
+	windStrength: WindStrength.NONE;
 }
 
 export interface WorkerDirtCalcBusInputPayload {
 	cmd: WorkerDirtCalcBusInputCmd;
-	data: WorkerDirtCalcBusInputDataInit | WorkerDirtCalcBusInputDataSettings;
+	data: Shot | WorkerDirtCalcBusInputDataInit | WorkerDirtCalcBusInputDataMap | WorkerDirtCalcBusInputDataSettings;
 }
 
 /*
