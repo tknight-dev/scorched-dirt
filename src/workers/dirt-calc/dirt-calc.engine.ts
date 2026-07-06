@@ -1,8 +1,9 @@
-import { GamingCanvasDoubleLinkedList, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
+import { GamingCanvasDoubleLinkedList, GamingCanvasDoubleLinkedListNode, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
 import { GamingCanvasGridUint8ClampedArray } from '../../gaming-canvas/modules/grid/grid.js';
-import { Map } from '../../models/map.model.js';
+import { Map, mapGridMaskActive } from '../../models/map.model.js';
+import { Physics, PhysicsCalculated } from '../../models/physics.model.js';
 import { WindStrength } from '../../models/settings.model.js';
-import { Shot, ShotType } from '../../models/weapon.models.js';
+import { Shot, ShotType, shotTypeProperties, ShotTypeProperty } from '../../models/weapon.models.js';
 import {
 	WorkerDirtCalcBusInputCmd,
 	WorkerDirtCalcBusInputDataInit,
@@ -35,7 +36,7 @@ self.onmessage = (event: MessageEvent) => {
 			WorkerDirtCalcEngine.inputSettings(<WorkerDirtCalcBusInputDataSettings>payload.data);
 			break;
 		case WorkerDirtCalcBusInputCmd.SHOT:
-			WorkerDirtCalcEngine.inputShot(<Shot>payload.data);
+			WorkerDirtCalcEngine.inputShot(<Physics<Shot>>payload.data);
 			break;
 	}
 };
@@ -46,7 +47,7 @@ class WorkerDirtCalcEngine {
 	private static mapNew: boolean;
 	private static settings: WorkerDirtCalcBusInputDataSettings;
 	private static settingsNew: boolean;
-	private static shots: GamingCanvasDoubleLinkedList<Shot> = new GamingCanvasDoubleLinkedList();
+	private static shots: GamingCanvasDoubleLinkedList<PhysicsCalculated<Shot>> = new GamingCanvasDoubleLinkedList();
 	private static stats: { [key: number]: GamingCanvasStat } = {};
 
 	public static async initialize(data: WorkerDirtCalcBusInputDataInit): Promise<void> {
@@ -74,6 +75,7 @@ class WorkerDirtCalcEngine {
 	 */
 	public static inputMap(data: WorkerDirtCalcBusInputDataMap): void {
 		WorkerDirtCalcEngine.map = data.map;
+		WorkerDirtCalcEngine.map.grid = GamingCanvasGridUint8ClampedArray.from(data.map.grid.data);
 		WorkerDirtCalcEngine.mapNew = true;
 	}
 
@@ -82,9 +84,20 @@ class WorkerDirtCalcEngine {
 		WorkerDirtCalcEngine.settingsNew = true;
 	}
 
-	public static inputShot(data: Shot): void {
-		console.log('shot', data);
-		WorkerDirtCalcEngine.shots.pushStart(data);
+	public static inputShot(data: Physics<Shot>): void {
+		const dataFormated: PhysicsCalculated<Shot> = <any>data;
+
+		// TODO, calculated this from the position of the tank fireing.. down the road
+
+		// dataFormated.arctanOriginal = GamingCanvasConstPI_1_000 - Math.atan((tankY - pointerY) / (tankX - pointerX));
+		// if (dataFormated.arctanOriginal > GamingCanvasConstPI_1_000) {
+		// 	dataFormated.arctanOriginal -= GamingCanvasConstPI_1_000;
+		// }
+		// dataFormated.arctanOriginal = Math.max(Math.min(dataFormated.arctanOriginal, GamingCanvasConstPI_0_875), GamingCanvasConstPI_0_125); // limit range of arc.. set higher up than this engine
+		dataFormated.posX = dataFormated.posXOriginal;
+		dataFormated.posY = dataFormated.posYOriginal;
+
+		WorkerDirtCalcEngine.shots.pushEnd(dataFormated);
 	}
 
 	/*
@@ -98,26 +111,38 @@ class WorkerDirtCalcEngine {
 	 * Main Loop
 	 */
 	private static animationLoop(): void {
-		let grid: GamingCanvasGridUint8ClampedArray,
-			gridData: Uint8ClampedArray,
+		let dirtActive: GamingCanvasDoubleLinkedList<PhysicsCalculated<null>> = new GamingCanvasDoubleLinkedList(), // Needs grid to optimize calcs
+			calcDistance: number,
+			calcExplosiveRadius: number,
+			grid: GamingCanvasGridUint8ClampedArray,
+			gridClone: GamingCanvasGridUint8ClampedArray,
+			gridData: Uint8ClampedArray, // AKA dirt inactive
+			gridSideLength: number,
+			gridUpdated: boolean,
 			map: Map,
 			settingsEdgesWrap: boolean,
 			settingsFPMS: number = 16.666,
 			settingsWindRandomize: boolean,
 			settingsWindStrength: WindStrength,
-			shots: GamingCanvasDoubleLinkedList<Shot> = WorkerDirtCalcEngine.shots,
+			shot: GamingCanvasDoubleLinkedListNode<PhysicsCalculated<Shot>> | undefined,
+			shotComplete: boolean,
+			shotTypeProperty: ShotTypeProperty,
+			shots: GamingCanvasDoubleLinkedList<PhysicsCalculated<Shot>> = WorkerDirtCalcEngine.shots,
 			statAll: GamingCanvasStat = WorkerDirtCalcEngine.stats[WorkerDirtCalcBusStats.ALL],
 			statAllRaw: Float32Array,
-			timestampDelta: number,
+			timestampCpu: number = performance.now(),
+			timestampFPSDelta: number,
+			timestampFPSThen: number = performance.now(),
 			timestampStats: number = performance.now(),
-			timestampThen: number = performance.now();
+			x: number,
+			xIndex: number,
+			xPos: number,
+			y: number,
+			yPos: number;
 
 		const go = (timestampNow: number) => {
 			// Always start the request for the next frame first!
 			WorkerDirtCalcEngine.animationFrameRequest = requestAnimationFrame(go);
-
-			// Timing
-			timestampDelta = timestampNow - timestampThen;
 
 			// Config
 			if (WorkerDirtCalcEngine.mapNew === true) {
@@ -128,6 +153,7 @@ class WorkerDirtCalcEngine {
 				// Grid
 				grid = map.grid;
 				gridData = grid.data;
+				gridSideLength = grid.sideLength;
 			}
 
 			if (WorkerDirtCalcEngine.settingsNew === true) {
@@ -140,14 +166,42 @@ class WorkerDirtCalcEngine {
 			}
 
 			// Animate
-			if (timestampDelta > settingsFPMS) {
-				// More accurately calculate for more stable FPS
-				timestampThen = timestampNow - (timestampDelta % settingsFPMS);
+			if (timestampNow - timestampCpu > 12) {
+				timestampCpu = timestampNow;
 
 				// Start
 				statAll.watchStart();
 
-				// Calc
+				// Calc: Shots
+				shot = shots.start;
+				while (shot !== undefined) {
+					shotComplete = true; // Just explode
+					shotTypeProperty = shotTypeProperties[shot.data.payload.type];
+					xPos = shot.data.posX;
+					yPos = shot.data.posY;
+
+					// Dirt: Activate
+					calcExplosiveRadius = shotTypeProperty.explosive_radius;
+					for (x = xPos - calcExplosiveRadius; x < xPos + calcExplosiveRadius; x++) {
+						xIndex = x * gridSideLength;
+
+						for (y = yPos - calcExplosiveRadius; y < yPos + calcExplosiveRadius; y++) {
+							if ((gridData[xIndex + y] & mapGridMaskActive) !== 0) {
+								calcDistance = ((x - xPos) ** 2 + (y - yPos) ** 2) ** 0.5;
+								if (calcDistance <= calcExplosiveRadius) {
+									gridUpdated = true;
+									gridData[xIndex + y] &= ~mapGridMaskActive; // Remove active state
+								}
+							}
+						}
+					}
+
+					// Done
+					if (shotComplete === true) {
+						shots.remove(<any>shot);
+					}
+					shot = shot.next;
+				}
 
 				// Done
 				statAll.watchStop();
@@ -166,10 +220,34 @@ class WorkerDirtCalcEngine {
 							cmd: WorkerDirtCalcBusOutputCmd.STATS,
 							data: {
 								all: statAllRaw,
+								shotCount: shots.length,
 							},
 						},
 					],
 					[statAllRaw.buffer],
+				);
+			}
+
+			// Video
+			timestampFPSDelta = timestampNow - timestampFPSThen;
+			if (gridUpdated === true && timestampFPSDelta >= settingsFPMS) {
+				gridUpdated = false;
+
+				// More accurately calculate for more stable FPS
+				timestampFPSThen = timestampNow - (timestampFPSDelta % settingsFPMS);
+
+				// Upload grid
+				gridClone = grid.clone();
+				WorkerDirtCalcEngine.post(
+					[
+						{
+							cmd: WorkerDirtCalcBusOutputCmd.DATA,
+							data: {
+								grid: gridClone,
+							},
+						},
+					],
+					[gridClone.data.buffer],
 				);
 			}
 		};

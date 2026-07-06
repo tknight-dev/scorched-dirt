@@ -1,6 +1,7 @@
 import { GamingCanvas, GamingCanvasReport } from '../../gaming-canvas/main/index.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
 import { Map } from '../../models/map.model.js';
+import { WorkerDirtCalcBusOutputData } from '../dirt-calc/dirt-calc.model.js';
 import {
 	WorkerDirtVideoBusInputCmd,
 	WorkerDirtVideoBusInputDataInit,
@@ -90,6 +91,16 @@ export class WorkerDirtVideoBus {
 	/*
 	 * Send
 	 */
+	public static sendCalc(data: WorkerDirtCalcBusOutputData): void {
+		WorkerDirtVideoBus.worker.postMessage(
+			{
+				cmd: WorkerDirtVideoBusInputCmd.CALC,
+				data: data,
+			},
+			[data.grid.data.buffer],
+		);
+	}
+
 	public static sendMap(data: Map): void {
 		WorkerDirtVideoBus.worker.postMessage({
 			cmd: WorkerDirtVideoBusInputCmd.MAP,

@@ -1,13 +1,7 @@
-import {
-	GamingCanvas,
-	GamingCanvasRenderStyle,
-	GamingCanvasReport,
-	GamingCanvasStat,
-	GamingCanvasDoubleLinkedList,
-	GamingCanvasUtilArrayExpand,
-} from '../../gaming-canvas/main/index.js';
+import { GamingCanvas, GamingCanvasRenderStyle, GamingCanvasReport, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
 import { GamingCanvasGridCamera, GamingCanvasGridUint8ClampedArray, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
-import { Map, mapGridMaskActive } from '../../models/map.model.js';
+import { Map, mapGridMaskActive, mapGridMaskType, Solid } from '../../models/map.model.js';
+import { WorkerDirtCalcBusOutputData } from '../dirt-calc/dirt-calc.model.js';
 import {
 	WorkerDirtVideoBusInputCmd,
 	WorkerDirtVideoBusInputDataInit,
@@ -30,6 +24,9 @@ self.onmessage = (event: MessageEvent) => {
 	const payload: WorkerDirtVideoBusInputPayload = event.data;
 
 	switch (payload.cmd) {
+		case WorkerDirtVideoBusInputCmd.CALC:
+			WorkerDirtVideoEngine.inputCalc(<WorkerDirtCalcBusOutputData>payload.data);
+			break;
 		case WorkerDirtVideoBusInputCmd.INIT:
 			WorkerDirtVideoEngine.initialize(<WorkerDirtVideoBusInputDataInit>payload.data);
 			break;
@@ -50,6 +47,8 @@ self.onmessage = (event: MessageEvent) => {
 
 class WorkerDirtVideoEngine {
 	private static animationFrameRequest: number;
+	private static calc: WorkerDirtCalcBusOutputData;
+	private static calcNew: boolean;
 	private static map: Map;
 	private static mapNew: boolean;
 	private static offscreenCanvas: OffscreenCanvas;
@@ -102,8 +101,15 @@ class WorkerDirtVideoEngine {
 	/*
 	 * Input
 	 */
+	public static inputCalc(data: WorkerDirtCalcBusOutputData): void {
+		WorkerDirtVideoEngine.calc = data;
+		WorkerDirtVideoEngine.calc.grid = GamingCanvasGridUint8ClampedArray.from(data.grid.data);
+		WorkerDirtVideoEngine.calcNew = true;
+	}
+
 	public static inputMap(data: Map): void {
 		WorkerDirtVideoEngine.map = data;
+		WorkerDirtVideoEngine.map.grid = GamingCanvasGridUint8ClampedArray.from(data.grid.data);
 		WorkerDirtVideoEngine.mapNew = true;
 	}
 
@@ -177,7 +183,10 @@ class WorkerDirtVideoEngine {
 			timestampThen: number = performance.now(),
 			x: number,
 			y: number,
-			yInitial: number;
+			y1: number = -10,
+			y2: number = -10,
+			yMax: number,
+			yType: number = -10;
 
 		const go = (timestampNow: number) => {
 			// Always start the request for the next frame first!
@@ -187,6 +196,16 @@ class WorkerDirtVideoEngine {
 			timestampDelta = timestampNow - timestampThen;
 
 			// Config
+			if (WorkerDirtVideoEngine.calcNew === true) {
+				WorkerDirtVideoEngine.calcNew = false;
+
+				cacheUpdate = true;
+				grid = WorkerDirtVideoEngine.calc.grid;
+				gridData = grid.data;
+				gridSideLength = grid.sideLength;
+				gridYLimit = (gridSideLength * 9) / 16;
+			}
+
 			if (WorkerDirtVideoEngine.mapNew === true) {
 				WorkerDirtVideoEngine.mapNew = false;
 
@@ -254,38 +273,94 @@ class WorkerDirtVideoEngine {
 				cacheUpdate = false;
 
 				gridViewportCellSizePxEff = gridViewportCellSizePx + 1;
+				gridViewportCellSizePxEff = 2;
 
 				// Draw: Dirt Inactive
-				cacheDirtInactiveContext.fillStyle = '#8d4513';
+				cacheDirtInactiveContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
 				for (x = gridViewportWidthStartEff; x < gridViewportWidthStopEff; x++) {
-					gridIndex = x * gridSideLength + Math.min(gridYLimit, gridViewportHeightStopEff);
-					yInitial = -1;
+					gridIndex = x * gridSideLength;
+					y1 = -10;
+					y2 = -10;
+					yMax = Math.min(gridYLimit, gridViewportHeightStopEff);
+					yType = -10;
 
-					// Optimize draw speed by finding the total height of inactive dirt pixels and draw them as one shape rather than individual pixels
-					for (y = gridViewportHeightStopEff; y >= gridViewportHeightStartEff; gridIndex--, y--) {
-						if ((gridData[gridIndex] & mapGridMaskActive) !== 0) {
-							if (yInitial === -1) {
-								yInitial = y;
+					for (y = gridViewportHeightStartEff; y <= yMax; gridIndex++, y++) {
+						// Draw segments of dirt instead of individual pixels
+
+						if ((gridData[gridIndex] & mapGridMaskActive) !== 0 && y !== yMax) {
+							// Draw previous segment type
+							if (yType !== (gridData[gridIndex] & mapGridMaskType)) {
+								if (y2 === -10) {
+									cacheDirtInactiveContext.fillRect(
+										(x - gridViewportWidthStart) * gridViewportCellSizePx,
+										(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+										gridViewportCellSizePxEff,
+										gridViewportCellSizePxEff,
+									);
+								} else {
+									cacheDirtInactiveContext.fillRect(
+										(x - gridViewportWidthStart) * gridViewportCellSizePx,
+										(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+										gridViewportCellSizePxEff,
+										gridViewportCellSizePx * (y2 - y1) + 1,
+									);
+								}
+
+								y1 = -10;
+								y2 = -10;
+								yType = -10;
 							}
-						} else if (yInitial === -1) {
-							break;
-						} else {
-							cacheDirtInactiveContext.fillRect(
-								(x - gridViewportWidthStart) * gridViewportCellSizePx,
-								(y - gridViewportHeightStart) * gridViewportCellSizePx,
-								gridViewportCellSizePxEff,
-								gridViewportCellSizePxEff * (yInitial - y),
-							);
 
-							yInitial = -1;
-							break;
+							// Start new segment type
+							if (y1 === -10) {
+								y1 = y;
+								yType = gridData[gridIndex] & mapGridMaskType;
+
+								switch (yType) {
+									case Solid.DIRT:
+										cacheDirtInactiveContext.fillStyle = '#905015';
+										break;
+									case Solid.LAVA:
+										cacheDirtInactiveContext.fillStyle = '#ff0000';
+										break;
+									case Solid.ROCK:
+										cacheDirtInactiveContext.fillStyle = '#505050';
+										break;
+									case Solid.WATER:
+										cacheDirtInactiveContext.fillStyle = '#0000ff';
+										break;
+								}
+							} else {
+								y2 = y;
+							}
+						} else if (y1 !== -10) {
+							// Draw current segment type
+							if (y2 === -10) {
+								cacheDirtInactiveContext.fillRect(
+									(x - gridViewportWidthStart) * gridViewportCellSizePx,
+									(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+									gridViewportCellSizePxEff,
+									gridViewportCellSizePxEff,
+								);
+							} else {
+								cacheDirtInactiveContext.fillRect(
+									(x - gridViewportWidthStart) * gridViewportCellSizePx,
+									(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+									gridViewportCellSizePxEff,
+									gridViewportCellSizePx * (y2 - y1) + 1,
+								);
+							}
+
+							y1 = -10;
+							y2 = -10;
+							yType = -10;
 						}
 					}
 				}
 			}
 
 			// Animate
-			if (timestampDelta > settingsFPMS) {
+			if (timestampDelta >= settingsFPMS) {
 				// More accurately calculate for more stable FPS
 				timestampThen = timestampNow - (timestampDelta % settingsFPMS);
 

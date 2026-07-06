@@ -17,6 +17,7 @@ export enum WorkerDirtVideoBusStats {
  * Input
  */
 export enum WorkerDirtVideoBusInputCmd {
+	CALC,
 	INIT,
 	MAP,
 	REPORT,

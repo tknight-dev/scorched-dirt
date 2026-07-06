@@ -1,6 +1,8 @@
 import { FPS, WindStrength } from '../../models/settings.model.js';
 import { Map } from '../../models/map.model.js';
 import { Shot } from '../../models/weapon.models.js';
+import { Physics } from '../../models/physics.model.js';
+import { GamingCanvasGridUint8ClampedArray } from '../../gaming-canvas/modules/grid/grid.js';
 
 /**
  * @author tknight-dev
@@ -38,22 +40,28 @@ export interface WorkerDirtCalcBusInputDataSettings {
 
 export interface WorkerDirtCalcBusInputPayload {
 	cmd: WorkerDirtCalcBusInputCmd;
-	data: Shot | WorkerDirtCalcBusInputDataInit | WorkerDirtCalcBusInputDataMap | WorkerDirtCalcBusInputDataSettings;
+	data: Physics<Shot> | WorkerDirtCalcBusInputDataInit | WorkerDirtCalcBusInputDataMap | WorkerDirtCalcBusInputDataSettings;
 }
 
 /*
  * Output
  */
 export enum WorkerDirtCalcBusOutputCmd {
+	DATA,
 	INIT_COMPLETE,
 	STATS,
 }
 
+export interface WorkerDirtCalcBusOutputData {
+	grid: GamingCanvasGridUint8ClampedArray;
+}
+
 export interface WorkerDirtCalcBusOutputDataStats {
 	all: Float32Array;
+	shotCount: number;
 }
 
 export interface WorkerDirtCalcBusOutputPayload {
 	cmd: WorkerDirtCalcBusOutputCmd;
-	data: boolean | WorkerDirtCalcBusOutputDataStats;
+	data: boolean | WorkerDirtCalcBusOutputData | WorkerDirtCalcBusOutputDataStats;
 }

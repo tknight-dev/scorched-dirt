@@ -1,5 +1,5 @@
 import { GamingCanvasGridUint8ClampedArray } from '../gaming-canvas/modules/grid/index.js';
-import { Map, mapGridShiftActive } from '../models/map.model.js';
+import { Map, mapGridShiftActive, Solid } from '../models/map.model.js';
 import { MapSize } from '../models/settings.model.js';
 
 /**
@@ -18,7 +18,7 @@ export class ModuleMap {
 				windY: 0,
 			},
 			x: number,
-			xEff: number,
+			xIndex: number,
 			y: number,
 			yLimit: number = (mapSize * 9) / 16;
 
@@ -26,10 +26,26 @@ export class ModuleMap {
 
 		// Dirt
 		for (x = 0; x < mapSize; x++) {
-			xEff = x * mapSize;
+			xIndex = x * mapSize;
 
 			for (y = yLimit; y >= Math.min(yLimit - 10, x); y--) {
-				gridData[xEff + y] = 0x1 << mapGridShiftActive;
+				gridData[xIndex + y] = (0x1 << mapGridShiftActive) | Solid.DIRT;
+			}
+		}
+		for (x = (mapSize / 2) | 0; x < mapSize; x++) {
+			xIndex = x * mapSize;
+
+			for (y = (yLimit * 0.25) | 0; y < ((yLimit * 0.5) | 0); y++) {
+				gridData[xIndex + y] = (0x1 << mapGridShiftActive) | Solid.DIRT;
+			}
+		}
+
+		// Rock
+		for (x = (mapSize / 2) | 0; x < mapSize; x++) {
+			xIndex = x * mapSize;
+
+			for (y = (yLimit * 0.2) | 0; y < ((yLimit * 0.25) | 0); y++) {
+				gridData[xIndex + y] = (0x1 << mapGridShiftActive) | Solid.ROCK;
 			}
 		}
 

@@ -9,9 +9,9 @@ import { WorkerDirtCalcBusOutputDataStats } from './workers/dirt-calc/dirt-calc.
 import { WorkerDirtVideoBus } from './workers/dirt-video/dirt-video.bus.js';
 import { WorkerDirtVideoBusOutputDataStats } from './workers/dirt-video/dirt-video.model.js';
 import { GamingCanvas } from './gaming-canvas/main/gaming-canvas.js';
-import { GamingCanvasReport } from './gaming-canvas/main/models.js';
 import { GamingCanvasStat, GamingCanvasStatCalcType } from './gaming-canvas/main/stat.js';
 import { ModuleInput } from './modules/input.js';
+import { ModuleBridge } from './modules/bridge.js';
 
 /**
  * @author tknight-dev
@@ -75,6 +75,7 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
 
 			ModuleDOM.elPerformanceDirtCalcAll.innerHTML = displayNumberAll(all, precision);
+			ModuleDOM.elPerformanceDirtShotCount.innerHTML = displayNumber(data.shotCount, 0, '', '');
 		});
 		WorkerDirtVideoBus.setCallbackStats((data: WorkerDirtVideoBusOutputDataStats) => {
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
@@ -217,6 +218,7 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 		await ModuleInput.initialize();
 
 		// Initialize: Final hooks
+		await ModuleBridge.initialize();
 		await ScorchedDirt.initializeCallbacks();
 		await ScorchedDirt.initializeDOM();
 
