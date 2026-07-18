@@ -1,6 +1,6 @@
-import { Map } from '../../models/map.model.js';
-import { Physics } from '../../models/physics.model.js';
-import { Shot } from '../../models/weapon.models.js';
+import { ParticleInitial } from '../../models/physics.model.js';
+import { Weapon } from '../../models/weapon.model.js';
+import { World } from '../../models/world.model.js';
 import {
 	WorkerDirtCalcBusInputCmd,
 	WorkerDirtCalcBusInputDataInit,
@@ -21,7 +21,7 @@ export class WorkerDirtCalcBus {
 	private static callbackStats: (data: WorkerDirtCalcBusOutputDataStats) => void;
 	private static worker: Worker;
 
-	public static initialize(settings: WorkerDirtCalcBusInputDataSettings, map: Map, callback: (status: boolean) => void): void {
+	public static initialize(settings: WorkerDirtCalcBusInputDataSettings, world: World, callback: (status: boolean) => void): void {
 		WorkerDirtCalcBus.callbackInitComplete = callback;
 
 		// Spawn the WebWorker
@@ -39,7 +39,7 @@ export class WorkerDirtCalcBus {
 				cmd: WorkerDirtCalcBusInputCmd.INIT,
 				data: Object.assign(
 					<WorkerDirtCalcBusInputDataInit>{
-						map: map,
+						world: world,
 					},
 					settings,
 				),
@@ -86,9 +86,9 @@ export class WorkerDirtCalcBus {
 		});
 	}
 
-	public static sendShot(data: Physics<Shot>): void {
+	public static sendWeapon(data: ParticleInitial<Weapon>): void {
 		WorkerDirtCalcBus.worker.postMessage({
-			cmd: WorkerDirtCalcBusInputCmd.SHOT,
+			cmd: WorkerDirtCalcBusInputCmd.WEAPON,
 			data: data,
 		});
 	}

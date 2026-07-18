@@ -1,7 +1,7 @@
-import { Map } from './models/map.model.js';
+import { World } from './models/world.model.js';
 import { ModuleDOM } from './modules/dom.js';
 import { ModuleGame } from './modules/game.js';
-import { ModuleMap } from './modules/map.js';
+import { ModuleWorld } from './modules/world.js';
 import { ModuleSettings } from './modules/settings.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from './gaming-canvas/modules/grid/index.js';
 import { WorkerDirtCalcBus } from './workers/dirt-calc/dirt-calc.bus.js';
@@ -75,7 +75,7 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
 
 			ModuleDOM.elPerformanceDirtCalcAll.innerHTML = displayNumberAll(all, precision);
-			ModuleDOM.elPerformanceDirtShotCount.innerHTML = displayNumber(data.shotCount, 0, '', '');
+			ModuleDOM.elPerformanceDirtWeaponCount.innerHTML = displayNumber(data.particleCountWeapons, 0, '', '');
 		});
 		WorkerDirtVideoBus.setCallbackStats((data: WorkerDirtVideoBusOutputDataStats) => {
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
@@ -184,17 +184,17 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 	private static async initializeWorkers(): Promise<void> {
 		let gridCamera: GamingCanvasGridCamera = ModuleGame.gridCamera,
 			gridViewport: GamingCanvasGridViewport = ModuleGame.gridViewport,
-			map: Map = ModuleMap.mapActive,
-			then: number = performance.now();
+			then: number = performance.now(),
+			world: World = ModuleWorld.worldActive;
 
 		return new Promise<void>((resolve: any) => {
-			WorkerDirtCalcBus.initialize(ModuleSettings.data.workerDirtCalc, map, () => {
+			WorkerDirtCalcBus.initialize(ModuleSettings.data.workerDirtCalc, world, () => {
 				// Done
 				console.log('WorkerDirtCalcBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
 				// Load video-editor
 				then = performance.now();
-				WorkerDirtVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, map, ModuleSettings.data.workerDirtVideo, () => {
+				WorkerDirtVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerDirtVideo, world, () => {
 					// Done
 					console.log('WorkerDirtVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
 

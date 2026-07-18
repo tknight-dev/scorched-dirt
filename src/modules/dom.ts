@@ -22,7 +22,7 @@ export class ModuleDOM {
 	public static elPerformance: HTMLElement;
 	public static elPerformanceDirtCalc: HTMLElement;
 	public static elPerformanceDirtCalcAll: HTMLElement;
-	public static elPerformanceDirtShotCount: HTMLElement;
+	public static elPerformanceDirtWeaponCount: HTMLElement;
 	public static elPerformanceDirtVideo: HTMLElement;
 	public static elPerformanceDirtVideoAll: HTMLElement;
 	public static elSettings: HTMLElement;
@@ -42,7 +42,7 @@ export class ModuleDOM {
 	public static elSettingsValueAudioVolumeMusicReadout: HTMLInputElement;
 	public static elSettingsValueGameDebug: HTMLInputElement;
 	public static elSettingsValueGameEdgesWrap: HTMLInputElement;
-	public static elSettingsValueGameMapSize: HTMLInputElement;
+	public static elSettingsValueGameWorldSize: HTMLInputElement;
 	public static elSettingsValueGameWindRandomize: HTMLInputElement;
 	public static elSettingsValueGameWindStrength: HTMLInputElement;
 	public static elSettingsValueGraphicsAntialias: HTMLInputElement;
@@ -100,7 +100,7 @@ export class ModuleDOM {
 		ModuleDOM.elPerformance = <HTMLElement>document.getElementById('performance');
 		ModuleDOM.elPerformanceDirtCalc = <HTMLElement>document.getElementById('performance-dirt-calc');
 		ModuleDOM.elPerformanceDirtCalcAll = <HTMLElement>document.getElementById('performance-dirt-calc-all');
-		ModuleDOM.elPerformanceDirtShotCount = <HTMLElement>document.getElementById('performance-dirt-calc-shot-count');
+		ModuleDOM.elPerformanceDirtWeaponCount = <HTMLElement>document.getElementById('performance-dirt-calc-weapon-count');
 		ModuleDOM.elPerformanceDirtVideo = <HTMLElement>document.getElementById('performance-dirt-video');
 		ModuleDOM.elPerformanceDirtVideoAll = <HTMLElement>document.getElementById('performance-dirt-video-all');
 
@@ -166,7 +166,7 @@ export class ModuleDOM {
 		// Settings: Values - Game
 		ModuleDOM.elSettingsValueGameDebug = <HTMLInputElement>document.getElementById('settings-value-game-debug');
 		ModuleDOM.elSettingsValueGameEdgesWrap = <HTMLInputElement>document.getElementById('settings-value-game-edges-wrap');
-		ModuleDOM.elSettingsValueGameMapSize = <HTMLInputElement>document.getElementById('settings-value-map-size');
+		ModuleDOM.elSettingsValueGameWorldSize = <HTMLInputElement>document.getElementById('settings-value-world-size');
 		ModuleDOM.elSettingsValueGameWindRandomize = <HTMLInputElement>document.getElementById('settings-value-wind-randomize');
 		ModuleDOM.elSettingsValueGameWindStrength = <HTMLInputElement>document.getElementById('settings-value-wind-strength');
 

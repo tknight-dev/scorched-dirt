@@ -1,8 +1,8 @@
 import { GamingCanvas } from '../gaming-canvas/main/index.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from '../gaming-canvas/modules/grid/index.js';
-import { Map } from '../models/map.model.js';
+import { World } from '../models/world.model.js';
 import { ModuleDOM } from './dom.js';
-import { ModuleMap } from './map.js';
+import { ModuleWorld } from './world.js';
 import { ModuleSettings } from './settings.js';
 
 /**
@@ -40,8 +40,8 @@ export class ModuleGame {
 		ModuleGame.gridViewport.applyZ(ModuleGame.gridCamera, GamingCanvas.getReport());
 		ModuleGame.gridViewport.apply(ModuleGame.gridCamera, false);
 
-		// Map
-		ModuleMap.mapActive = ModuleMap.generate(ModuleSettings.data.main.mapSize, Math.round(Math.random() * 1000000));
+		// World
+		ModuleWorld.worldActive = ModuleWorld.generate(ModuleSettings.data.main.worldSize, Math.round(Math.random() * 1000000));
 	}
 
 	public static viewGame(): void {

@@ -2,8 +2,8 @@ import { GamingCanvasFIFOQueue } from '../gaming-canvas/main/fifo-queue.js';
 import { GamingCanvas } from '../gaming-canvas/main/gaming-canvas.js';
 import { GamingCanvasInputMouse, GamingCanvasInputMouseAction } from '../gaming-canvas/main/index.js';
 import { GamingCanvasInput, GamingCanvasInputType } from '../gaming-canvas/main/inputs.js';
-import { PhysicsType } from '../models/physics.model.js';
-import { ShotType } from '../models/weapon.models.js';
+import { particleEncodingValueHealth, ParticleType } from '../models/physics.model.js';
+import { WeaponType } from '../models/weapon.model.js';
 import { WorkerDirtCalcBus } from '../workers/dirt-calc/dirt-calc.bus.js';
 
 /**
@@ -50,30 +50,32 @@ export class ModuleInput {
 				inputDown = propriatary.down;
 
 				if (inputDown === true) {
-					WorkerDirtCalcBus.sendShot({
-						arctanOriginal: Math.PI / 2, // 90deg
+					WorkerDirtCalcBus.sendWeapon({
+						arctan: Math.PI / 2, // 90deg (up)
+						health: particleEncodingValueHealth,
 						payload: {
-							power_percentage: 100,
+							powerPercentage: 0.9,
 							tankId: 0,
-							type: ShotType.STANDARD,
 						},
-						posXOriginal: propriatary.position.x,
-						posYOriginal: propriatary.position.y,
-						physicalType: PhysicsType.WEAPON,
+						posX: propriatary.position.x,
+						posY: propriatary.position.y,
+						type: ParticleType.WEAPON,
+						typeValue: WeaponType.STANDARD,
 					});
 				}
 			} else if (propriatary.action === GamingCanvasInputMouseAction.MOVE) {
 				if (inputDown === true) {
-					WorkerDirtCalcBus.sendShot({
-						arctanOriginal: Math.PI / 2, // 90deg
+					WorkerDirtCalcBus.sendWeapon({
+						arctan: Math.PI / 2, // 90deg (up)
+						health: particleEncodingValueHealth,
 						payload: {
-							power_percentage: 100,
+							powerPercentage: 0.9,
 							tankId: 0,
-							type: ShotType.STANDARD,
 						},
-						posXOriginal: propriatary.position.x,
-						posYOriginal: propriatary.position.y,
-						physicalType: PhysicsType.WEAPON,
+						posX: propriatary.position.x,
+						posY: propriatary.position.y,
+						type: ParticleType.WEAPON,
+						typeValue: WeaponType.STANDARD,
 					});
 				}
 			}

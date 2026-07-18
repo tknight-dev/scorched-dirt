@@ -1070,7 +1070,7 @@ sass@^1.71.1:
   dependencies:
     chokidar "^4.0.0"
     immutable "^5.0.2"
-    source-map-js ">=0.6.2 <2.0.0"
+    source-world-js ">=0.6.2 <2.0.0"
   optionalDependencies:
     "@parcel/watcher" "^2.4.1"
 
@@ -1113,9 +1113,9 @@ simple-update-notifier@^2.0.0:
   dependencies:
     semver "^7.5.3"
 
-"source-map-js@>=0.6.2 <2.0.0":
+"source-world-js@>=0.6.2 <2.0.0":
   version "1.2.1"
-  resolved "https://registry.yarnpkg.com/source-map-js/-/source-map-js-1.2.1.tgz#1ce5650fddd87abc099eda37dcff024c2667ae46"
+  resolved "https://registry.yarnpkg.com/source-world-js/-/source-world-js-1.2.1.tgz#1ce5650fddd87abc099eda37dcff024c2667ae46"
   integrity sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==
 
 streamx@^2.12.5, streamx@^2.15.0, streamx@^2.25.0:
@@ -1148,7 +1148,7 @@ string-width@^4.1.0:
 string-width@^5.0.1, string-width@^5.1.2:
   version "5.1.2"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-5.1.2.tgz#14f8daec6d81e7221d2a357e668cab73bdbca794"
-  integrity sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqMap+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA==
+  integrity sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqWorld+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA==
   dependencies:
     eastasianwidth "^0.2.0"
     emoji-regex "^9.2.2"

@@ -1,6 +1,6 @@
 import { GamingCanvas, GamingCanvasAudioType, GamingCanvasOptions, GamingCanvasOrientation, GamingCanvasRenderStyle } from '../gaming-canvas/main/index.js';
 import { ModuleDOM } from './dom.js';
-import { FPS, MapSize, ResolutionWidthPx, WindStrength } from '../models/settings.model.js';
+import { FPS, WorldSize, ResolutionWidthPx, WindStrength } from '../models/settings.model.js';
 import { WorkerDirtCalcBus } from '../workers/dirt-calc/dirt-calc.bus.js';
 import { WorkerDirtCalcBusInputDataSettings } from '../workers/dirt-calc/dirt-calc.model.js';
 import { WorkerDirtVideoBus } from '../workers/dirt-video/dirt-video.bus.js';
@@ -54,7 +54,7 @@ export class ModuleSettings {
 				},
 				gammaCorrection: 0,
 				grayscale: false,
-				mapSize: <MapSize>640,
+				worldSize: <WorldSize>640,
 				windRandomize: false,
 				windStrength: WindStrength.NONE,
 			},
@@ -91,7 +91,7 @@ export class ModuleSettings {
 		// Game
 		ModuleSettings.data.main.gamingCanvas.debug = ModuleDOM.elSettingsValueGameDebug.checked;
 		ModuleSettings.data.main.edgesWrap = ModuleDOM.elSettingsValueGameEdgesWrap.checked;
-		ModuleSettings.data.main.mapSize = <MapSize>Number(ModuleDOM.elSettingsValueGameMapSize.value);
+		ModuleSettings.data.main.worldSize = <WorldSize>Number(ModuleDOM.elSettingsValueGameWorldSize.value);
 		ModuleSettings.data.main.windRandomize = ModuleDOM.elSettingsValueGameWindRandomize.checked;
 		ModuleSettings.data.main.windStrength = <WindStrength>Number(ModuleDOM.elSettingsValueGameWindStrength.value);
 
@@ -132,7 +132,7 @@ export class ModuleSettings {
 		// Game
 		ModuleDOM.elSettingsValueGameDebug.checked = ModuleSettings.data.main.gamingCanvas.debug === true;
 		ModuleDOM.elSettingsValueGameEdgesWrap.checked = ModuleSettings.data.main.edgesWrap;
-		ModuleDOM.elSettingsValueGameMapSize.value = String(ModuleSettings.data.main.mapSize);
+		ModuleDOM.elSettingsValueGameWorldSize.value = String(ModuleSettings.data.main.worldSize);
 		ModuleDOM.elSettingsValueGameWindRandomize.value = ModuleSettings.data.main.windRandomize;
 		ModuleDOM.elSettingsValueGameWindStrength.value = String(ModuleSettings.data.main.windStrength);
 

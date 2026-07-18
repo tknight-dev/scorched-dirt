@@ -1,6 +1,22 @@
 import { GamingCanvas, GamingCanvasRenderStyle, GamingCanvasReport, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
-import { GamingCanvasGridCamera, GamingCanvasGridUint8ClampedArray, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
-import { Map, mapGridMaskActive, mapGridMaskType, Solid } from '../../models/map.model.js';
+import { GamingCanvasGridCamera, GamingCanvasGridUint32Array, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
+import {
+	particleEncodingMaskHealth,
+	particleEncodingMaskType,
+	particleEncodingMaskTypeValue,
+	particleEncodingMaskX,
+	particleEncodingMaskY,
+	particleEncodingShiftHealth,
+	particleEncodingShiftType,
+	particleEncodingShiftTypeValue,
+	particleEncodingShiftX,
+	ParticleInitial,
+	ParticleInitialBase,
+	ParticleType,
+} from '../../models/physics.model.js';
+import { Tank } from '../../models/tank.model.js';
+import { Weapon } from '../../models/weapon.model.js';
+import { Solid, SolidType, World, worldEncodingMaskType } from '../../models/world.model.js';
 import { WorkerDirtCalcBusOutputData } from '../dirt-calc/dirt-calc.model.js';
 import {
 	WorkerDirtVideoBusInputCmd,
@@ -30,9 +46,6 @@ self.onmessage = (event: MessageEvent) => {
 		case WorkerDirtVideoBusInputCmd.INIT:
 			WorkerDirtVideoEngine.initialize(<WorkerDirtVideoBusInputDataInit>payload.data);
 			break;
-		case WorkerDirtVideoBusInputCmd.MAP:
-			WorkerDirtVideoEngine.inputMap(<Map>payload.data);
-			break;
 		case WorkerDirtVideoBusInputCmd.REPORT:
 			WorkerDirtVideoEngine.inputReport(<GamingCanvasReport>payload.data);
 			break;
@@ -42,15 +55,19 @@ self.onmessage = (event: MessageEvent) => {
 		case WorkerDirtVideoBusInputCmd.VIEW:
 			WorkerDirtVideoEngine.inputView(<WorkerDirtVideoBusInputDataView>payload.data);
 			break;
+		case WorkerDirtVideoBusInputCmd.WORLD:
+			WorkerDirtVideoEngine.inputWorld(<World>payload.data);
+			break;
 	}
 };
 
 class WorkerDirtVideoEngine {
 	private static animationFrameRequest: number;
-	private static calc: WorkerDirtCalcBusOutputData;
+	private static calcGrid: GamingCanvasGridUint32Array | undefined;
+	private static calcParticles: Uint32Array | undefined;
 	private static calcNew: boolean;
-	private static map: Map;
-	private static mapNew: boolean;
+	private static world: World;
+	private static worldNew: boolean;
 	private static offscreenCanvas: OffscreenCanvas;
 	private static offscreenCanvasContext: OffscreenCanvasRenderingContext2D;
 	private static offscreenCanvasContextOptions: any = {
@@ -69,9 +86,6 @@ class WorkerDirtVideoEngine {
 	private static viewNew: boolean;
 
 	public static async initialize(data: WorkerDirtVideoBusInputDataInit): Promise<void> {
-		gridCameraEncoded: Float64Array;
-		gridViewportEncoded: Float64Array;
-
 		// Config: Canvas
 		WorkerDirtVideoEngine.offscreenCanvas = data.offscreenCanvas;
 		WorkerDirtVideoEngine.offscreenCanvasContext = data.offscreenCanvas.getContext(
@@ -81,7 +95,7 @@ class WorkerDirtVideoEngine {
 
 		// Config
 		WorkerDirtVideoEngine.inputReport(data.report);
-		WorkerDirtVideoEngine.inputMap(data.map);
+		WorkerDirtVideoEngine.inputWorld(data.world);
 		WorkerDirtVideoEngine.inputSettings(data as WorkerDirtVideoBusInputDataSettings);
 		WorkerDirtVideoEngine.inputView(data as WorkerDirtVideoBusInputDataView);
 
@@ -102,15 +116,20 @@ class WorkerDirtVideoEngine {
 	 * Input
 	 */
 	public static inputCalc(data: WorkerDirtCalcBusOutputData): void {
-		WorkerDirtVideoEngine.calc = data;
-		WorkerDirtVideoEngine.calc.grid = GamingCanvasGridUint8ClampedArray.from(data.grid.data);
+		if (data.grid !== undefined) {
+			WorkerDirtVideoEngine.calcGrid = GamingCanvasGridUint32Array.from(data.grid.data);
+		}
+		if (data.particles !== undefined) {
+			WorkerDirtVideoEngine.calcParticles = data.particles;
+		}
+
 		WorkerDirtVideoEngine.calcNew = true;
 	}
 
-	public static inputMap(data: Map): void {
-		WorkerDirtVideoEngine.map = data;
-		WorkerDirtVideoEngine.map.grid = GamingCanvasGridUint8ClampedArray.from(data.grid.data);
-		WorkerDirtVideoEngine.mapNew = true;
+	public static inputWorld(data: World): void {
+		WorkerDirtVideoEngine.world = data;
+		WorkerDirtVideoEngine.world.grid = GamingCanvasGridUint32Array.from(data.grid.data);
+		WorkerDirtVideoEngine.worldNew = true;
 	}
 
 	public static inputReport(data: GamingCanvasReport): void {
@@ -139,16 +158,22 @@ class WorkerDirtVideoEngine {
 	 * Main Loop
 	 */
 	private static animationLoop(): void {
-		let cacheDirtInactive: OffscreenCanvas = new OffscreenCanvas(1, 1),
-			cacheDirtInactiveContext: OffscreenCanvasRenderingContext2D = cacheDirtInactive.getContext(
+		let cacheGrid: OffscreenCanvas = new OffscreenCanvas(1, 1),
+			cacheGridContext: OffscreenCanvasRenderingContext2D = cacheGrid.getContext(
 				'2d',
 				WorkerDirtVideoEngine.offscreenCanvasContextOptions,
 			) as OffscreenCanvasRenderingContext2D,
-			cacheUpdate: boolean,
+			cacheGridUpdate: boolean,
+			cacheParticles: OffscreenCanvas = new OffscreenCanvas(1, 1),
+			cacheParticlesContext: OffscreenCanvasRenderingContext2D = cacheParticles.getContext(
+				'2d',
+				WorkerDirtVideoEngine.offscreenCanvasContextOptions,
+			) as OffscreenCanvasRenderingContext2D,
+			cacheParticlesUpdate: boolean,
 			frameCount: number = 0,
-			grid: GamingCanvasGridUint8ClampedArray,
+			grid: GamingCanvasGridUint32Array,
 			gridCamera: GamingCanvasGridCamera = new GamingCanvasGridCamera(),
-			gridData: Uint8ClampedArray,
+			gridData: Uint32Array,
 			gridDataValue: number,
 			gridIndex: number,
 			gridSideLength: number,
@@ -164,11 +189,17 @@ class WorkerDirtVideoEngine {
 			gridViewportWidthStartPx: number,
 			gridViewportWidthStopEff: number,
 			gridYLimit: number,
-			map: Map,
+			health: number,
+			i: number,
 			offscreenCanvas: OffscreenCanvas = WorkerDirtVideoEngine.offscreenCanvas,
 			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerDirtVideoEngine.offscreenCanvasContext,
 			offscreenCanvasHeightPx: number = -1,
 			offscreenCanvasWidthPx: number = -1,
+			particleInitialBase: ParticleInitialBase,
+			particlesEncoded: Uint32Array,
+			particlesSolid: Map<number, ParticleInitialBase> = new Map(),
+			particlesTank: Map<number, ParticleInitialBase> = new Map(),
+			particlesWeapon: Map<number, ParticleInitialBase> = new Map(),
 			report: GamingCanvasReport = WorkerDirtVideoEngine.report,
 			settingsDebug: boolean,
 			settingsEdgesWrap: boolean,
@@ -181,6 +212,7 @@ class WorkerDirtVideoEngine {
 			timestampDelta: number,
 			timestampStats: number = performance.now(),
 			timestampThen: number = performance.now(),
+			world: World,
 			x: number,
 			y: number,
 			y1: number = -10,
@@ -199,28 +231,70 @@ class WorkerDirtVideoEngine {
 			if (WorkerDirtVideoEngine.calcNew === true) {
 				WorkerDirtVideoEngine.calcNew = false;
 
-				cacheUpdate = true;
-				grid = WorkerDirtVideoEngine.calc.grid;
-				gridData = grid.data;
-				gridSideLength = grid.sideLength;
-				gridYLimit = (gridSideLength * 9) / 16;
+				if (WorkerDirtVideoEngine.calcGrid !== undefined) {
+					cacheGridUpdate = true;
+					grid = WorkerDirtVideoEngine.calcGrid;
+					gridData = grid.data;
+					gridSideLength = grid.sideLength;
+					gridYLimit = (gridSideLength * 9) / 16;
+				}
+
+				if (WorkerDirtVideoEngine.calcParticles !== undefined) {
+					cacheParticlesUpdate = true;
+					particlesEncoded = WorkerDirtVideoEngine.calcParticles;
+					particlesSolid.clear();
+					particlesWeapon.clear();
+
+					// Decode
+					for (i = 0; i < particlesEncoded.length; i++) {
+						x = (particlesEncoded[i] & particleEncodingMaskX) >> particleEncodingShiftX;
+						y = particlesEncoded[i] & particleEncodingMaskY;
+
+						// Calc
+						gridIndex = x * gridSideLength + y;
+						particleInitialBase = {
+							health: (particlesEncoded[i] & particleEncodingMaskHealth) >> particleEncodingShiftHealth,
+							type: ParticleType.SOLID,
+							typeValue: (particlesEncoded[i] & particleEncodingMaskTypeValue) >> particleEncodingShiftTypeValue,
+						};
+
+						// Set
+						switch ((particlesEncoded[i] & particleEncodingMaskType) >> particleEncodingShiftType) {
+							case ParticleType.SOLID:
+								particleInitialBase.type = ParticleType.SOLID;
+								particlesSolid.set(gridIndex, particleInitialBase);
+								break;
+							case ParticleType.TANK:
+								particleInitialBase.type = ParticleType.TANK;
+								particlesTank.set(gridIndex, particleInitialBase);
+								break;
+							case ParticleType.WEAPON:
+								particleInitialBase.type = ParticleType.WEAPON;
+								particlesWeapon.set(gridIndex, particleInitialBase);
+								break;
+						}
+					}
+				}
 			}
 
-			if (WorkerDirtVideoEngine.mapNew === true) {
-				WorkerDirtVideoEngine.mapNew = false;
+			if (WorkerDirtVideoEngine.worldNew === true) {
+				WorkerDirtVideoEngine.worldNew = false;
+				cacheGridUpdate = true;
+				cacheParticlesUpdate = true;
 
 				// Grid
-				grid = WorkerDirtVideoEngine.map.grid;
+				grid = WorkerDirtVideoEngine.world.grid;
 				gridData = grid.data;
 				gridSideLength = grid.sideLength;
 				gridYLimit = (gridSideLength * 9) / 16;
 
-				map = WorkerDirtVideoEngine.map;
+				world = WorkerDirtVideoEngine.world;
 			}
 
 			if (WorkerDirtVideoEngine.settingsNew === true) {
 				WorkerDirtVideoEngine.settingsNew = false;
-				cacheUpdate = true;
+				cacheGridUpdate = true;
+				cacheParticlesUpdate = true;
 
 				settingsDebug = WorkerDirtVideoEngine.settings.debug;
 				settingsEdgesWrap = WorkerDirtVideoEngine.settings.edgesWrap;
@@ -232,25 +306,29 @@ class WorkerDirtVideoEngine {
 
 			if (WorkerDirtVideoEngine.reportNew === true) {
 				WorkerDirtVideoEngine.reportNew = false;
-				cacheUpdate = true;
+				cacheGridUpdate = true;
+				cacheParticlesUpdate = true;
 
 				report = WorkerDirtVideoEngine.report;
 				if (offscreenCanvasHeightPx !== report.canvasHeight || offscreenCanvasWidthPx !== report.canvasWidth) {
 					offscreenCanvasHeightPx = report.canvasHeight;
 					offscreenCanvasWidthPx = report.canvasWidth;
 
-					cacheDirtInactive.height = offscreenCanvasHeightPx;
-					cacheDirtInactive.width = offscreenCanvasWidthPx;
+					cacheGrid.height = offscreenCanvasHeightPx;
+					cacheGrid.width = offscreenCanvasWidthPx;
+					cacheParticles.height = offscreenCanvasHeightPx;
+					cacheParticles.width = offscreenCanvasWidthPx;
 					offscreenCanvas.height = offscreenCanvasHeightPx;
 					offscreenCanvas.width = offscreenCanvasWidthPx;
 
-					GamingCanvas.renderStyle([cacheDirtInactiveContext, offscreenCanvasContext], settingsRenderStyle);
+					GamingCanvas.renderStyle([cacheGridContext, offscreenCanvasContext], settingsRenderStyle);
 				}
 			}
 
 			if (WorkerDirtVideoEngine.viewNew === true) {
 				WorkerDirtVideoEngine.viewNew = false;
-				cacheUpdate = true;
+				cacheGridUpdate = true;
+				cacheParticlesUpdate = true;
 
 				// Camera
 				gridCamera.decode(WorkerDirtVideoEngine.view.gridCameraEncoded);
@@ -269,14 +347,14 @@ class WorkerDirtVideoEngine {
 			}
 
 			// Cache
-			if (cacheUpdate === true) {
-				cacheUpdate = false;
+			if (cacheGridUpdate === true) {
+				cacheGridUpdate = false;
 
 				gridViewportCellSizePxEff = gridViewportCellSizePx + 1;
 				gridViewportCellSizePxEff = 2;
 
 				// Draw: Dirt Inactive
-				cacheDirtInactiveContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
+				cacheGridContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
 				for (x = gridViewportWidthStartEff; x < gridViewportWidthStopEff; x++) {
 					gridIndex = x * gridSideLength;
 					y1 = -10;
@@ -287,18 +365,18 @@ class WorkerDirtVideoEngine {
 					for (y = gridViewportHeightStartEff; y <= yMax; gridIndex++, y++) {
 						// Draw segments of dirt instead of individual pixels
 
-						if ((gridData[gridIndex] & mapGridMaskActive) !== 0 && y !== yMax) {
+						if (gridData[gridIndex] !== 0 && y !== yMax) {
 							// Draw previous segment type
-							if (yType !== (gridData[gridIndex] & mapGridMaskType)) {
+							if (yType !== (gridData[gridIndex] & worldEncodingMaskType)) {
 								if (y2 === -10) {
-									cacheDirtInactiveContext.fillRect(
+									cacheGridContext.fillRect(
 										(x - gridViewportWidthStart) * gridViewportCellSizePx,
 										(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
 										gridViewportCellSizePxEff,
 										gridViewportCellSizePxEff,
 									);
 								} else {
-									cacheDirtInactiveContext.fillRect(
+									cacheGridContext.fillRect(
 										(x - gridViewportWidthStart) * gridViewportCellSizePx,
 										(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
 										gridViewportCellSizePxEff,
@@ -314,20 +392,20 @@ class WorkerDirtVideoEngine {
 							// Start new segment type
 							if (y1 === -10) {
 								y1 = y;
-								yType = gridData[gridIndex] & mapGridMaskType;
+								yType = gridData[gridIndex] & worldEncodingMaskType;
 
 								switch (yType) {
-									case Solid.DIRT:
-										cacheDirtInactiveContext.fillStyle = '#905015';
+									case SolidType.DIRT:
+										cacheGridContext.fillStyle = '#905015';
 										break;
-									case Solid.LAVA:
-										cacheDirtInactiveContext.fillStyle = '#ff0000';
+									case SolidType.LAVA:
+										cacheGridContext.fillStyle = '#ff0000';
 										break;
-									case Solid.ROCK:
-										cacheDirtInactiveContext.fillStyle = '#505050';
+									case SolidType.ROCK:
+										cacheGridContext.fillStyle = '#505050';
 										break;
-									case Solid.WATER:
-										cacheDirtInactiveContext.fillStyle = '#0000ff';
+									case SolidType.WATER:
+										cacheGridContext.fillStyle = '#0000ff';
 										break;
 								}
 							} else {
@@ -336,14 +414,14 @@ class WorkerDirtVideoEngine {
 						} else if (y1 !== -10) {
 							// Draw current segment type
 							if (y2 === -10) {
-								cacheDirtInactiveContext.fillRect(
+								cacheGridContext.fillRect(
 									(x - gridViewportWidthStart) * gridViewportCellSizePx,
 									(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
 									gridViewportCellSizePxEff,
 									gridViewportCellSizePxEff,
 								);
 							} else {
-								cacheDirtInactiveContext.fillRect(
+								cacheGridContext.fillRect(
 									(x - gridViewportWidthStart) * gridViewportCellSizePx,
 									(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
 									gridViewportCellSizePxEff,
@@ -359,6 +437,75 @@ class WorkerDirtVideoEngine {
 				}
 			}
 
+			if (cacheParticlesUpdate === true) {
+				cacheParticlesUpdate = false;
+
+				gridViewportCellSizePxEff = gridViewportCellSizePx + 1;
+				gridViewportCellSizePxEff = 2;
+
+				// Clear
+				cacheParticlesContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
+
+				// Draw: Solids
+				for (gridIndex of particlesSolid.keys()) {
+					y = gridIndex % gridSideLength;
+					x = (gridIndex - y) / gridSideLength;
+
+					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
+						particleInitialBase = <ParticleInitialBase>particlesSolid.get(gridIndex);
+
+						switch (particleInitialBase.typeValue) {
+							case SolidType.DIRT:
+								cacheParticlesContext.fillStyle = '#905015';
+								break;
+							case SolidType.LAVA:
+								cacheParticlesContext.fillStyle = '#ff0000';
+								break;
+							case SolidType.ROCK:
+								cacheParticlesContext.fillStyle = '#505050';
+								break;
+							case SolidType.WATER:
+								cacheParticlesContext.fillStyle = '#0000ff';
+								break;
+						}
+					}
+
+					cacheParticlesContext.fillRect(
+						(x - gridViewportWidthStart) * gridViewportCellSizePx,
+						(y - gridViewportHeightStart) * gridViewportCellSizePx,
+						gridViewportCellSizePxEff,
+						gridViewportCellSizePxEff,
+					);
+				}
+
+				// // Draw: Tanks
+				// for(gridIndex of particlesTank.keys()) {
+				// 	y = gridIndex % gridSideLength;
+				// 	x = (gridIndex - y) / gridSideLength;
+
+				// 	if(x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
+				// 		particleInitialBase = <ParticleInitialBase>particlesTank.get(gridIndex);
+				// 	}
+				// }
+
+				// Draw: Weapons
+				cacheParticlesContext.fillStyle = '#ffffff';
+				for (gridIndex of particlesWeapon.keys()) {
+					y = gridIndex % gridSideLength;
+					x = (gridIndex - y) / gridSideLength;
+
+					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
+						particleInitialBase = <ParticleInitialBase>particlesWeapon.get(gridIndex);
+						cacheParticlesContext.fillRect(
+							(x - gridViewportWidthStart) * gridViewportCellSizePx,
+							(y - gridViewportHeightStart) * gridViewportCellSizePx,
+							gridViewportCellSizePxEff,
+							gridViewportCellSizePxEff,
+						);
+					}
+				}
+			}
+
 			// Animate
 			if (timestampDelta >= settingsFPMS) {
 				// More accurately calculate for more stable FPS
@@ -370,7 +517,8 @@ class WorkerDirtVideoEngine {
 				offscreenCanvasContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
 
 				// Draw: Dirt Inactive
-				offscreenCanvasContext.drawImage(cacheDirtInactive, 0, 0);
+				offscreenCanvasContext.drawImage(cacheGrid, 0, 0);
+				offscreenCanvasContext.drawImage(cacheParticles, 0, 0);
 
 				// Done
 				statAll.watchStop();

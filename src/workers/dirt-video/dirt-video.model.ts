@@ -1,6 +1,6 @@
 import { FPS } from '../../models/settings.model.js';
 import { GamingCanvasRenderStyle, GamingCanvasReport } from '../../gaming-canvas/main/index.js';
-import { Map } from '../../models/map.model.js';
+import { World } from '../../models/world.model.js';
 
 /**
  * @author tknight-dev
@@ -19,16 +19,16 @@ export enum WorkerDirtVideoBusStats {
 export enum WorkerDirtVideoBusInputCmd {
 	CALC,
 	INIT,
-	MAP,
 	REPORT,
 	SETTINGS,
 	VIEW,
+	WORLD,
 }
 
 export interface WorkerDirtVideoBusInputDataInit extends WorkerDirtVideoBusInputDataSettings, WorkerDirtVideoBusInputDataView {
-	map: Map;
 	offscreenCanvas: OffscreenCanvas;
 	report: GamingCanvasReport;
+	world: World;
 }
 
 export interface WorkerDirtVideoBusInputDataSettings {
@@ -47,7 +47,7 @@ export interface WorkerDirtVideoBusInputDataView {
 
 export interface WorkerDirtVideoBusInputPayload {
 	cmd: WorkerDirtVideoBusInputCmd;
-	data: GamingCanvasReport | Map | WorkerDirtVideoBusInputDataInit | WorkerDirtVideoBusInputDataSettings;
+	data: GamingCanvasReport | WorkerDirtVideoBusInputDataInit | WorkerDirtVideoBusInputDataSettings | World;
 }
 
 /*

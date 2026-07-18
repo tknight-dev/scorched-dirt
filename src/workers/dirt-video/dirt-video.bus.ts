@@ -1,6 +1,6 @@
 import { GamingCanvas, GamingCanvasReport } from '../../gaming-canvas/main/index.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
-import { Map } from '../../models/map.model.js';
+import { World } from '../../models/world.model.js';
 import { WorkerDirtCalcBusOutputData } from '../dirt-calc/dirt-calc.model.js';
 import {
 	WorkerDirtVideoBusInputCmd,
@@ -25,8 +25,8 @@ export class WorkerDirtVideoBus {
 		canvas: HTMLCanvasElement,
 		gridCamera: GamingCanvasGridCamera,
 		gridViewport: GamingCanvasGridViewport,
-		map: Map,
 		settings: WorkerDirtVideoBusInputDataSettings,
+		world: World,
 		callback: (status: boolean) => void,
 	): void {
 		WorkerDirtVideoBus.callbackInitComplete = callback;
@@ -52,7 +52,7 @@ export class WorkerDirtVideoBus {
 						<WorkerDirtVideoBusInputDataInit>{
 							gridCameraEncoded: gridCameraEncoded,
 							gridViewportEncoded: gridViewportEncoded,
-							map: map,
+							world: world,
 							offscreenCanvas: offscreenCanvas,
 							report: GamingCanvas.getReport(),
 						},
@@ -92,20 +92,23 @@ export class WorkerDirtVideoBus {
 	 * Send
 	 */
 	public static sendCalc(data: WorkerDirtCalcBusOutputData): void {
+		let buffers: ArrayBufferLike[] = [];
+
+		if (data.grid !== undefined) {
+			buffers.push(data.grid.data.buffer);
+		}
+
+		if (data.particles !== undefined) {
+			buffers.push(data.particles.buffer);
+		}
+
 		WorkerDirtVideoBus.worker.postMessage(
 			{
 				cmd: WorkerDirtVideoBusInputCmd.CALC,
 				data: data,
 			},
-			[data.grid.data.buffer],
+			buffers,
 		);
-	}
-
-	public static sendMap(data: Map): void {
-		WorkerDirtVideoBus.worker.postMessage({
-			cmd: WorkerDirtVideoBusInputCmd.MAP,
-			data: data,
-		});
 	}
 
 	public static sendReport(data: GamingCanvasReport): void {
@@ -130,6 +133,13 @@ export class WorkerDirtVideoBus {
 			},
 			[data.gridCameraEncoded, data.gridViewportEncoded],
 		);
+	}
+
+	public static sendWorld(data: World): void {
+		WorkerDirtVideoBus.worker.postMessage({
+			cmd: WorkerDirtVideoBusInputCmd.WORLD,
+			data: data,
+		});
 	}
 
 	public static setCallbackStats(callbackStats: (data: WorkerDirtVideoBusOutputDataStats) => void): void {
