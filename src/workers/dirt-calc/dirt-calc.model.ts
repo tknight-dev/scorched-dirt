@@ -59,6 +59,7 @@ export interface WorkerDirtCalcBusOutputData {
 
 export interface WorkerDirtCalcBusOutputDataStats {
 	all: Float32Array;
+	particleCountSolids: number;
 	particleCountWeapons: number;
 }
 
