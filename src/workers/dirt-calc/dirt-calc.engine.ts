@@ -112,8 +112,8 @@ class WorkerDirtCalcEngine {
 		particle.arctanOriginal = particle.arctan;
 		particle.posXOriginal = particle.posX;
 		particle.posYOriginal = particle.posY;
-		particle.velX = payload.powerPercentage * tank.statPower * Math.cos(particle.arctan) * 3;
-		particle.velY = payload.powerPercentage * tank.statPower * Math.sin(particle.arctan) * 3;
+		particle.velX = payload.powerPercentage * tank.statPower * Math.cos(particle.arctan) * 2;
+		particle.velY = payload.powerPercentage * tank.statPower * Math.sin(particle.arctan) * 2;
 
 		// Fix rounding errors
 		if (Math.abs(particle.velX) < 0.00001) {
@@ -276,8 +276,8 @@ class WorkerDirtCalcEngine {
 					particle = particleNode.data;
 
 					// Gravity: Limit the effect of gravity to simulate terminal velocity
-					if ((particle.posY | 0) !== gridYLimit && particle.velY > -5) {
-						particle.velY -= timestampCPUDelta * 0.05;
+					if ((particle.posY | 0) !== gridYLimit && particle.velY > -4) {
+						particle.velY -= timestampCPUDelta * 0.02;
 					}
 
 					// Done

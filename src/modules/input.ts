@@ -1,7 +1,7 @@
 import { GamingCanvasFIFOQueue } from '../gaming-canvas/main/fifo-queue.js';
 import { GamingCanvas } from '../gaming-canvas/main/gaming-canvas.js';
-import { GamingCanvasInputMouse, GamingCanvasInputMouseAction } from '../gaming-canvas/main/index.js';
-import { GamingCanvasInput, GamingCanvasInputType } from '../gaming-canvas/main/inputs.js';
+import { GamingCanvasInputMouse, GamingCanvasInputMouseAction, GamingCanvasInputTouch, GamingCanvasInputTouchAction } from '../gaming-canvas/main/index.js';
+import { GamingCanvasInput, GamingCanvasInputPosition, GamingCanvasInputType } from '../gaming-canvas/main/inputs.js';
 import { particleEncodingValueHealth, ParticleType } from '../models/physics.model.js';
 import { WeaponType } from '../models/weapon.model.js';
 import { WorkerDirtCalcBus } from '../workers/dirt-calc/dirt-calc.bus.js';
@@ -17,8 +17,11 @@ export class ModuleInput {
 	private static inputLoop(_timestampNow: number): void {}
 	private static inputLoop__funcForward(): void {
 		let input: GamingCanvasInput,
-			inputDown: boolean,
+			inputMouseDown: boolean,
+			inputTouchDown: boolean,
 			propriatary: any,
+			position: GamingCanvasInputPosition,
+			positions: GamingCanvasInputPosition[],
 			queue: GamingCanvasFIFOQueue<GamingCanvasInput> = GamingCanvas.getInputQueue();
 
 		const go = (timestampNow: number) => {
@@ -38,6 +41,8 @@ export class ModuleInput {
 						inputProcessorMouse(input, timestampNow);
 						break;
 					case GamingCanvasInputType.TOUCH:
+						GamingCanvas.relativizeInputToCanvas(input);
+						inputProcessorTouch(input, timestampNow);
 						break;
 				}
 			}
@@ -45,11 +50,12 @@ export class ModuleInput {
 
 		const inputProcessorMouse = (input: GamingCanvasInputMouse, timestampNow: number) => {
 			propriatary = input.propriatary;
+			position = input.propriatary.position;
 
 			if (propriatary.action === GamingCanvasInputMouseAction.LEFT) {
-				inputDown = propriatary.down;
+				inputMouseDown = propriatary.down;
 
-				if (inputDown === true) {
+				if (inputMouseDown === true) {
 					WorkerDirtCalcBus.sendWeapon({
 						arctan: Math.PI / 2, // 90deg (up)
 						health: particleEncodingValueHealth,
@@ -57,14 +63,14 @@ export class ModuleInput {
 							powerPercentage: 0.5,
 							tankId: 0,
 						},
-						posX: propriatary.position.x,
-						posY: propriatary.position.y,
+						posX: position.x,
+						posY: position.y,
 						type: ParticleType.WEAPON,
 						typeValue: WeaponType.STANDARD,
 					});
 				}
 			} else if (propriatary.action === GamingCanvasInputMouseAction.MOVE) {
-				if (inputDown === true) {
+				if (inputMouseDown === true) {
 					WorkerDirtCalcBus.sendWeapon({
 						arctan: Math.PI / 2, // 90deg (up)
 						health: particleEncodingValueHealth,
@@ -72,8 +78,47 @@ export class ModuleInput {
 							powerPercentage: 0.5,
 							tankId: 0,
 						},
-						posX: propriatary.position.x,
-						posY: propriatary.position.y,
+						posX: position.x,
+						posY: position.y,
+						type: ParticleType.WEAPON,
+						typeValue: WeaponType.STANDARD,
+					});
+				}
+			}
+		};
+
+		const inputProcessorTouch = (input: GamingCanvasInputTouch, timestampNow: number) => {
+			propriatary = input.propriatary;
+			positions = input.propriatary.positions;
+
+			if (propriatary.action === GamingCanvasInputTouchAction.ACTIVE) {
+				inputTouchDown = propriatary.down;
+
+				if (inputTouchDown === true) {
+					WorkerDirtCalcBus.sendWeapon({
+						arctan: Math.PI / 2, // 90deg (up)
+						health: particleEncodingValueHealth,
+						payload: {
+							powerPercentage: 0.5,
+							tankId: 0,
+						},
+						posX: positions[0].x,
+						posY: positions[0].y,
+						type: ParticleType.WEAPON,
+						typeValue: WeaponType.STANDARD,
+					});
+				}
+			} else if (propriatary.action === GamingCanvasInputTouchAction.MOVE) {
+				if (inputTouchDown === true) {
+					WorkerDirtCalcBus.sendWeapon({
+						arctan: Math.PI / 2, // 90deg (up)
+						health: particleEncodingValueHealth,
+						payload: {
+							powerPercentage: 0.5,
+							tankId: 0,
+						},
+						posX: positions[0].x,
+						posY: positions[0].y,
 						type: ParticleType.WEAPON,
 						typeValue: WeaponType.STANDARD,
 					});

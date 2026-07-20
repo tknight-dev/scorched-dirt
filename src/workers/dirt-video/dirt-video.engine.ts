@@ -321,7 +321,7 @@ class WorkerDirtVideoEngine {
 					offscreenCanvas.height = offscreenCanvasHeightPx;
 					offscreenCanvas.width = offscreenCanvasWidthPx;
 
-					GamingCanvas.renderStyle([cacheGridContext, offscreenCanvasContext], settingsRenderStyle);
+					GamingCanvas.renderStyle([cacheGridContext, cacheParticlesContext, offscreenCanvasContext], settingsRenderStyle);
 				}
 			}
 
@@ -350,8 +350,8 @@ class WorkerDirtVideoEngine {
 			if (cacheGridUpdate === true) {
 				cacheGridUpdate = false;
 
-				gridViewportCellSizePxEff = gridViewportCellSizePx + 1;
-				gridViewportCellSizePxEff = 2;
+				gridViewportCellSizePxEff = gridViewportCellSizePx;
+				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
 
 				// Draw: Dirt Inactive
 				cacheGridContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
@@ -359,7 +359,6 @@ class WorkerDirtVideoEngine {
 					gridIndex = x * gridSideLength;
 					y1 = -10;
 					y2 = -10;
-					yMax = Math.min(gridYLimit, gridViewportHeightStopEff);
 					yType = -10;
 
 					for (y = gridViewportHeightStartEff; y <= yMax; gridIndex++, y++) {
@@ -370,17 +369,17 @@ class WorkerDirtVideoEngine {
 							if (yType !== (gridData[gridIndex] & worldEncodingMaskType)) {
 								if (y2 === -10) {
 									cacheGridContext.fillRect(
-										(x - gridViewportWidthStart) * gridViewportCellSizePx,
-										(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+										(x - gridViewportWidthStart) * gridViewportCellSizePxEff,
+										(y1 - gridViewportHeightStart) * gridViewportCellSizePxEff,
 										gridViewportCellSizePxEff,
 										gridViewportCellSizePxEff,
 									);
 								} else {
 									cacheGridContext.fillRect(
-										(x - gridViewportWidthStart) * gridViewportCellSizePx,
-										(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+										(x - gridViewportWidthStart) * gridViewportCellSizePxEff,
+										(y1 - gridViewportHeightStart) * gridViewportCellSizePxEff - 2, // Mobile rendering fix
 										gridViewportCellSizePxEff,
-										gridViewportCellSizePx * (y2 - y1) + 1,
+										gridViewportCellSizePxEff * (y2 - y1) + 3, // Mobile rendering fix
 									);
 								}
 
@@ -415,17 +414,17 @@ class WorkerDirtVideoEngine {
 							// Draw current segment type
 							if (y2 === -10) {
 								cacheGridContext.fillRect(
-									(x - gridViewportWidthStart) * gridViewportCellSizePx,
-									(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+									(x - gridViewportWidthStart) * gridViewportCellSizePxEff,
+									(y1 - gridViewportHeightStart) * gridViewportCellSizePxEff,
 									gridViewportCellSizePxEff,
 									gridViewportCellSizePxEff,
 								);
 							} else {
 								cacheGridContext.fillRect(
-									(x - gridViewportWidthStart) * gridViewportCellSizePx,
-									(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+									(x - gridViewportWidthStart) * gridViewportCellSizePxEff,
+									(y1 - gridViewportHeightStart) * gridViewportCellSizePxEff - 2, // Mobile rendering fix
 									gridViewportCellSizePxEff,
-									gridViewportCellSizePx * (y2 - y1) + 1,
+									gridViewportCellSizePxEff * (y2 - y1) + 3, // Mobile rendering fix
 								);
 							}
 
@@ -441,7 +440,6 @@ class WorkerDirtVideoEngine {
 				cacheParticlesUpdate = false;
 
 				gridViewportCellSizePxEff = gridViewportCellSizePx + 1;
-				gridViewportCellSizePxEff = 2;
 
 				// Clear
 				cacheParticlesContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
