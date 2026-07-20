@@ -53,12 +53,8 @@ export interface Particle<T> extends ParticleInitial<T> {
 	posYOriginal: number;
 	velX: number;
 	velXScaled: number;
-	velXScaledAbs: number;
-	velXStep: number;
 	velY: number;
 	velYScaled: number;
-	velYScaledAbs: number;
-	velYStep: number;
 }
 
 // Limited to 4

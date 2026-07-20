@@ -112,8 +112,8 @@ class WorkerDirtCalcEngine {
 		particle.arctanOriginal = particle.arctan;
 		particle.posXOriginal = particle.posX;
 		particle.posYOriginal = particle.posY;
-		particle.velX = payload.powerPercentage * tank.statPower * Math.cos(particle.arctan);
-		particle.velY = payload.powerPercentage * tank.statPower * Math.sin(particle.arctan);
+		particle.velX = payload.powerPercentage * tank.statPower * Math.cos(particle.arctan) * 3;
+		particle.velY = payload.powerPercentage * tank.statPower * Math.sin(particle.arctan) * 3;
 
 		// Fix rounding errors
 		if (Math.abs(particle.velX) < 0.00001) {
@@ -184,8 +184,14 @@ class WorkerDirtCalcEngine {
 			settingsWindStrength: WindStrength,
 			statAll: GamingCanvasStat = WorkerDirtCalcEngine.stats[WorkerDirtCalcBusStats.ALL],
 			statAllRaw: Float32Array,
+			velChanged: boolean,
 			velMaxUnsigned: number,
-			velX: number,
+			velStep: number,
+			velStepFirst: boolean,
+			velStepOriginal: number,
+			velStepPrevious: number,
+			velStepPreviousOriginal: number,
+			velStepFactor: number,
 			velY: number,
 			world: World,
 			x: number,
@@ -264,83 +270,109 @@ class WorkerDirtCalcEngine {
 				// Start
 				statAll.watchStart();
 
-				// Calc
+				// Calc: Pre-motion Physics
 				particleNode = particles.start;
 				while (particleNode !== undefined) {
-					// Calc: velMaxUnsigned
-					velMaxUnsigned = 0;
-					particleNode = particles.start;
-					while (particleNode !== undefined) {
-						particle = particleNode.data;
+					particle = particleNode.data;
 
-						x = Math.abs(particle.velX);
-						if (x > velMaxUnsigned) {
-							velMaxUnsigned = x;
-						}
-
-						y = Math.abs(particle.velY);
-						if (y > velMaxUnsigned) {
-							velMaxUnsigned = y;
-						}
-
-						// Done
-						particleNode = particleNode.next;
+					// Gravity: Limit the effect of gravity to simulate terminal velocity
+					if ((particle.posY | 0) !== gridYLimit && particle.velY > -5) {
+						particle.velY -= timestampCPUDelta * 0.05;
 					}
 
-					/**
-					 * Calc: Velocity Scale and Step
-					 *
-					 * All velocities are scaled such that the fastest velocity is equal to 1. Each cycle then moves particles a maximum of one pixel at a time
-					 *
-					 * Bug: velY = 10, velYScale = 1, velYStep = 1: one cycle means the particle only moved one. The cycle has to be repeated until the fast particles distance
-					 * traveled is equal to the initial velocity. That way a particle with velocity 10 moves 10 pixels per group of cycles even tho each cycle is 1pixel
-					 */
-					particleNode = particles.start;
-					while (particleNode !== undefined) {
-						particle = particleNode.data;
+					// Done
+					particleNode = particleNode.next;
+				}
 
-						// X
-						if (particle.velX === 0) {
-							particle.velXScaled = 0;
-							particle.velXStep = 0;
+				// Calc: Motion
+				particleNode = particles.start;
+				velChanged = true;
+				velStepFirst = true;
+				while (particleNode !== undefined) {
+					if (velChanged === true) {
+						velChanged = false;
+						velMaxUnsigned = 0;
+
+						// Calc: velMaxUnsigned
+						particleNode = particles.start;
+						while (particleNode !== undefined) {
+							particle = particleNode.data;
+
+							x = Math.abs(particle.velX);
+							if (x > velMaxUnsigned === true) {
+								velMaxUnsigned = x;
+							}
+
+							y = Math.abs(particle.velY);
+							if (y > velMaxUnsigned === true) {
+								velMaxUnsigned = y;
+							}
+
+							// Done
+							particleNode = particleNode.next;
+						}
+						velMaxUnsigned *= timestampCPUDelta * 0.1; // Augment velocity by duration from previous calculations
+
+						/**
+						 * Calc: Step
+						 *
+						 * Step determines how many iterations are required for particles to reach their correct destinations at their scaled rates
+						 */
+						velStepPrevious = velStep;
+						velStepPreviousOriginal = velStepOriginal;
+
+						if (velStepFirst === true) {
+							velStepFirst = false;
+
+							velStep = velMaxUnsigned;
+							velStepOriginal = velMaxUnsigned;
 						} else {
-							if (velMaxUnsigned === 0) {
-								particle.velXScaledAbs = 0;
-							} else {
-								particle.velXScaledAbs = (particle.velX * (particle.velX / velMaxUnsigned)) / velMaxUnsigned;
-							}
-							particle.velXStep = 1;
-
-							// Velocity sign correction
-							if (particle.velX < 0) {
-								particle.velXScaled = particle.velXScaledAbs * -1;
-							} else {
-								particle.velXScaled = particle.velXScaledAbs;
-							}
+							// Offset this step by the percentage of completion of the previous step
+							//console.log('Augmentation', velStepPrevious, velStepPreviousOriginal, Math.abs(1 - velStepPrevious / velStepPreviousOriginal));
+							velStep = velMaxUnsigned * Math.abs(1 - velStepPrevious / velStepPreviousOriginal);
+							velStepOriginal = velStep;
 						}
 
-						// Y
-						if (particle.velY === 0) {
-							particle.velYScaled = 0;
-							particle.velYStep = 0;
+						// Determine if a percentage of a step is required to reach the target destinations
+						if (velStep < 1) {
+							velStepFactor = 1 - velStep;
 						} else {
-							if (velMaxUnsigned === 0) {
-								particle.velYScaledAbs = 0;
-							} else {
-								particle.velYScaledAbs = (particle.velY * (particle.velY / velMaxUnsigned)) / velMaxUnsigned;
-							}
-							particle.velYStep = 1;
-
-							// Velocity sign correction
-							if (particle.velY < 0) {
-								particle.velYScaled = particle.velYScaledAbs * -1;
-							} else {
-								particle.velYScaled = particle.velYScaledAbs;
-							}
+							velStepFactor = 1;
 						}
 
-						// Done
-						particleNode = particleNode.next;
+						/**
+						 * Calc: Velocity Scale
+						 *
+						 * All velocities are scaled such that the fastest velocity is equal to 1. Each cycle then moves particles a maximum of one pixel at a time
+						 */
+						if (velMaxUnsigned > 1 === true) {
+							particleNode = particles.start;
+							while (particleNode !== undefined) {
+								particle = particleNode.data;
+
+								if (velMaxUnsigned === 0) {
+									particle.velXScaled = 0;
+									particle.velYScaled = 0;
+								} else {
+									// X
+									if (particle.velX === 0) {
+										particle.velXScaled = 0;
+									} else {
+										particle.velXScaled = particle.velX / velMaxUnsigned;
+									}
+
+									// Y
+									if (particle.velY === 0) {
+										particle.velYScaled = 0;
+									} else {
+										particle.velYScaled = particle.velY / velMaxUnsigned;
+									}
+								}
+
+								// Done
+								particleNode = particleNode.next;
+							}
+						}
 					}
 
 					// Calc: Physics
@@ -354,18 +386,10 @@ class WorkerDirtCalcEngine {
 						posX = particle.posX | 0;
 						posY = particle.posY | 0;
 
-						if (velMaxUnsigned !== 0) {
-							// Calc: Motion - X
-							if (particle.velXStep > 0) {
-								particle.posX += particle.velXScaled * timestampCPUDelta * 0.25;
-								particle.velXStep -= particle.velXScaledAbs;
-							}
-
-							// Calc: Motion - Y
-							if (particle.velYStep > 0) {
-								particle.posY -= particle.velYScaled * timestampCPUDelta * 0.25; // Minus is up or higher on the map graphically
-								particle.velYStep -= particle.velYScaledAbs;
-							}
+						// Calc: Motion
+						if (velStepFactor !== 0) {
+							particle.posX += particle.velXScaled * velStepFactor;
+							particle.posY -= particle.velYScaled * velStepFactor;
 						}
 
 						// Position: Next
@@ -389,6 +413,10 @@ class WorkerDirtCalcEngine {
 								collisionX = true;
 								collisionRelationshipX[0] = undefined;
 								particle.velX = 0;
+								velChanged = true;
+
+								console.log('  >> deleteA', particles.length);
+								particles.remove(particleNode); // TMP
 							}
 						}
 
@@ -398,6 +426,10 @@ class WorkerDirtCalcEngine {
 							collisionRelationshipY[0] = undefined;
 							posYNext = gridYLimit;
 							particle.velY = 0;
+							velChanged = true;
+
+							console.log('  >> deleteB', particles.length);
+							particles.remove(particleNode); // TMP
 						}
 						posNextIndex = posXNext * gridSideLength + posYNext;
 
@@ -518,24 +550,30 @@ class WorkerDirtCalcEngine {
 							// 	posYNext = posY;
 							// }
 
+							// velChanged = true
+
 							if (particle.type === ParticleType.SOLID || particle.type === ParticleType.TANK) {
 							} else if (particle.type === ParticleType.WEAPON) {
 								// boom
 							}
 						}
 
-						// Gravity: Don't add gravity to particles traveling to quickly on the -y axis to simulate wind resistance
-						if (posYNext !== gridYLimit && particle.velY > -5) {
-							// console.log(particle.velY);
-							particle.velY -= 0.005 * timestampCPUDelta;
-						}
-
 						// Done
 						particleNode = particleNode.next;
 					}
 
-					if ((<any>particles.start).data.velXStep > 0 || (<any>particles.start).data.velYStep > 0) {
+					// Restart the loop if additionals steps are required to reach target destinations
+					//console.log('  >> velStep', velStep);
+					if (velStep > 0) {
 						particleNode = particles.start;
+
+						if (velStep < 1) {
+							velStepFactor = 1 - velStep;
+							velStep = 0;
+						} else {
+							velStep--;
+							velStepFactor = 1;
+						}
 					}
 				}
 

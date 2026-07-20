@@ -54,7 +54,7 @@ export class ModuleInput {
 						arctan: Math.PI / 2, // 90deg (up)
 						health: particleEncodingValueHealth,
 						payload: {
-							powerPercentage: Math.max(0.1, Math.random()),
+							powerPercentage: 0.5,
 							tankId: 0,
 						},
 						posX: propriatary.position.x,
@@ -69,7 +69,7 @@ export class ModuleInput {
 						arctan: Math.PI / 2, // 90deg (up)
 						health: particleEncodingValueHealth,
 						payload: {
-							powerPercentage: Math.max(0.1, Math.random()),
+							powerPercentage: 0.5,
 							tankId: 0,
 						},
 						posX: propriatary.position.x,
