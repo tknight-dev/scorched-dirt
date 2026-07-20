@@ -369,17 +369,17 @@ class WorkerDirtVideoEngine {
 							if (yType !== (gridData[gridIndex] & worldEncodingMaskType)) {
 								if (y2 === -10) {
 									cacheGridContext.fillRect(
-										(x - gridViewportWidthStart) * gridViewportCellSizePxEff,
-										(y1 - gridViewportHeightStart) * gridViewportCellSizePxEff,
+										(x - gridViewportWidthStart) * gridViewportCellSizePx,
+										(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
 										gridViewportCellSizePxEff,
 										gridViewportCellSizePxEff,
 									);
 								} else {
 									cacheGridContext.fillRect(
-										(x - gridViewportWidthStart) * gridViewportCellSizePxEff,
-										(y1 - gridViewportHeightStart) * gridViewportCellSizePxEff - 2, // Mobile rendering fix
+										(x - gridViewportWidthStart) * gridViewportCellSizePx,
+										(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
 										gridViewportCellSizePxEff,
-										gridViewportCellSizePxEff * (y2 - y1) + 3, // Mobile rendering fix
+										gridViewportCellSizePx * (y2 - y1) + 1,
 									);
 								}
 
@@ -414,17 +414,17 @@ class WorkerDirtVideoEngine {
 							// Draw current segment type
 							if (y2 === -10) {
 								cacheGridContext.fillRect(
-									(x - gridViewportWidthStart) * gridViewportCellSizePxEff,
-									(y1 - gridViewportHeightStart) * gridViewportCellSizePxEff,
+									(x - gridViewportWidthStart) * gridViewportCellSizePx,
+									(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
 									gridViewportCellSizePxEff,
 									gridViewportCellSizePxEff,
 								);
 							} else {
 								cacheGridContext.fillRect(
-									(x - gridViewportWidthStart) * gridViewportCellSizePxEff,
-									(y1 - gridViewportHeightStart) * gridViewportCellSizePxEff - 2, // Mobile rendering fix
+									(x - gridViewportWidthStart) * gridViewportCellSizePx,
+									(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
 									gridViewportCellSizePxEff,
-									gridViewportCellSizePxEff * (y2 - y1) + 3, // Mobile rendering fix
+									gridViewportCellSizePx * (y2 - y1) + 1,
 								);
 							}
 

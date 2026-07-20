@@ -40,7 +40,7 @@ export class ModuleSettings {
 					audioEnable: true,
 					canvasCount: 1,
 					debug: true,
-					dpiSupportEnable: true,
+					dpiSupportEnable: false,
 					elementInteractive: ModuleDOM.elVideoInteractive,
 					inputGamepadEnable: true,
 					inputKeyboardEnable: true,
