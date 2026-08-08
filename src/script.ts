@@ -75,8 +75,7 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
 
 			ModuleDOM.elPerformanceDirtCalcAll.innerHTML = displayNumberAll(all, precision);
-			ModuleDOM.elPerformanceDirtSolidCount.innerHTML = displayNumber(data.particleCountSolids, 0, '', '');
-			ModuleDOM.elPerformanceDirtWeaponCount.innerHTML = displayNumber(data.particleCountWeapons, 0, '', '');
+			ModuleDOM.elPerformanceDirtParticleCount.innerHTML = displayNumber(data.particleCount, 0, '', '');
 		});
 		WorkerDirtVideoBus.setCallbackStats((data: WorkerDirtVideoBusOutputDataStats) => {
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);

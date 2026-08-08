@@ -11,7 +11,7 @@ export enum FPS {
 	unlimited = 0,
 }
 
-export type WorldSize = 320 | 640 | 1280 | 1920 | 2560;
+export type WorldSize = 160 | 320 | 640 | 1280 | 1920 | 2560;
 
 export type ResolutionWidthPx = undefined | 320 | 640 | 1280 | 1920 | 2560;
 

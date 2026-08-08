@@ -19,3 +19,21 @@ export interface Tank {
 export enum TankType {
 	STANDARD = 0,
 }
+
+export interface TankTypeProperty {
+	cost: number;
+	armor: number; // 0 - 100
+	health: number; // 0 - 100
+	weight: number; // 0 - 10
+	width: number;
+}
+
+export const tankTypeProperties: { [key in TankType]: TankTypeProperty } = {
+	[TankType.STANDARD]: {
+		cost: 0,
+		armor: 25,
+		health: 75,
+		weight: 5,
+		width: 10,
+	},
+};

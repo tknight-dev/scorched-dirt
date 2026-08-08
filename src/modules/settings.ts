@@ -50,17 +50,18 @@ export class ModuleSettings {
 					orientationCanvasRotateEnable: false,
 					renderStyle: GamingCanvasRenderStyle.PIXELATED,
 					resolutionScaleToFit: true,
-					resolutionWidthPx: <ResolutionWidthPx>640,
+					resolutionWidthPx: <ResolutionWidthPx>160,
 				},
 				gammaCorrection: 0,
 				grayscale: false,
-				worldSize: <WorldSize>640,
+				worldSize: <WorldSize>160,
 				windRandomize: false,
 				windStrength: WindStrength.NONE,
 			},
 			workerDirtCalc: <WorkerDirtCalcBusInputDataSettings>{
 				edgesWrap: true,
 				fps: FPS._60,
+				particlePoolSize: 500,
 				windRandomize: false,
 				windStrength: WindStrength.NONE,
 			},
@@ -167,6 +168,7 @@ export class ModuleSettings {
 
 		// Done
 		ModuleDOM.canvases = GamingCanvas.initialize(ModuleDOM.elVideo, ModuleSettings.data.main.gamingCanvas);
+		console.log('devicePixelRatio', GamingCanvas.getReport().devicePixelRatio);
 		ModuleSettings.apply();
 	}
 

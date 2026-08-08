@@ -32,13 +32,14 @@ export enum SolidType {
 	LAVA = 1,
 	ROCK = 2,
 	WATER = 3,
-	WEAPON = 4,
+	WEAPON = 4, // WHY? ... the map has built in explosives? ... or drones or something
 }
 
 /**
  * World
  */
 export interface World {
+	bedrock: boolean; // The bottom of the map should stack solids (true) or just delete them (false)
 	grid: GamingCanvasGridUint32Array;
 	windX: number;
 	windY: number;

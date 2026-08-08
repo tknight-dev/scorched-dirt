@@ -2,6 +2,8 @@
  * @author tknight-dev
  */
 
+import { GamingCanvasDoubleLinkedListNode } from '../gaming-canvas/main/double-linked-list.js';
+
 /**
  * Encoding
  *
@@ -49,6 +51,9 @@ export interface ParticleInitialBase {
 
 export interface Particle<T> extends ParticleInitial<T> {
 	arctanOriginal: number;
+	id: number;
+	gridIndex: number;
+	node: GamingCanvasDoubleLinkedListNode<Particle<any>>;
 	posXOriginal: number;
 	posYOriginal: number;
 	velX: number;

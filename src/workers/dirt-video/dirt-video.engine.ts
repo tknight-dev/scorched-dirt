@@ -118,10 +118,10 @@ class WorkerDirtVideoEngine {
 	public static inputCalc(data: WorkerDirtCalcBusOutputData): void {
 		if (data.grid !== undefined) {
 			WorkerDirtVideoEngine.calcGrid = GamingCanvasGridUint32Array.from(data.grid.data);
+		} else {
+			WorkerDirtVideoEngine.calcGrid = undefined;
 		}
-		if (data.particles !== undefined) {
-			WorkerDirtVideoEngine.calcParticles = data.particles;
-		}
+		WorkerDirtVideoEngine.calcParticles = data.particles;
 
 		WorkerDirtVideoEngine.calcNew = true;
 	}
@@ -288,6 +288,18 @@ class WorkerDirtVideoEngine {
 				gridSideLength = grid.sideLength;
 				gridYLimit = (gridSideLength * 9) / 16;
 
+				// Grid: Remove liquids (these are particles only)
+				for (x = 0; x < gridSideLength; x++) {
+					for (y = 0; y < gridSideLength; y++) {
+						gridIndex = x * gridSideLength + y;
+						yType = gridData[gridIndex] & worldEncodingMaskType;
+
+						if (yType === SolidType.LAVA || yType === SolidType.WATER) {
+							gridData[gridIndex] = 0;
+						}
+					}
+				}
+
 				world = WorkerDirtVideoEngine.world;
 			}
 
@@ -350,96 +362,129 @@ class WorkerDirtVideoEngine {
 			if (cacheGridUpdate === true) {
 				cacheGridUpdate = false;
 
-				gridViewportCellSizePxEff = gridViewportCellSizePx;
+				//gridViewportCellSizePxEff = gridViewportCellSizePx + 1;
+				gridViewportCellSizePxEff = 1;
 				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
 
 				// Draw: Dirt Inactive
 				cacheGridContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
 				for (x = gridViewportWidthStartEff; x < gridViewportWidthStopEff; x++) {
 					gridIndex = x * gridSideLength;
-					y1 = -10;
-					y2 = -10;
-					yType = -10;
-
 					for (y = gridViewportHeightStartEff; y <= yMax; gridIndex++, y++) {
-						// Draw segments of dirt instead of individual pixels
+						if (gridData[gridIndex] !== 0) {
+							yType = gridData[gridIndex] & worldEncodingMaskType;
 
-						if (gridData[gridIndex] !== 0 && y !== yMax) {
-							// Draw previous segment type
-							if (yType !== (gridData[gridIndex] & worldEncodingMaskType)) {
-								if (y2 === -10) {
-									cacheGridContext.fillRect(
-										(x - gridViewportWidthStart) * gridViewportCellSizePx,
-										(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
-										gridViewportCellSizePxEff,
-										gridViewportCellSizePxEff,
-									);
-								} else {
-									cacheGridContext.fillRect(
-										(x - gridViewportWidthStart) * gridViewportCellSizePx,
-										(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
-										gridViewportCellSizePxEff,
-										gridViewportCellSizePx * (y2 - y1) + 1,
-									);
-								}
-
-								y1 = -10;
-								y2 = -10;
-								yType = -10;
+							switch (yType) {
+								case SolidType.DIRT:
+									cacheGridContext.fillStyle = '#905015';
+									break;
+								case SolidType.LAVA:
+									cacheGridContext.fillStyle = '#ff0000';
+									break;
+								case SolidType.ROCK:
+									cacheGridContext.fillStyle = '#505050';
+									break;
+								case SolidType.WATER:
+									cacheGridContext.fillStyle = '#0000ff';
+									break;
 							}
 
-							// Start new segment type
-							if (y1 === -10) {
-								y1 = y;
-								yType = gridData[gridIndex] & worldEncodingMaskType;
-
-								switch (yType) {
-									case SolidType.DIRT:
-										cacheGridContext.fillStyle = '#905015';
-										break;
-									case SolidType.LAVA:
-										cacheGridContext.fillStyle = '#ff0000';
-										break;
-									case SolidType.ROCK:
-										cacheGridContext.fillStyle = '#505050';
-										break;
-									case SolidType.WATER:
-										cacheGridContext.fillStyle = '#0000ff';
-										break;
-								}
-							} else {
-								y2 = y;
-							}
-						} else if (y1 !== -10) {
-							// Draw current segment type
-							if (y2 === -10) {
-								cacheGridContext.fillRect(
-									(x - gridViewportWidthStart) * gridViewportCellSizePx,
-									(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
-									gridViewportCellSizePxEff,
-									gridViewportCellSizePxEff,
-								);
-							} else {
-								cacheGridContext.fillRect(
-									(x - gridViewportWidthStart) * gridViewportCellSizePx,
-									(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
-									gridViewportCellSizePxEff,
-									gridViewportCellSizePx * (y2 - y1) + 1,
-								);
-							}
-
-							y1 = -10;
-							y2 = -10;
-							yType = -10;
+							cacheGridContext.fillRect(
+								(x - gridViewportWidthStart) * gridViewportCellSizePx,
+								(y - gridViewportHeightStart) * gridViewportCellSizePx,
+								gridViewportCellSizePxEff,
+								gridViewportCellSizePxEff,
+							);
 						}
 					}
 				}
+
+				// for (x = gridViewportWidthStartEff; x < gridViewportWidthStopEff; x++) {
+				// 	gridIndex = x * gridSideLength;
+				// 	y1 = -10;
+				// 	y2 = -10;
+				// 	yType = -10;
+
+				// 	for (y = gridViewportHeightStartEff; y <= yMax; gridIndex++, y++) {
+				// 		// Draw segments of dirt instead of individual pixels
+
+				// 		if (gridData[gridIndex] !== 0 && y !== yMax) {
+				// 			// Draw previous segment type
+				// 			if (yType !== (gridData[gridIndex] & worldEncodingMaskType)) {
+				// 				if (y2 === -10) {
+				// 					cacheGridContext.fillRect(
+				// 						(x - gridViewportWidthStart) * gridViewportCellSizePx,
+				// 						(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+				// 						gridViewportCellSizePxEff,
+				// 						gridViewportCellSizePxEff,
+				// 					);
+				// 				} else {
+				// 					cacheGridContext.fillRect(
+				// 						(x - gridViewportWidthStart) * gridViewportCellSizePx,
+				// 						(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+				// 						gridViewportCellSizePxEff,
+				// 						gridViewportCellSizePx * (y2 - y1) + 1,
+				// 					);
+				// 				}
+
+				// 				y1 = -10;
+				// 				y2 = -10;
+				// 				yType = -10;
+				// 			}
+
+				// 			// Start new segment type
+				// 			if (y1 === -10) {
+				// 				y1 = y;
+				// 				yType = gridData[gridIndex] & worldEncodingMaskType;
+
+				// 				switch (yType) {
+				// 					case SolidType.DIRT:
+				// 						cacheGridContext.fillStyle = '#905015';
+				// 						break;
+				// 					case SolidType.LAVA:
+				// 						cacheGridContext.fillStyle = '#ff0000';
+				// 						break;
+				// 					case SolidType.ROCK:
+				// 						cacheGridContext.fillStyle = '#505050';
+				// 						break;
+				// 					case SolidType.WATER:
+				// 						cacheGridContext.fillStyle = '#0000ff';
+				// 						break;
+				// 				}
+				// 			} else {
+				// 				y2 = y;
+				// 			}
+				// 		} else if (y1 !== -10) {
+				// 			// Draw current segment type
+				// 			if (y2 === -10) {
+				// 				cacheGridContext.fillRect(
+				// 					(x - gridViewportWidthStart) * gridViewportCellSizePx,
+				// 					(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+				// 					gridViewportCellSizePxEff,
+				// 					gridViewportCellSizePxEff,
+				// 				);
+				// 			} else {
+				// 				cacheGridContext.fillRect(
+				// 					(x - gridViewportWidthStart) * gridViewportCellSizePx,
+				// 					(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
+				// 					gridViewportCellSizePxEff,
+				// 					gridViewportCellSizePx * (y2 - y1) + 1,
+				// 				);
+				// 			}
+
+				// 			y1 = -10;
+				// 			y2 = -10;
+				// 			yType = -10;
+				// 		}
+				// 	}
+				// }
 			}
 
 			if (cacheParticlesUpdate === true) {
 				cacheParticlesUpdate = false;
 
-				gridViewportCellSizePxEff = gridViewportCellSizePx + 1;
+				//gridViewportCellSizePxEff = gridViewportCellSizePx + 1;
+				gridViewportCellSizePxEff = 1;
 
 				// Clear
 				cacheParticlesContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);

@@ -4,7 +4,9 @@ import { GamingCanvasInputMouse, GamingCanvasInputMouseAction, GamingCanvasInput
 import { GamingCanvasInput, GamingCanvasInputPosition, GamingCanvasInputType } from '../gaming-canvas/main/inputs.js';
 import { particleEncodingValueHealth, ParticleType } from '../models/physics.model.js';
 import { WeaponType } from '../models/weapon.model.js';
+import { SolidType } from '../models/world.model.js';
 import { WorkerDirtCalcBus } from '../workers/dirt-calc/dirt-calc.bus.js';
+import { ModuleSettings } from './settings.js';
 
 /**
  * @author tknight-dev
@@ -57,32 +59,67 @@ export class ModuleInput {
 
 				if (inputMouseDown === true) {
 					WorkerDirtCalcBus.sendWeapon({
-						arctan: Math.PI / 2, // 90deg (up)
+						// arctan: (3 * Math.PI) / 4, // 90deg (up)
+						arctan: Math.PI, // 180deg (left)
 						health: particleEncodingValueHealth,
 						payload: {
-							powerPercentage: 0.5,
+							//powerPercentage: 0.025,
+							powerPercentage: 0,
 							tankId: 0,
 						},
-						posX: position.x,
-						posY: position.y,
+						posX: ModuleSettings.data.main.worldSize / 2,
+						posY: ModuleSettings.data.main.worldSize / 3,
 						type: ParticleType.WEAPON,
 						typeValue: WeaponType.STANDARD,
+						// type: ParticleType.SOLID,
+						// typeValue: SolidType.DIRT,
 					});
+					// WorkerDirtCalcBus.sendWeapon({
+					// 	arctan: (3 * Math.PI) / 4, // 90deg (up)
+					// 	health: particleEncodingValueHealth,
+					// 	payload: {
+					// 		powerPercentage: 0.25,
+					// 		tankId: 0,
+					// 	},
+					// 	posX: position.x,
+					// 	posY: position.y,
+					// 	type: ParticleType.WEAPON,
+					// 	typeValue: WeaponType.STANDARD,
+					// 	// type: ParticleType.SOLID,
+					// 	// typeValue: SolidType.DIRT,
+					// });
 				}
 			} else if (propriatary.action === GamingCanvasInputMouseAction.MOVE) {
 				if (inputMouseDown === true) {
-					WorkerDirtCalcBus.sendWeapon({
-						arctan: Math.PI / 2, // 90deg (up)
-						health: particleEncodingValueHealth,
-						payload: {
-							powerPercentage: 0.5,
-							tankId: 0,
-						},
-						posX: position.x,
-						posY: position.y,
-						type: ParticleType.WEAPON,
-						typeValue: WeaponType.STANDARD,
-					});
+					// WorkerDirtCalcBus.sendWeapon({
+					// 	// arctan: (3 * Math.PI) / 4, // 90deg (up)
+					// 	arctan: Math.PI, // 180deg (left)
+					// 	health: particleEncodingValueHealth,
+					// 	payload: {
+					// 		powerPercentage: 0.025,
+					// 		tankId: 0,
+					// 	},
+					// 	posX: ModuleSettings.data.main.worldSize / 2,
+					// 	posY: ModuleSettings.data.main.worldSize / 3,
+					// 	type: ParticleType.WEAPON,
+					// 	typeValue: WeaponType.STANDARD,
+					// 	// type: ParticleType.SOLID,
+					// 	// typeValue: SolidType.DIRT,
+					// });
+					// WorkerDirtCalcBus.sendWeapon({
+					// 	arctan: (3 * Math.PI) / 4, // 90deg (up)
+					// 	health: particleEncodingValueHealth,
+					// 	payload: {
+					// 		powerPercentage: 0.25,
+					// 		tankId: 0,
+					// 	},
+					// 	posX: position.x,
+					// 	posY: position.y,
+					// 	type: ParticleType.WEAPON,
+					// 	typeValue: WeaponType.STANDARD,
+					// 	// type: ParticleType.SOLID,
+					// 	// typeValue: SolidType.DIRT,
+					// });
 				}
 			}
 		};
@@ -110,18 +147,18 @@ export class ModuleInput {
 				}
 			} else if (propriatary.action === GamingCanvasInputTouchAction.MOVE) {
 				if (inputTouchDown === true) {
-					WorkerDirtCalcBus.sendWeapon({
-						arctan: Math.PI / 2, // 90deg (up)
-						health: particleEncodingValueHealth,
-						payload: {
-							powerPercentage: 0.5,
-							tankId: 0,
-						},
-						posX: positions[0].x,
-						posY: positions[0].y,
-						type: ParticleType.WEAPON,
-						typeValue: WeaponType.STANDARD,
-					});
+					// WorkerDirtCalcBus.sendWeapon({
+					// 	arctan: Math.PI / 2, // 90deg (up)
+					// 	health: particleEncodingValueHealth,
+					// 	payload: {
+					// 		powerPercentage: 0.5,
+					// 		tankId: 0,
+					// 	},
+					// 	posX: positions[0].x,
+					// 	posY: positions[0].y,
+					// 	type: ParticleType.WEAPON,
+					// 	typeValue: WeaponType.STANDARD,
+					// });
 				}
 			}
 		};

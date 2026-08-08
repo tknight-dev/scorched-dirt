@@ -34,6 +34,7 @@ export interface WorkerDirtCalcBusInputDataWorld {
 export interface WorkerDirtCalcBusInputDataSettings {
 	edgesWrap: boolean;
 	fps: FPS;
+	particlePoolSize: number;
 	windRandomize: false;
 	windStrength: WindStrength.NONE;
 }
@@ -59,8 +60,7 @@ export interface WorkerDirtCalcBusOutputData {
 
 export interface WorkerDirtCalcBusOutputDataStats {
 	all: Float32Array;
-	particleCountSolids: number;
-	particleCountWeapons: number;
+	particleCount: number;
 }
 
 export interface WorkerDirtCalcBusOutputPayload {

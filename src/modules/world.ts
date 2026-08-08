@@ -13,6 +13,7 @@ export class ModuleWorld {
 		let grid: GamingCanvasGridUint32Array = new GamingCanvasGridUint32Array(worldSize),
 			gridData: Uint32Array = grid.data,
 			world: World = {
+				bedrock: true,
 				grid: grid,
 				windX: 0,
 				windY: 0,
@@ -37,7 +38,7 @@ export class ModuleWorld {
 		for (x = 0; x < worldSize; x++) {
 			xIndex = x * worldSize;
 
-			for (y = (yLimit * 0.89) | 0; y < yLimit; y++) {
+			for (y = (yLimit * 0.8) | 0; y < yLimit; y++) {
 				gridData[xIndex + y] = worldEncodingMaskHealth | SolidType.WATER;
 			}
 		}
@@ -50,7 +51,7 @@ export class ModuleWorld {
 				gridData[xIndex + y] = worldEncodingMaskHealth | SolidType.DIRT;
 			}
 		}
-		for (x = (worldSize / 2) | 0; x < worldSize; x++) {
+		for (x = (worldSize / 1.5) | 0; x < worldSize; x++) {
 			xIndex = x * worldSize;
 
 			for (y = (yLimit * 0.25) | 0; y < ((yLimit * 0.5) | 0); y++) {
@@ -59,7 +60,7 @@ export class ModuleWorld {
 		}
 
 		// Rock
-		for (x = (worldSize / 2) | 0; x < worldSize; x++) {
+		for (x = (worldSize / 1.5) | 0; x < worldSize; x++) {
 			xIndex = x * worldSize;
 
 			for (y = (yLimit * 0.2) | 0; y < ((yLimit * 0.25) | 0); y++) {
@@ -68,7 +69,7 @@ export class ModuleWorld {
 		}
 
 		let count: number = 0;
-		for (x = (worldSize / 2) | 0; x < worldSize; x++) {
+		for (x = (worldSize / 1.5) | 0; x < worldSize; x++) {
 			xIndex = x * worldSize;
 
 			for (y = (yLimit * 0.45) | 0; y < ((yLimit * 0.5) | 0); y++) {
@@ -80,6 +81,15 @@ export class ModuleWorld {
 				count = 0;
 			} else {
 				count++;
+			}
+		}
+
+		// Void
+		for (x = (worldSize / 4) | 0; x < ((worldSize / 3) | 0); x++) {
+			xIndex = x * worldSize;
+
+			for (y = 0; y < yLimit; y++) {
+				gridData[xIndex + y] = 0;
 			}
 		}
 

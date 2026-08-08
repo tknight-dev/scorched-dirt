@@ -22,8 +22,7 @@ export class ModuleDOM {
 	public static elPerformance: HTMLElement;
 	public static elPerformanceDirtCalc: HTMLElement;
 	public static elPerformanceDirtCalcAll: HTMLElement;
-	public static elPerformanceDirtSolidCount: HTMLElement;
-	public static elPerformanceDirtWeaponCount: HTMLElement;
+	public static elPerformanceDirtParticleCount: HTMLElement;
 	public static elPerformanceDirtVideo: HTMLElement;
 	public static elPerformanceDirtVideoAll: HTMLElement;
 	public static elSettings: HTMLElement;
@@ -101,8 +100,7 @@ export class ModuleDOM {
 		ModuleDOM.elPerformance = <HTMLElement>document.getElementById('performance');
 		ModuleDOM.elPerformanceDirtCalc = <HTMLElement>document.getElementById('performance-dirt-calc');
 		ModuleDOM.elPerformanceDirtCalcAll = <HTMLElement>document.getElementById('performance-dirt-calc-all');
-		ModuleDOM.elPerformanceDirtSolidCount = <HTMLElement>document.getElementById('performance-dirt-calc-solid-count');
-		ModuleDOM.elPerformanceDirtWeaponCount = <HTMLElement>document.getElementById('performance-dirt-calc-weapon-count');
+		ModuleDOM.elPerformanceDirtParticleCount = <HTMLElement>document.getElementById('performance-dirt-calc-particle-count');
 		ModuleDOM.elPerformanceDirtVideo = <HTMLElement>document.getElementById('performance-dirt-video');
 		ModuleDOM.elPerformanceDirtVideoAll = <HTMLElement>document.getElementById('performance-dirt-video-all');
 
