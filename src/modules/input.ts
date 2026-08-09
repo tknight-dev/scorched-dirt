@@ -63,7 +63,7 @@ export class ModuleInput {
 						arctan: Math.PI, // 180deg (left)
 						health: particleEncodingValueHealth,
 						payload: {
-							//powerPercentage: 0.025,
+							// powerPercentage: 0.025,
 							powerPercentage: 0,
 							tankId: 0,
 						},

@@ -211,6 +211,7 @@ class WorkerMainCalcEngine {
 			physicsLiquidGridIndex: number,
 			physicsLiquidGridIndexLeft: number,
 			physicsLiquidGridIndexRight: number,
+			physicsLiquidParticle: Particle<any> | undefined,
 			physicsResistanceFriction: number = 0.075, // Larger values slide more
 			physicsResistanceLiquid: number = 0.25,
 			physicsResistanceSecondary: number = 0.5, // Collision X will reduce velocity Y by this amount
@@ -833,24 +834,47 @@ class WorkerMainCalcEngine {
 										physicsLiquidAvailableLeft = false;
 										if (x === 0) {
 											if (settingsEdgesWrap === true) {
+												// Is neighbor available
 												physicsLiquidGridIndexLeft = (gridSideLength - 1) * gridSideLength + y;
-
 												if (gridData[physicsLiquidGridIndexLeft] === 0 && particleMap.has(physicsLiquidGridIndexLeft) === false) {
 													physicsLiquidAvailableLeft = true;
 												}
+
+												// Is pixel available on the left one pixel lower at any distance
+												if (physicsLiquidAvailableLeft === true) {
+													physicsLiquidAvailableLeft = false;
+													physicsLiquidGridIndexLeft += 1;
+
+													for (xNext = gridSideLength - 1; xNext !== x; xNext--, physicsLiquidGridIndexLeft -= gridSideLength) {
+														if (gridData[physicsLiquidGridIndexLeft] !== 0) {
+															break;
+														} else if (particleMap.has(physicsLiquidGridIndexLeft) === false) {
+															physicsLiquidAvailableLeft = true;
+															break;
+														}
+													}
+												}
 											}
 										} else {
+											// Is neighbor available
 											physicsLiquidGridIndexLeft = gridIndex - gridSideLength;
 											if (gridData[physicsLiquidGridIndexLeft] === 0 && particleMap.has(physicsLiquidGridIndexLeft) === false) {
 												physicsLiquidAvailableLeft = true;
 											}
-										}
 
-										// Check: Left and one lower
-										if (physicsLiquidAvailableLeft === true) {
-											physicsLiquidGridIndexLeft += 1;
-											if (gridData[physicsLiquidGridIndexLeft] !== 0 || particleMap.has(physicsLiquidGridIndexLeft) === true) {
+											// Is pixel available on the left one pixel lower at any distance
+											if (physicsLiquidAvailableLeft === true) {
 												physicsLiquidAvailableLeft = false;
+												physicsLiquidGridIndexLeft += 1;
+
+												for (xNext = x - 1; xNext !== 0; xNext--, physicsLiquidGridIndexLeft -= gridSideLength) {
+													if (gridData[physicsLiquidGridIndexLeft] !== 0) {
+														break;
+													} else if (particleMap.has(physicsLiquidGridIndexLeft) === false) {
+														physicsLiquidAvailableLeft = true;
+														break;
+													}
+												}
 											}
 										}
 
@@ -858,30 +882,52 @@ class WorkerMainCalcEngine {
 										physicsLiquidAvailableRight = false;
 										if (x === gridSideLength) {
 											if (settingsEdgesWrap === true) {
+												// Is neighbor available
 												physicsLiquidGridIndexRight = y;
-
 												if (gridData[physicsLiquidGridIndexRight] === 0 && particleMap.has(physicsLiquidGridIndexRight) === false) {
 													physicsLiquidAvailableRight = true;
 												}
+
+												// Is pixel available on the right one pixel lower at any distance
+												if (physicsLiquidAvailableRight === true) {
+													physicsLiquidAvailableRight = false;
+													physicsLiquidGridIndexRight += 1;
+
+													for (xNext = x + 1; xNext !== x; xNext++, physicsLiquidGridIndexRight += gridSideLength) {
+														if (gridData[physicsLiquidGridIndexRight] !== 0) {
+															break;
+														} else if (particleMap.has(physicsLiquidGridIndexRight) === false) {
+															physicsLiquidAvailableRight = true;
+															break;
+														}
+													}
+												}
 											}
 										} else {
+											// Is neighbor available
 											physicsLiquidGridIndexRight = gridIndex + gridSideLength;
 											if (gridData[physicsLiquidGridIndexRight] === 0 && particleMap.has(physicsLiquidGridIndexRight) === false) {
 												physicsLiquidAvailableRight = true;
 											}
-										}
 
-										// Check: Right and one lower
-										if (physicsLiquidAvailableRight === true) {
-											physicsLiquidGridIndexRight += 1;
-											if (gridData[physicsLiquidGridIndexRight] !== 0 || particleMap.has(physicsLiquidGridIndexRight) === true) {
+											// Is pixel available on the right one pixel lower at any distance
+											if (physicsLiquidAvailableRight === true) {
 												physicsLiquidAvailableRight = false;
+												physicsLiquidGridIndexRight += 1;
+
+												for (xNext = x + 1; xNext !== gridSideLength; xNext++, physicsLiquidGridIndexRight += gridSideLength) {
+													if (gridData[physicsLiquidGridIndexRight] !== 0) {
+														break;
+													} else if (particleMap.has(physicsLiquidGridIndexRight) === false) {
+														physicsLiquidAvailableRight = true;
+														break;
+													}
+												}
 											}
 										}
 
 										// Redistribute particle if a gridIndex is available one lower on the map
 										if (physicsLiquidAvailableLeft === true || physicsLiquidAvailableRight === true) {
-											console.log(x, y, physicsLiquidAvailableLeft, physicsLiquidAvailableRight);
 											if (physicsLiquidAvailableLeft === true && physicsLiquidAvailableRight === false) {
 												// Fall left
 												physicsLiquidGridIndex = physicsLiquidGridIndexLeft;
