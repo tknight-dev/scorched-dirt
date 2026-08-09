@@ -133,25 +133,41 @@ export class ModuleInput {
 
 				if (inputTouchDown === true) {
 					WorkerMainCalcBus.sendWeapon({
-						arctan: Math.PI / 2, // 90deg (up)
+						// arctan: (3 * Math.PI) / 4, // 90deg (up)
+						arctan: Math.PI, // 180deg (left)
 						health: particleEncodingValueHealth,
 						payload: {
-							powerPercentage: 0.5,
+							// powerPercentage: 0.025,
+							powerPercentage: 0,
 							tankId: 0,
 						},
-						posX: positions[0].x,
-						posY: positions[0].y,
+						posX: ModuleSettings.data.main.worldSize / 2,
+						posY: ModuleSettings.data.main.worldSize / 3,
 						type: ParticleType.WEAPON,
 						typeValue: WeaponType.STANDARD,
+						// type: ParticleType.SOLID,
+						// typeValue: SolidType.DIRT,
 					});
+					// WorkerMainCalcBus.sendWeapon({
+					// 	arctan: (3 * Math.PI) / 4, // 90deg (up)
+					// 	health: particleEncodingValueHealth,
+					// 	payload: {
+					// 		powerPercentage: 0.25,
+					// 		tankId: 0,
+					// 	},
+					// 	posX: positions[0].x,
+					// 	posY: positions[0].y,
+					// 	type: ParticleType.WEAPON,
+					// 	typeValue: WeaponType.STANDARD,
+					// });
 				}
 			} else if (propriatary.action === GamingCanvasInputTouchAction.MOVE) {
 				if (inputTouchDown === true) {
 					// WorkerMainCalcBus.sendWeapon({
-					// 	arctan: Math.PI / 2, // 90deg (up)
+					// 	arctan: (3 * Math.PI) / 4, // 90deg (up)
 					// 	health: particleEncodingValueHealth,
 					// 	payload: {
-					// 		powerPercentage: 0.5,
+					// 		powerPercentage: 0.25,
 					// 		tankId: 0,
 					// 	},
 					// 	posX: positions[0].x,

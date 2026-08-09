@@ -888,12 +888,12 @@ class WorkerMainCalcEngine {
 													physicsLiquidAvailableRight = true;
 												}
 
-												// Is pixel available on the right one pixel lower at any distance
+												// Is pixel available on the left one pixel lower at any distance
 												if (physicsLiquidAvailableRight === true) {
 													physicsLiquidAvailableRight = false;
 													physicsLiquidGridIndexRight += 1;
 
-													for (xNext = x + 1; xNext !== x; xNext++, physicsLiquidGridIndexRight += gridSideLength) {
+													for (xNext = 0; xNext !== x; xNext++, physicsLiquidGridIndexRight += gridSideLength) {
 														if (gridData[physicsLiquidGridIndexRight] !== 0) {
 															break;
 														} else if (particleMap.has(physicsLiquidGridIndexRight) === false) {
@@ -910,7 +910,7 @@ class WorkerMainCalcEngine {
 												physicsLiquidAvailableRight = true;
 											}
 
-											// Is pixel available on the right one pixel lower at any distance
+											// Is pixel available on the left one pixel lower at any distance
 											if (physicsLiquidAvailableRight === true) {
 												physicsLiquidAvailableRight = false;
 												physicsLiquidGridIndexRight += 1;
