@@ -20,11 +20,11 @@ export class ModuleDOM {
 	public static elMenuContent: HTMLElement;
 	public static elMenuSettings: HTMLElement;
 	public static elPerformance: HTMLElement;
-	public static elPerformanceDirtCalc: HTMLElement;
-	public static elPerformanceDirtCalcAll: HTMLElement;
-	public static elPerformanceDirtParticleCount: HTMLElement;
-	public static elPerformanceDirtVideo: HTMLElement;
-	public static elPerformanceDirtVideoAll: HTMLElement;
+	public static elPerformanceMainCalc: HTMLElement;
+	public static elPerformanceMainCalcAll: HTMLElement;
+	public static elPerformanceMainParticleCount: HTMLElement;
+	public static elPerformanceMainVideo: HTMLElement;
+	public static elPerformanceMainVideoAll: HTMLElement;
 	public static elSettings: HTMLElement;
 	public static elSettingsApply: HTMLElement;
 	public static elSettingsCancel: HTMLElement;
@@ -98,11 +98,11 @@ export class ModuleDOM {
 
 		// Performance
 		ModuleDOM.elPerformance = <HTMLElement>document.getElementById('performance');
-		ModuleDOM.elPerformanceDirtCalc = <HTMLElement>document.getElementById('performance-dirt-calc');
-		ModuleDOM.elPerformanceDirtCalcAll = <HTMLElement>document.getElementById('performance-dirt-calc-all');
-		ModuleDOM.elPerformanceDirtParticleCount = <HTMLElement>document.getElementById('performance-dirt-calc-particle-count');
-		ModuleDOM.elPerformanceDirtVideo = <HTMLElement>document.getElementById('performance-dirt-video');
-		ModuleDOM.elPerformanceDirtVideoAll = <HTMLElement>document.getElementById('performance-dirt-video-all');
+		ModuleDOM.elPerformanceMainCalc = <HTMLElement>document.getElementById('performance-main-calc');
+		ModuleDOM.elPerformanceMainCalcAll = <HTMLElement>document.getElementById('performance-main-calc-all');
+		ModuleDOM.elPerformanceMainParticleCount = <HTMLElement>document.getElementById('performance-main-calc-particle-count');
+		ModuleDOM.elPerformanceMainVideo = <HTMLElement>document.getElementById('performance-main-video');
+		ModuleDOM.elPerformanceMainVideoAll = <HTMLElement>document.getElementById('performance-main-video-all');
 
 		// Settings: Menu
 		ModuleDOM.elSettings = <HTMLElement>document.getElementById('settings');

@@ -14,15 +14,15 @@ import {
 import { WindStrength } from '../../models/settings.model.js';
 import { Weapon } from '../../models/weapon.model.js';
 import {
-	WorkerDirtCalcBusInputCmd,
-	WorkerDirtCalcBusInputDataInit,
-	WorkerDirtCalcBusInputDataWorld,
-	WorkerDirtCalcBusInputDataSettings,
-	WorkerDirtCalcBusInputPayload,
-	WorkerDirtCalcBusOutputCmd,
-	WorkerDirtCalcBusOutputPayload,
-	WorkerDirtCalcBusStats,
-} from './dirt-calc.model.js';
+	WorkerMainCalcBusInputCmd,
+	WorkerMainCalcBusInputDataInit,
+	WorkerMainCalcBusInputDataWorld,
+	WorkerMainCalcBusInputDataSettings,
+	WorkerMainCalcBusInputPayload,
+	WorkerMainCalcBusOutputCmd,
+	WorkerMainCalcBusOutputPayload,
+	WorkerMainCalcBusStats,
+} from './main-calc.model.js';
 import { Tank, TankType } from '../../models/tank.model.js';
 
 /**
@@ -33,28 +33,28 @@ import { Tank, TankType } from '../../models/tank.model.js';
  * Input: from Main Thread
  */
 self.onmessage = (event: MessageEvent) => {
-	const payload: WorkerDirtCalcBusInputPayload = event.data;
+	const payload: WorkerMainCalcBusInputPayload = event.data;
 
 	switch (payload.cmd) {
-		case WorkerDirtCalcBusInputCmd.INIT:
-			WorkerDirtCalcEngine.initialize(<WorkerDirtCalcBusInputDataInit>payload.data);
+		case WorkerMainCalcBusInputCmd.INIT:
+			WorkerMainCalcEngine.initialize(<WorkerMainCalcBusInputDataInit>payload.data);
 			break;
-		case WorkerDirtCalcBusInputCmd.MAP:
-			WorkerDirtCalcEngine.inputWorld(<WorkerDirtCalcBusInputDataWorld>payload.data);
+		case WorkerMainCalcBusInputCmd.MAP:
+			WorkerMainCalcEngine.inputWorld(<WorkerMainCalcBusInputDataWorld>payload.data);
 			break;
-		case WorkerDirtCalcBusInputCmd.SETTINGS:
-			WorkerDirtCalcEngine.inputSettings(<WorkerDirtCalcBusInputDataSettings>payload.data);
+		case WorkerMainCalcBusInputCmd.SETTINGS:
+			WorkerMainCalcEngine.inputSettings(<WorkerMainCalcBusInputDataSettings>payload.data);
 			break;
-		case WorkerDirtCalcBusInputCmd.WEAPON:
-			WorkerDirtCalcEngine.inputWeapon(<ParticleInitial<Weapon>>payload.data);
+		case WorkerMainCalcBusInputCmd.WEAPON:
+			WorkerMainCalcEngine.inputWeapon(<ParticleInitial<Weapon>>payload.data);
 			break;
 	}
 };
 
-class WorkerDirtCalcEngine {
+class WorkerMainCalcEngine {
 	private static animationFrameRequest: number;
 	private static particlePool: GamingCanvasDoubleLinkedList<Particle<any>> = new GamingCanvasDoubleLinkedList();
-	private static settings: WorkerDirtCalcBusInputDataSettings;
+	private static settings: WorkerMainCalcBusInputDataSettings;
 	private static settingsNew: boolean;
 	private static stats: { [key: number]: GamingCanvasStat } = {};
 	private static tanks: Map<number, Tank> = new Map();
@@ -62,19 +62,19 @@ class WorkerDirtCalcEngine {
 	private static world: World;
 	private static worldNew: boolean;
 
-	public static async initialize(data: WorkerDirtCalcBusInputDataInit): Promise<void> {
+	public static async initialize(data: WorkerMainCalcBusInputDataInit): Promise<void> {
 		// Stats
-		WorkerDirtCalcEngine.stats[WorkerDirtCalcBusStats.ALL] = new GamingCanvasStat(50);
+		WorkerMainCalcEngine.stats[WorkerMainCalcBusStats.ALL] = new GamingCanvasStat(50);
 
 		// Config: World
-		WorkerDirtCalcEngine.inputWorld(data as WorkerDirtCalcBusInputDataWorld);
+		WorkerMainCalcEngine.inputWorld(data as WorkerMainCalcBusInputDataWorld);
 
 		// Config: Settings
-		WorkerDirtCalcEngine.inputSettings(data as WorkerDirtCalcBusInputDataSettings);
+		WorkerMainCalcEngine.inputSettings(data as WorkerMainCalcBusInputDataSettings);
 
 		// Pool: Particles
-		let particlePool: GamingCanvasDoubleLinkedList<Particle<any>> = WorkerDirtCalcEngine.particlePool,
-			particlePoolSize: number = WorkerDirtCalcEngine.settings.particlePoolSize;
+		let particlePool: GamingCanvasDoubleLinkedList<Particle<any>> = WorkerMainCalcEngine.particlePool,
+			particlePoolSize: number = WorkerMainCalcEngine.settings.particlePoolSize;
 		for (let i = 0; i < particlePoolSize; i++) {
 			particlePool.pushEnd({
 				arctan: 0,
@@ -98,10 +98,10 @@ class WorkerDirtCalcEngine {
 		}
 
 		// Done
-		WorkerDirtCalcEngine.animationLoop();
-		WorkerDirtCalcEngine.post([
+		WorkerMainCalcEngine.animationLoop();
+		WorkerMainCalcEngine.post([
 			{
-				cmd: WorkerDirtCalcBusOutputCmd.INIT_COMPLETE,
+				cmd: WorkerMainCalcBusOutputCmd.INIT_COMPLETE,
 				data: true,
 			},
 		]);
@@ -110,15 +110,15 @@ class WorkerDirtCalcEngine {
 	/*
 	 * Input
 	 */
-	public static inputSettings(data: WorkerDirtCalcBusInputDataSettings): void {
-		WorkerDirtCalcEngine.settings = data;
-		WorkerDirtCalcEngine.settingsNew = true;
+	public static inputSettings(data: WorkerMainCalcBusInputDataSettings): void {
+		WorkerMainCalcEngine.settings = data;
+		WorkerMainCalcEngine.settingsNew = true;
 	}
 
 	public static inputWeapon(data: ParticleInitial<Weapon>): void {
 		let particle: Particle<Weapon> = <any>data,
 			payload: Weapon = <Weapon>data.payload,
-			tank: Tank | undefined = WorkerDirtCalcEngine.tanks.get(payload.tankId);
+			tank: Tank | undefined = WorkerMainCalcEngine.tanks.get(payload.tankId);
 
 		// TMP: eventually this will just be a map of actual tanks to use instead
 		if (tank === undefined) {
@@ -132,7 +132,7 @@ class WorkerDirtCalcEngine {
 				statHorsepower: 10,
 				statPower: 10,
 			};
-			WorkerDirtCalcEngine.tanks.set(tank.id, tank);
+			WorkerMainCalcEngine.tanks.set(tank.id, tank);
 		}
 
 		particle.arctanOriginal = particle.arctan;
@@ -150,19 +150,19 @@ class WorkerDirtCalcEngine {
 
 		console.log('add', particle.velX);
 
-		WorkerDirtCalcEngine.weapons.pushEnd(particle);
+		WorkerMainCalcEngine.weapons.pushEnd(particle);
 	}
 
-	public static inputWorld(data: WorkerDirtCalcBusInputDataWorld): void {
-		WorkerDirtCalcEngine.world = data.world;
-		WorkerDirtCalcEngine.world.grid = GamingCanvasGridUint32Array.from(data.world.grid.data);
-		WorkerDirtCalcEngine.worldNew = true;
+	public static inputWorld(data: WorkerMainCalcBusInputDataWorld): void {
+		WorkerMainCalcEngine.world = data.world;
+		WorkerMainCalcEngine.world.grid = GamingCanvasGridUint32Array.from(data.world.grid.data);
+		WorkerMainCalcEngine.worldNew = true;
 	}
 
 	/*
 	 * Output: to Main Thread
 	 */
-	private static post(payloads: WorkerDirtCalcBusOutputPayload[], data?: Transferable[]): void {
+	private static post(payloads: WorkerMainCalcBusOutputPayload[], data?: Transferable[]): void {
 		self.postMessage(payloads, (data || []) as any);
 	}
 
@@ -173,6 +173,7 @@ class WorkerDirtCalcEngine {
 		let buffers: ArrayBufferLike[] = [],
 			collisionX: boolean,
 			collisionY: boolean,
+			collisionLiquidRedistribution: boolean,
 			collisionNextEdge: boolean,
 			collisionNextGridIndex: number,
 			collisionNextParticle: Particle<any> | undefined,
@@ -199,12 +200,17 @@ class WorkerDirtCalcEngine {
 			particlePrevious: Particle<any> | undefined,
 			particleNode: GamingCanvasDoubleLinkedListNode<Particle<any>> | undefined,
 			particleLast: Particle<any>,
-			particlePool: GamingCanvasDoubleLinkedList<Particle<any>> = WorkerDirtCalcEngine.particlePool,
+			particlePool: GamingCanvasDoubleLinkedList<Particle<any>> = WorkerMainCalcEngine.particlePool,
 			particlePoolInstance: Particle<any> | undefined,
 			particlePoolInstanceNode: GamingCanvasDoubleLinkedListNode<Particle<any>>,
 			particles: GamingCanvasDoubleLinkedList<Particle<any>> = new GamingCanvasDoubleLinkedList(),
 			particlesEncoded: Uint32Array | undefined,
 			physicsGravity: number = 0.00005,
+			physicsLiquidAvailableLeft: boolean,
+			physicsLiquidAvailableRight: boolean,
+			physicsLiquidGridIndex: number,
+			physicsLiquidGridIndexLeft: number,
+			physicsLiquidGridIndexRight: number,
 			physicsResistanceFriction: number = 0.075, // Larger values slide more
 			physicsResistanceLiquid: number = 0.25,
 			physicsResistanceSecondary: number = 0.5, // Collision X will reduce velocity Y by this amount
@@ -232,7 +238,7 @@ class WorkerDirtCalcEngine {
 			settingsWindRandomize: boolean,
 			settingsWindStrength: WindStrength,
 			solidType: number,
-			statAll: GamingCanvasStat = WorkerDirtCalcEngine.stats[WorkerDirtCalcBusStats.ALL],
+			statAll: GamingCanvasStat = WorkerMainCalcEngine.stats[WorkerMainCalcBusStats.ALL],
 			statAllRaw: Float32Array,
 			velChanged: boolean,
 			velMaxUnsigned: number,
@@ -265,30 +271,30 @@ class WorkerDirtCalcEngine {
 		// 	shotData: ParticleCalculated<Weapon>,
 		// 	shotComplete: boolean,
 		// 	shotTypeProperty: WeaponTypeProperty,
-		// 	shots: GamingCanvasDoubleLinkedList<ParticleCalculated<Weapon>> = WorkerDirtCalcEngine.shots,
+		// 	shots: GamingCanvasDoubleLinkedList<ParticleCalculated<Weapon>> = WorkerMainCalcEngine.shots,
 
 		const go = (timestampNow: number) => {
 			// Always start the request for the next frame first!
-			WorkerDirtCalcEngine.animationFrameRequest = requestAnimationFrame(go);
+			WorkerMainCalcEngine.animationFrameRequest = requestAnimationFrame(go);
 
 			// Config
-			if (WorkerDirtCalcEngine.settingsNew === true) {
-				WorkerDirtCalcEngine.settingsNew = false;
+			if (WorkerMainCalcEngine.settingsNew === true) {
+				WorkerMainCalcEngine.settingsNew = false;
 
-				settingsEdgesWrap = WorkerDirtCalcEngine.settings.edgesWrap;
-				settingsFPMS = Math.round((1000 / WorkerDirtCalcEngine.settings.fps) * 1000) / 1000;
-				settingsParticlePoolSize = WorkerDirtCalcEngine.settings.particlePoolSize;
-				settingsWindRandomize = WorkerDirtCalcEngine.settings.windRandomize;
-				settingsWindStrength = WorkerDirtCalcEngine.settings.windStrength;
+				settingsEdgesWrap = WorkerMainCalcEngine.settings.edgesWrap;
+				settingsFPMS = Math.round((1000 / WorkerMainCalcEngine.settings.fps) * 1000) / 1000;
+				settingsParticlePoolSize = WorkerMainCalcEngine.settings.particlePoolSize;
+				settingsWindRandomize = WorkerMainCalcEngine.settings.windRandomize;
+				settingsWindStrength = WorkerMainCalcEngine.settings.windStrength;
 
 				// Cycle the physics system 25% faster than the desired FPS rate
 				cpuCycleTimeInMs = (settingsFPMS * 0.75) | 0;
 			}
 
-			if (WorkerDirtCalcEngine.worldNew === true) {
-				WorkerDirtCalcEngine.worldNew = false;
+			if (WorkerMainCalcEngine.worldNew === true) {
+				WorkerMainCalcEngine.worldNew = false;
 
-				world = WorkerDirtCalcEngine.world;
+				world = WorkerMainCalcEngine.world;
 				worldBedrock = world.bedrock;
 
 				// Grid
@@ -366,8 +372,8 @@ class WorkerDirtCalcEngine {
 				}
 			}
 
-			if (WorkerDirtCalcEngine.weapons.length !== 0) {
-				particleNode = WorkerDirtCalcEngine.weapons.start;
+			if (WorkerMainCalcEngine.weapons.length !== 0) {
+				particleNode = WorkerMainCalcEngine.weapons.start;
 				while (particleNode !== undefined) {
 					gridIndex = (particleNode.data.posX | 0) * gridSideLength + (particleNode.data.posY | 0);
 					particleMap.set(gridIndex, particleNode.data);
@@ -379,7 +385,7 @@ class WorkerDirtCalcEngine {
 					// Done
 					particleNode = particleNode.next;
 				}
-				WorkerDirtCalcEngine.weapons.clear();
+				WorkerMainCalcEngine.weapons.clear();
 			}
 
 			// Animate
@@ -532,7 +538,7 @@ class WorkerDirtCalcEngine {
 						// Calc: New Position
 						if (posXInteger !== posXIntegerNext || posYInteger !== posYIntegerNext) {
 							// Position: X wrap check
-							if (posXIntegerNext < 0 || posXIntegerNext > gridSideLength) {
+							if (posXIntegerNext < 0 || posXIntegerNext >= gridSideLength) {
 								if (settingsEdgesWrap === true) {
 									posXIntegerNext = (posXIntegerNext + gridSideLength) % gridSideLength;
 									particle.posX = posXIntegerNext + (particle.posX % 1);
@@ -656,7 +662,18 @@ class WorkerDirtCalcEngine {
 									collisionNextType = SolidType.ROCK; // TMP
 								} // TMP
 
-								if (particle.typeValue === SolidType.DIRT) {
+								if (collisionNextType === SolidType.WEAPON) {
+									// Colliding with a weapon is a collision false positive in all cases
+									collisionWeapons.add(collisionNextGridIndex);
+
+									if (collisionNextParticle !== undefined) {
+										particleMap.delete(collisionNextGridIndex);
+										particles.remove(collisionNextParticle.node);
+									} else {
+										gridData[collisionNextGridIndex] = 0;
+										gridUpdate = true;
+									}
+								} else if (particle.typeValue === SolidType.DIRT) {
 									console.log('COLLISION', 'DIRT', particle.id);
 									switch (collisionNextType) {
 										case SolidType.DIRT:
@@ -691,6 +708,7 @@ class WorkerDirtCalcEngine {
 
 											collisionNextResultHardStop = true;
 											particle.typeValue = SolidType.LAVA;
+											// TODO trigger lava strike animation at this gridIndex
 
 											if (collisionX === true) {
 												particle.posX = posXInteger;
@@ -715,6 +733,8 @@ class WorkerDirtCalcEngine {
 												particleNode = particleNode.next;
 												continue;
 											}
+
+											// TODO trigger water strike animation at this gridIndex
 
 											if (collisionX === true && collisionY === true) {
 												particle.posX = collisionNextParticle.posX + (particle.posX % 1);
@@ -751,23 +771,135 @@ class WorkerDirtCalcEngine {
 											particleMap.set(collisionNextParticle.gridIndex, collisionNextParticle);
 											break;
 										case SolidType.WEAPON:
-											console.log('  >> ON WEAPON');
-											collisionWeapons.add(particle.gridIndex);
-
-											if (collisionNextParticle !== undefined) {
-												particleMap.delete(collisionNextGridIndex);
-												particles.remove(collisionNextParticle.node);
-											} else {
-												gridData[collisionNextGridIndex] = 0;
-												gridUpdate = true;
-											}
+											console.error('DirtCalc > collision: DIRT on WEAPON failed');
 											break;
 									}
 								} else if (particle.typeValue === SolidType.LAVA || particle.typeValue === SolidType.WATER) {
-									particle.posX = posXInteger;
-									particle.posY = posYInteger;
-									particle.velX = 0;
-									particle.velY = 0;
+									if (particle.typeValue === SolidType.LAVA) {
+										// console.log('COLLISION', 'LAVA', particle.id);
+										switch (collisionNextType) {
+											case SolidType.DIRT:
+											case SolidType.LAVA:
+											case SolidType.ROCK:
+												particle.posX = posXInteger;
+												particle.posY = posYInteger;
+												particle.velX = 0;
+												particle.velY = 0;
+												break;
+											case SolidType.WATER:
+												// Convert LAVA to ROCK
+												particles.remove(particle.node);
+												gridData[particle.gridIndex] = (particle.health << worldEncodingShiftHealth) | particle.typeValue;
+												gridUpdate = true;
+												particleNode = particleNode.next;
+												continue;
+											case SolidType.WEAPON:
+												console.error('DirtCalc > collision: LAVA on WEAPON failed');
+												break;
+										}
+									} else {
+										// console.log('COLLISION', 'WATER', particle.id);
+										switch (collisionNextType) {
+											case SolidType.DIRT:
+											case SolidType.ROCK:
+											case SolidType.WATER:
+												particle.posX = posXInteger;
+												particle.posY = posYInteger;
+												particle.velX = 0;
+												particle.velY = 0;
+												break;
+											case SolidType.LAVA:
+												// Delete WATER
+												particles.remove(particle.node);
+												particleNode = particleNode.next;
+												continue;
+											case SolidType.WEAPON:
+												console.error('DirtCalc > collision: WATER on WEAPON failed');
+												break;
+										}
+									}
+
+									// Redistribute liquid when falling on another liquid of the same type
+									if (
+										collisionY === true && // Falling collision
+										collisionNextType === particle.typeValue && // Of same type
+										posYIntegerNext > posYInteger // Colliding downwards
+									) {
+										x = particle.posX | 0;
+										y = particle.posY | 0;
+										gridIndex = x * gridSideLength + y;
+
+										// Check: Left
+										physicsLiquidAvailableLeft = false;
+										if (x === 0) {
+											if (settingsEdgesWrap === true) {
+												physicsLiquidGridIndexLeft = (gridSideLength - 1) * gridSideLength + y;
+
+												if (gridData[physicsLiquidGridIndexLeft] === 0 && particleMap.has(physicsLiquidGridIndexLeft) === false) {
+													physicsLiquidAvailableLeft = true;
+												}
+											}
+										} else {
+											physicsLiquidGridIndexLeft = gridIndex - gridSideLength;
+											if (gridData[physicsLiquidGridIndexLeft] === 0 && particleMap.has(physicsLiquidGridIndexLeft) === false) {
+												physicsLiquidAvailableLeft = true;
+											}
+										}
+
+										// Check: Left and one lower
+										if (physicsLiquidAvailableLeft === true) {
+											physicsLiquidGridIndexLeft += 1;
+											if (gridData[physicsLiquidGridIndexLeft] !== 0 || particleMap.has(physicsLiquidGridIndexLeft) === true) {
+												physicsLiquidAvailableLeft = false;
+											}
+										}
+
+										// Check: Right
+										physicsLiquidAvailableRight = false;
+										if (x === gridSideLength) {
+											if (settingsEdgesWrap === true) {
+												physicsLiquidGridIndexRight = y;
+
+												if (gridData[physicsLiquidGridIndexRight] === 0 && particleMap.has(physicsLiquidGridIndexRight) === false) {
+													physicsLiquidAvailableRight = true;
+												}
+											}
+										} else {
+											physicsLiquidGridIndexRight = gridIndex + gridSideLength;
+											if (gridData[physicsLiquidGridIndexRight] === 0 && particleMap.has(physicsLiquidGridIndexRight) === false) {
+												physicsLiquidAvailableRight = true;
+											}
+										}
+
+										// Check: Right and one lower
+										if (physicsLiquidAvailableRight === true) {
+											physicsLiquidGridIndexRight += 1;
+											if (gridData[physicsLiquidGridIndexRight] !== 0 || particleMap.has(physicsLiquidGridIndexRight) === true) {
+												physicsLiquidAvailableRight = false;
+											}
+										}
+
+										// Redistribute particle if a gridIndex is available one lower on the map
+										if (physicsLiquidAvailableLeft === true || physicsLiquidAvailableRight === true) {
+											console.log(x, y, physicsLiquidAvailableLeft, physicsLiquidAvailableRight);
+											if (physicsLiquidAvailableLeft === true && physicsLiquidAvailableRight === false) {
+												// Fall left
+												physicsLiquidGridIndex = physicsLiquidGridIndexLeft;
+											} else if (physicsLiquidAvailableLeft === false && physicsLiquidAvailableRight === true) {
+												// Fall right
+												physicsLiquidGridIndex = physicsLiquidGridIndexRight;
+											} else {
+												// Fall random left or right
+												physicsLiquidGridIndex = Math.random() > 0.5 ? physicsLiquidGridIndexLeft : physicsLiquidGridIndexRight;
+											}
+
+											// Move liquid to available gridIndex
+											y = physicsLiquidGridIndex % gridSideLength;
+											x = (physicsLiquidGridIndex - y) / gridSideLength;
+											particle.posX = x + (particle.posX % 1);
+											particle.posY = y + (particle.posY % 1);
+										}
+									}
 
 									// fall left or right based on availility
 									// scan left or right for availability until a non-liquid is found
@@ -1163,10 +1295,10 @@ class WorkerDirtCalcEngine {
 				statAllRaw = <Float32Array>statAll.encode();
 
 				// Output
-				WorkerDirtCalcEngine.post(
+				WorkerMainCalcEngine.post(
 					[
 						{
-							cmd: WorkerDirtCalcBusOutputCmd.STATS,
+							cmd: WorkerMainCalcBusOutputCmd.STATS,
 							data: {
 								all: statAllRaw,
 								particleCount: particles.length,
@@ -1221,10 +1353,10 @@ class WorkerDirtCalcEngine {
 				}
 
 				// Upload grid
-				WorkerDirtCalcEngine.post(
+				WorkerMainCalcEngine.post(
 					[
 						{
-							cmd: WorkerDirtCalcBusOutputCmd.DATA,
+							cmd: WorkerMainCalcBusOutputCmd.DATA,
 							data: {
 								grid: gridClone,
 								particles: particlesEncoded,
@@ -1236,6 +1368,6 @@ class WorkerDirtCalcEngine {
 			}
 		};
 
-		WorkerDirtCalcEngine.animationFrameRequest = requestAnimationFrame(go);
+		WorkerMainCalcEngine.animationFrameRequest = requestAnimationFrame(go);
 	}
 }

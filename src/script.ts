@@ -4,10 +4,10 @@ import { ModuleGame } from './modules/game.js';
 import { ModuleWorld } from './modules/world.js';
 import { ModuleSettings } from './modules/settings.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from './gaming-canvas/modules/grid/index.js';
-import { WorkerDirtCalcBus } from './workers/dirt-calc/dirt-calc.bus.js';
-import { WorkerDirtCalcBusOutputDataStats } from './workers/dirt-calc/dirt-calc.model.js';
-import { WorkerDirtVideoBus } from './workers/dirt-video/dirt-video.bus.js';
-import { WorkerDirtVideoBusOutputDataStats } from './workers/dirt-video/dirt-video.model.js';
+import { WorkerMainCalcBus } from './workers/main-calc/main-calc.bus.js';
+import { WorkerMainCalcBusOutputDataStats } from './workers/main-calc/main-calc.model.js';
+import { WorkerMainVideoBus } from './workers/main-video/main-video.bus.js';
+import { WorkerMainVideoBusOutputDataStats } from './workers/main-video/main-video.model.js';
 import { GamingCanvas } from './gaming-canvas/main/gaming-canvas.js';
 import { GamingCanvasStat, GamingCanvasStatCalcType } from './gaming-canvas/main/stat.js';
 import { ModuleInput } from './modules/input.js';
@@ -71,16 +71,16 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			precision: number = 2;
 
 		// Stats
-		WorkerDirtCalcBus.setCallbackStats((data: WorkerDirtCalcBusOutputDataStats) => {
+		WorkerMainCalcBus.setCallbackStats((data: WorkerMainCalcBusOutputDataStats) => {
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
 
-			ModuleDOM.elPerformanceDirtCalcAll.innerHTML = displayNumberAll(all, precision);
-			ModuleDOM.elPerformanceDirtParticleCount.innerHTML = displayNumber(data.particleCount, 0, '', '');
+			ModuleDOM.elPerformanceMainCalcAll.innerHTML = displayNumberAll(all, precision);
+			ModuleDOM.elPerformanceMainParticleCount.innerHTML = displayNumber(data.particleCount, 0, '', '');
 		});
-		WorkerDirtVideoBus.setCallbackStats((data: WorkerDirtVideoBusOutputDataStats) => {
+		WorkerMainVideoBus.setCallbackStats((data: WorkerMainVideoBusOutputDataStats) => {
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
 
-			ModuleDOM.elPerformanceDirtVideoAll.innerHTML = displayNumberAll(all, precision);
+			ModuleDOM.elPerformanceMainVideoAll.innerHTML = displayNumberAll(all, precision);
 
 			ScorchedDirt.statFPS['dirt-video'] = data.fps;
 			ScorchedDirt.displayStatFPS();
@@ -188,15 +188,15 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			world: World = ModuleWorld.worldActive;
 
 		return new Promise<void>((resolve: any) => {
-			WorkerDirtCalcBus.initialize(ModuleSettings.data.workerDirtCalc, world, () => {
+			WorkerMainCalcBus.initialize(ModuleSettings.data.workerDirtCalc, world, () => {
 				// Done
-				console.log('WorkerDirtCalcBus: Loaded in', (performance.now() - then) | 0, 'ms');
+				console.log('WorkerMainCalcBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
 				// Load video-editor
 				then = performance.now();
-				WorkerDirtVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerDirtVideo, world, () => {
+				WorkerMainVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerDirtVideo, world, () => {
 					// Done
-					console.log('WorkerDirtVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
+					console.log('WorkerMainVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
 					// Resolve initial promise
 					resolve();

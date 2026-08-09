@@ -1,6 +1,6 @@
-import { WorkerDirtCalcBus } from '../workers/dirt-calc/dirt-calc.bus.js';
-import { WorkerDirtCalcBusOutputData } from '../workers/dirt-calc/dirt-calc.model.js';
-import { WorkerDirtVideoBus } from '../workers/dirt-video/dirt-video.bus.js';
+import { WorkerMainCalcBus } from '../workers/main-calc/main-calc.bus.js';
+import { WorkerMainCalcBusOutputData } from '../workers/main-calc/main-calc.model.js';
+import { WorkerMainVideoBus } from '../workers/main-video/main-video.bus.js';
 
 /**
  * Bridge communication between buses
@@ -11,8 +11,8 @@ import { WorkerDirtVideoBus } from '../workers/dirt-video/dirt-video.bus.js';
 export class ModuleBridge {
 	public static async initialize(): Promise<void> {
 		// Worker: Dirt Calc
-		WorkerDirtCalcBus.setCallbackData((data: WorkerDirtCalcBusOutputData) => {
-			WorkerDirtVideoBus.sendCalc(data);
+		WorkerMainCalcBus.setCallbackData((data: WorkerMainCalcBusOutputData) => {
+			WorkerMainVideoBus.sendCalc(data);
 		});
 	}
 }

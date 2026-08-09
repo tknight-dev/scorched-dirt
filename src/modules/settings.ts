@@ -1,10 +1,10 @@
 import { GamingCanvas, GamingCanvasAudioType, GamingCanvasOptions, GamingCanvasOrientation, GamingCanvasRenderStyle } from '../gaming-canvas/main/index.js';
 import { ModuleDOM } from './dom.js';
 import { FPS, WorldSize, ResolutionWidthPx, WindStrength } from '../models/settings.model.js';
-import { WorkerDirtCalcBus } from '../workers/dirt-calc/dirt-calc.bus.js';
-import { WorkerDirtCalcBusInputDataSettings } from '../workers/dirt-calc/dirt-calc.model.js';
-import { WorkerDirtVideoBus } from '../workers/dirt-video/dirt-video.bus.js';
-import { WorkerDirtVideoBusInputDataSettings } from '../workers/dirt-video/dirt-video.model.js';
+import { WorkerMainCalcBus } from '../workers/main-calc/main-calc.bus.js';
+import { WorkerMainCalcBusInputDataSettings } from '../workers/main-calc/main-calc.model.js';
+import { WorkerMainVideoBus } from '../workers/main-video/main-video.bus.js';
+import { WorkerMainVideoBusInputDataSettings } from '../workers/main-video/main-video.model.js';
 
 /**
  * @author tknight-dev
@@ -58,14 +58,14 @@ export class ModuleSettings {
 				windRandomize: false,
 				windStrength: WindStrength.NONE,
 			},
-			workerDirtCalc: <WorkerDirtCalcBusInputDataSettings>{
+			workerDirtCalc: <WorkerMainCalcBusInputDataSettings>{
 				edgesWrap: true,
 				fps: FPS._60,
 				particlePoolSize: 500,
 				windRandomize: false,
 				windStrength: WindStrength.NONE,
 			},
-			workerDirtVideo: <WorkerDirtVideoBusInputDataSettings>{
+			workerDirtVideo: <WorkerMainVideoBusInputDataSettings>{
 				debug: false,
 				edgesWrap: true,
 				fps: FPS._60,
@@ -256,7 +256,7 @@ export class ModuleSettings {
 	}
 
 	private static workersUpdate(): void {
-		WorkerDirtCalcBus.sendSettings(ModuleSettings.data.workerDirtCalc);
-		WorkerDirtVideoBus.sendSettings(ModuleSettings.data.workerDirtVideo);
+		WorkerMainCalcBus.sendSettings(ModuleSettings.data.workerDirtCalc);
+		WorkerMainVideoBus.sendSettings(ModuleSettings.data.workerDirtVideo);
 	}
 }

@@ -5,7 +5,7 @@ import { GamingCanvasInput, GamingCanvasInputPosition, GamingCanvasInputType } f
 import { particleEncodingValueHealth, ParticleType } from '../models/physics.model.js';
 import { WeaponType } from '../models/weapon.model.js';
 import { SolidType } from '../models/world.model.js';
-import { WorkerDirtCalcBus } from '../workers/dirt-calc/dirt-calc.bus.js';
+import { WorkerMainCalcBus } from '../workers/main-calc/main-calc.bus.js';
 import { ModuleSettings } from './settings.js';
 
 /**
@@ -58,7 +58,7 @@ export class ModuleInput {
 				inputMouseDown = propriatary.down;
 
 				if (inputMouseDown === true) {
-					WorkerDirtCalcBus.sendWeapon({
+					WorkerMainCalcBus.sendWeapon({
 						// arctan: (3 * Math.PI) / 4, // 90deg (up)
 						arctan: Math.PI, // 180deg (left)
 						health: particleEncodingValueHealth,
@@ -74,7 +74,7 @@ export class ModuleInput {
 						// type: ParticleType.SOLID,
 						// typeValue: SolidType.DIRT,
 					});
-					// WorkerDirtCalcBus.sendWeapon({
+					// WorkerMainCalcBus.sendWeapon({
 					// 	arctan: (3 * Math.PI) / 4, // 90deg (up)
 					// 	health: particleEncodingValueHealth,
 					// 	payload: {
@@ -91,7 +91,7 @@ export class ModuleInput {
 				}
 			} else if (propriatary.action === GamingCanvasInputMouseAction.MOVE) {
 				if (inputMouseDown === true) {
-					// WorkerDirtCalcBus.sendWeapon({
+					// WorkerMainCalcBus.sendWeapon({
 					// 	// arctan: (3 * Math.PI) / 4, // 90deg (up)
 					// 	arctan: Math.PI, // 180deg (left)
 					// 	health: particleEncodingValueHealth,
@@ -106,7 +106,7 @@ export class ModuleInput {
 					// 	// type: ParticleType.SOLID,
 					// 	// typeValue: SolidType.DIRT,
 					// });
-					// WorkerDirtCalcBus.sendWeapon({
+					// WorkerMainCalcBus.sendWeapon({
 					// 	arctan: (3 * Math.PI) / 4, // 90deg (up)
 					// 	health: particleEncodingValueHealth,
 					// 	payload: {
@@ -132,7 +132,7 @@ export class ModuleInput {
 				inputTouchDown = propriatary.down;
 
 				if (inputTouchDown === true) {
-					WorkerDirtCalcBus.sendWeapon({
+					WorkerMainCalcBus.sendWeapon({
 						arctan: Math.PI / 2, // 90deg (up)
 						health: particleEncodingValueHealth,
 						payload: {
@@ -147,7 +147,7 @@ export class ModuleInput {
 				}
 			} else if (propriatary.action === GamingCanvasInputTouchAction.MOVE) {
 				if (inputTouchDown === true) {
-					// WorkerDirtCalcBus.sendWeapon({
+					// WorkerMainCalcBus.sendWeapon({
 					// 	arctan: Math.PI / 2, // 90deg (up)
 					// 	health: particleEncodingValueHealth,
 					// 	payload: {

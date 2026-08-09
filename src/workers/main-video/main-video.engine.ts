@@ -17,17 +17,17 @@ import {
 import { Tank } from '../../models/tank.model.js';
 import { Weapon } from '../../models/weapon.model.js';
 import { Solid, SolidType, World, worldEncodingMaskType } from '../../models/world.model.js';
-import { WorkerDirtCalcBusOutputData } from '../dirt-calc/dirt-calc.model.js';
+import { WorkerMainCalcBusOutputData } from '../main-calc/main-calc.model.js';
 import {
-	WorkerDirtVideoBusInputCmd,
-	WorkerDirtVideoBusInputDataInit,
-	WorkerDirtVideoBusInputDataSettings,
-	WorkerDirtVideoBusInputDataView,
-	WorkerDirtVideoBusInputPayload,
-	WorkerDirtVideoBusOutputCmd,
-	WorkerDirtVideoBusOutputPayload,
-	WorkerDirtVideoBusStats,
-} from './dirt-video.model.js';
+	WorkerMainVideoBusInputCmd,
+	WorkerMainVideoBusInputDataInit,
+	WorkerMainVideoBusInputDataSettings,
+	WorkerMainVideoBusInputDataView,
+	WorkerMainVideoBusInputPayload,
+	WorkerMainVideoBusOutputCmd,
+	WorkerMainVideoBusOutputPayload,
+	WorkerMainVideoBusStats,
+} from './main-video.model.js';
 
 /**
  * @author tknight-dev
@@ -37,31 +37,31 @@ import {
  * Input: from Main Thread
  */
 self.onmessage = (event: MessageEvent) => {
-	const payload: WorkerDirtVideoBusInputPayload = event.data;
+	const payload: WorkerMainVideoBusInputPayload = event.data;
 
 	switch (payload.cmd) {
-		case WorkerDirtVideoBusInputCmd.CALC:
-			WorkerDirtVideoEngine.inputCalc(<WorkerDirtCalcBusOutputData>payload.data);
+		case WorkerMainVideoBusInputCmd.CALC:
+			WorkerMainVideoEngine.inputCalc(<WorkerMainCalcBusOutputData>payload.data);
 			break;
-		case WorkerDirtVideoBusInputCmd.INIT:
-			WorkerDirtVideoEngine.initialize(<WorkerDirtVideoBusInputDataInit>payload.data);
+		case WorkerMainVideoBusInputCmd.INIT:
+			WorkerMainVideoEngine.initialize(<WorkerMainVideoBusInputDataInit>payload.data);
 			break;
-		case WorkerDirtVideoBusInputCmd.REPORT:
-			WorkerDirtVideoEngine.inputReport(<GamingCanvasReport>payload.data);
+		case WorkerMainVideoBusInputCmd.REPORT:
+			WorkerMainVideoEngine.inputReport(<GamingCanvasReport>payload.data);
 			break;
-		case WorkerDirtVideoBusInputCmd.SETTINGS:
-			WorkerDirtVideoEngine.inputSettings(<WorkerDirtVideoBusInputDataSettings>payload.data);
+		case WorkerMainVideoBusInputCmd.SETTINGS:
+			WorkerMainVideoEngine.inputSettings(<WorkerMainVideoBusInputDataSettings>payload.data);
 			break;
-		case WorkerDirtVideoBusInputCmd.VIEW:
-			WorkerDirtVideoEngine.inputView(<WorkerDirtVideoBusInputDataView>payload.data);
+		case WorkerMainVideoBusInputCmd.VIEW:
+			WorkerMainVideoEngine.inputView(<WorkerMainVideoBusInputDataView>payload.data);
 			break;
-		case WorkerDirtVideoBusInputCmd.WORLD:
-			WorkerDirtVideoEngine.inputWorld(<World>payload.data);
+		case WorkerMainVideoBusInputCmd.WORLD:
+			WorkerMainVideoEngine.inputWorld(<World>payload.data);
 			break;
 	}
 };
 
-class WorkerDirtVideoEngine {
+class WorkerMainVideoEngine {
 	private static animationFrameRequest: number;
 	private static calcGrid: GamingCanvasGridUint32Array | undefined;
 	private static calcParticles: Uint32Array | undefined;
@@ -79,34 +79,34 @@ class WorkerDirtVideoEngine {
 	};
 	private static report: GamingCanvasReport;
 	private static reportNew: boolean;
-	private static settings: WorkerDirtVideoBusInputDataSettings;
+	private static settings: WorkerMainVideoBusInputDataSettings;
 	private static settingsNew: boolean;
 	private static stats: { [key: number]: GamingCanvasStat } = {};
-	private static view: WorkerDirtVideoBusInputDataView;
+	private static view: WorkerMainVideoBusInputDataView;
 	private static viewNew: boolean;
 
-	public static async initialize(data: WorkerDirtVideoBusInputDataInit): Promise<void> {
+	public static async initialize(data: WorkerMainVideoBusInputDataInit): Promise<void> {
 		// Config: Canvas
-		WorkerDirtVideoEngine.offscreenCanvas = data.offscreenCanvas;
-		WorkerDirtVideoEngine.offscreenCanvasContext = data.offscreenCanvas.getContext(
+		WorkerMainVideoEngine.offscreenCanvas = data.offscreenCanvas;
+		WorkerMainVideoEngine.offscreenCanvasContext = data.offscreenCanvas.getContext(
 			'2d',
-			WorkerDirtVideoEngine.offscreenCanvasContextOptions,
+			WorkerMainVideoEngine.offscreenCanvasContextOptions,
 		) as OffscreenCanvasRenderingContext2D;
 
 		// Config
-		WorkerDirtVideoEngine.inputReport(data.report);
-		WorkerDirtVideoEngine.inputWorld(data.world);
-		WorkerDirtVideoEngine.inputSettings(data as WorkerDirtVideoBusInputDataSettings);
-		WorkerDirtVideoEngine.inputView(data as WorkerDirtVideoBusInputDataView);
+		WorkerMainVideoEngine.inputReport(data.report);
+		WorkerMainVideoEngine.inputWorld(data.world);
+		WorkerMainVideoEngine.inputSettings(data as WorkerMainVideoBusInputDataSettings);
+		WorkerMainVideoEngine.inputView(data as WorkerMainVideoBusInputDataView);
 
 		// Stats
-		WorkerDirtVideoEngine.stats[WorkerDirtVideoBusStats.ALL] = new GamingCanvasStat(50);
+		WorkerMainVideoEngine.stats[WorkerMainVideoBusStats.ALL] = new GamingCanvasStat(50);
 
 		// Done
-		WorkerDirtVideoEngine.animationLoop();
-		WorkerDirtVideoEngine.post([
+		WorkerMainVideoEngine.animationLoop();
+		WorkerMainVideoEngine.post([
 			{
-				cmd: WorkerDirtVideoBusOutputCmd.INIT_COMPLETE,
+				cmd: WorkerMainVideoBusOutputCmd.INIT_COMPLETE,
 				data: true,
 			},
 		]);
@@ -115,42 +115,42 @@ class WorkerDirtVideoEngine {
 	/*
 	 * Input
 	 */
-	public static inputCalc(data: WorkerDirtCalcBusOutputData): void {
+	public static inputCalc(data: WorkerMainCalcBusOutputData): void {
 		if (data.grid !== undefined) {
-			WorkerDirtVideoEngine.calcGrid = GamingCanvasGridUint32Array.from(data.grid.data);
+			WorkerMainVideoEngine.calcGrid = GamingCanvasGridUint32Array.from(data.grid.data);
 		} else {
-			WorkerDirtVideoEngine.calcGrid = undefined;
+			WorkerMainVideoEngine.calcGrid = undefined;
 		}
-		WorkerDirtVideoEngine.calcParticles = data.particles;
+		WorkerMainVideoEngine.calcParticles = data.particles;
 
-		WorkerDirtVideoEngine.calcNew = true;
+		WorkerMainVideoEngine.calcNew = true;
 	}
 
 	public static inputWorld(data: World): void {
-		WorkerDirtVideoEngine.world = data;
-		WorkerDirtVideoEngine.world.grid = GamingCanvasGridUint32Array.from(data.grid.data);
-		WorkerDirtVideoEngine.worldNew = true;
+		WorkerMainVideoEngine.world = data;
+		WorkerMainVideoEngine.world.grid = GamingCanvasGridUint32Array.from(data.grid.data);
+		WorkerMainVideoEngine.worldNew = true;
 	}
 
 	public static inputReport(data: GamingCanvasReport): void {
-		WorkerDirtVideoEngine.report = data;
-		WorkerDirtVideoEngine.reportNew = true;
+		WorkerMainVideoEngine.report = data;
+		WorkerMainVideoEngine.reportNew = true;
 	}
 
-	public static inputSettings(data: WorkerDirtVideoBusInputDataSettings): void {
-		WorkerDirtVideoEngine.settings = data;
-		WorkerDirtVideoEngine.settingsNew = true;
+	public static inputSettings(data: WorkerMainVideoBusInputDataSettings): void {
+		WorkerMainVideoEngine.settings = data;
+		WorkerMainVideoEngine.settingsNew = true;
 	}
 
-	public static inputView(data: WorkerDirtVideoBusInputDataView): void {
-		WorkerDirtVideoEngine.view = data;
-		WorkerDirtVideoEngine.viewNew = true;
+	public static inputView(data: WorkerMainVideoBusInputDataView): void {
+		WorkerMainVideoEngine.view = data;
+		WorkerMainVideoEngine.viewNew = true;
 	}
 
 	/*
 	 * Output: to Main Thread
 	 */
-	private static post(payloads: WorkerDirtVideoBusOutputPayload[], data?: Transferable[]): void {
+	private static post(payloads: WorkerMainVideoBusOutputPayload[], data?: Transferable[]): void {
 		self.postMessage(payloads, (data || []) as any);
 	}
 
@@ -161,13 +161,13 @@ class WorkerDirtVideoEngine {
 		let cacheGrid: OffscreenCanvas = new OffscreenCanvas(1, 1),
 			cacheGridContext: OffscreenCanvasRenderingContext2D = cacheGrid.getContext(
 				'2d',
-				WorkerDirtVideoEngine.offscreenCanvasContextOptions,
+				WorkerMainVideoEngine.offscreenCanvasContextOptions,
 			) as OffscreenCanvasRenderingContext2D,
 			cacheGridUpdate: boolean,
 			cacheParticles: OffscreenCanvas = new OffscreenCanvas(1, 1),
 			cacheParticlesContext: OffscreenCanvasRenderingContext2D = cacheParticles.getContext(
 				'2d',
-				WorkerDirtVideoEngine.offscreenCanvasContextOptions,
+				WorkerMainVideoEngine.offscreenCanvasContextOptions,
 			) as OffscreenCanvasRenderingContext2D,
 			cacheParticlesUpdate: boolean,
 			frameCount: number = 0,
@@ -191,8 +191,8 @@ class WorkerDirtVideoEngine {
 			gridYLimit: number,
 			health: number,
 			i: number,
-			offscreenCanvas: OffscreenCanvas = WorkerDirtVideoEngine.offscreenCanvas,
-			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerDirtVideoEngine.offscreenCanvasContext,
+			offscreenCanvas: OffscreenCanvas = WorkerMainVideoEngine.offscreenCanvas,
+			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerMainVideoEngine.offscreenCanvasContext,
 			offscreenCanvasHeightPx: number = -1,
 			offscreenCanvasWidthPx: number = -1,
 			particleInitialBase: ParticleInitialBase,
@@ -200,14 +200,14 @@ class WorkerDirtVideoEngine {
 			particlesSolid: Map<number, ParticleInitialBase> = new Map(),
 			particlesTank: Map<number, ParticleInitialBase> = new Map(),
 			particlesWeapon: Map<number, ParticleInitialBase> = new Map(),
-			report: GamingCanvasReport = WorkerDirtVideoEngine.report,
+			report: GamingCanvasReport = WorkerMainVideoEngine.report,
 			settingsDebug: boolean,
 			settingsEdgesWrap: boolean,
 			settingsFPMS: number = 16.666,
 			settingsGammaCorrection: number,
 			settingsGrayscale: boolean,
 			settingsRenderStyle: GamingCanvasRenderStyle,
-			statAll: GamingCanvasStat = WorkerDirtVideoEngine.stats[WorkerDirtVideoBusStats.ALL],
+			statAll: GamingCanvasStat = WorkerMainVideoEngine.stats[WorkerMainVideoBusStats.ALL],
 			statAllRaw: Float32Array,
 			timestampDelta: number,
 			timestampStats: number = performance.now(),
@@ -222,26 +222,26 @@ class WorkerDirtVideoEngine {
 
 		const go = (timestampNow: number) => {
 			// Always start the request for the next frame first!
-			WorkerDirtVideoEngine.animationFrameRequest = requestAnimationFrame(go);
+			WorkerMainVideoEngine.animationFrameRequest = requestAnimationFrame(go);
 
 			// Timing
 			timestampDelta = timestampNow - timestampThen;
 
 			// Config
-			if (WorkerDirtVideoEngine.calcNew === true) {
-				WorkerDirtVideoEngine.calcNew = false;
+			if (WorkerMainVideoEngine.calcNew === true) {
+				WorkerMainVideoEngine.calcNew = false;
 
-				if (WorkerDirtVideoEngine.calcGrid !== undefined) {
+				if (WorkerMainVideoEngine.calcGrid !== undefined) {
 					cacheGridUpdate = true;
-					grid = WorkerDirtVideoEngine.calcGrid;
+					grid = WorkerMainVideoEngine.calcGrid;
 					gridData = grid.data;
 					gridSideLength = grid.sideLength;
 					gridYLimit = (gridSideLength * 9) / 16;
 				}
 
-				if (WorkerDirtVideoEngine.calcParticles !== undefined) {
+				if (WorkerMainVideoEngine.calcParticles !== undefined) {
 					cacheParticlesUpdate = true;
-					particlesEncoded = WorkerDirtVideoEngine.calcParticles;
+					particlesEncoded = WorkerMainVideoEngine.calcParticles;
 					particlesSolid.clear();
 					particlesWeapon.clear();
 
@@ -277,13 +277,13 @@ class WorkerDirtVideoEngine {
 				}
 			}
 
-			if (WorkerDirtVideoEngine.worldNew === true) {
-				WorkerDirtVideoEngine.worldNew = false;
+			if (WorkerMainVideoEngine.worldNew === true) {
+				WorkerMainVideoEngine.worldNew = false;
 				cacheGridUpdate = true;
 				cacheParticlesUpdate = true;
 
 				// Grid
-				grid = WorkerDirtVideoEngine.world.grid;
+				grid = WorkerMainVideoEngine.world.grid;
 				gridData = grid.data;
 				gridSideLength = grid.sideLength;
 				gridYLimit = (gridSideLength * 9) / 16;
@@ -300,28 +300,28 @@ class WorkerDirtVideoEngine {
 					}
 				}
 
-				world = WorkerDirtVideoEngine.world;
+				world = WorkerMainVideoEngine.world;
 			}
 
-			if (WorkerDirtVideoEngine.settingsNew === true) {
-				WorkerDirtVideoEngine.settingsNew = false;
+			if (WorkerMainVideoEngine.settingsNew === true) {
+				WorkerMainVideoEngine.settingsNew = false;
 				cacheGridUpdate = true;
 				cacheParticlesUpdate = true;
 
-				settingsDebug = WorkerDirtVideoEngine.settings.debug;
-				settingsEdgesWrap = WorkerDirtVideoEngine.settings.edgesWrap;
-				settingsFPMS = Math.round((1000 / WorkerDirtVideoEngine.settings.fps) * 1000) / 1000;
-				settingsGammaCorrection = WorkerDirtVideoEngine.settings.gammaCorrection;
-				settingsGrayscale = WorkerDirtVideoEngine.settings.grayscale;
-				settingsRenderStyle = WorkerDirtVideoEngine.settings.renderStyle;
+				settingsDebug = WorkerMainVideoEngine.settings.debug;
+				settingsEdgesWrap = WorkerMainVideoEngine.settings.edgesWrap;
+				settingsFPMS = Math.round((1000 / WorkerMainVideoEngine.settings.fps) * 1000) / 1000;
+				settingsGammaCorrection = WorkerMainVideoEngine.settings.gammaCorrection;
+				settingsGrayscale = WorkerMainVideoEngine.settings.grayscale;
+				settingsRenderStyle = WorkerMainVideoEngine.settings.renderStyle;
 			}
 
-			if (WorkerDirtVideoEngine.reportNew === true) {
-				WorkerDirtVideoEngine.reportNew = false;
+			if (WorkerMainVideoEngine.reportNew === true) {
+				WorkerMainVideoEngine.reportNew = false;
 				cacheGridUpdate = true;
 				cacheParticlesUpdate = true;
 
-				report = WorkerDirtVideoEngine.report;
+				report = WorkerMainVideoEngine.report;
 				if (offscreenCanvasHeightPx !== report.canvasHeight || offscreenCanvasWidthPx !== report.canvasWidth) {
 					offscreenCanvasHeightPx = report.canvasHeight;
 					offscreenCanvasWidthPx = report.canvasWidth;
@@ -337,16 +337,16 @@ class WorkerDirtVideoEngine {
 				}
 			}
 
-			if (WorkerDirtVideoEngine.viewNew === true) {
-				WorkerDirtVideoEngine.viewNew = false;
+			if (WorkerMainVideoEngine.viewNew === true) {
+				WorkerMainVideoEngine.viewNew = false;
 				cacheGridUpdate = true;
 				cacheParticlesUpdate = true;
 
 				// Camera
-				gridCamera.decode(WorkerDirtVideoEngine.view.gridCameraEncoded);
+				gridCamera.decode(WorkerMainVideoEngine.view.gridCameraEncoded);
 
 				// Viewport
-				gridViewport.decode(WorkerDirtVideoEngine.view.gridViewportEncoded);
+				gridViewport.decode(WorkerMainVideoEngine.view.gridViewportEncoded);
 				gridViewportCellSizePx = gridViewport.cellSizePx;
 				gridViewportHeightStart = gridViewport.heightStart;
 				gridViewportHeightStartEff = Math.max(0, (gridViewportHeightStart - 1) | 0);
@@ -574,10 +574,10 @@ class WorkerDirtVideoEngine {
 				statAllRaw = <Float32Array>statAll.encode();
 
 				// Output
-				WorkerDirtVideoEngine.post(
+				WorkerMainVideoEngine.post(
 					[
 						{
-							cmd: WorkerDirtVideoBusOutputCmd.STATS,
+							cmd: WorkerMainVideoBusOutputCmd.STATS,
 							data: {
 								all: statAllRaw,
 								fps: frameCount,
@@ -590,6 +590,6 @@ class WorkerDirtVideoEngine {
 			}
 		};
 
-		WorkerDirtVideoEngine.animationFrameRequest = requestAnimationFrame(go);
+		WorkerMainVideoEngine.animationFrameRequest = requestAnimationFrame(go);
 	}
 }
