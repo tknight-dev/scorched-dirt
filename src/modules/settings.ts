@@ -50,7 +50,6 @@ export class ModuleSettings {
 					orientation: GamingCanvasOrientation.LANDSCAPE,
 					orientationCanvasRotateEnable: false,
 					renderStyle: GamingCanvasRenderStyle.PIXELATED,
-					resolutionScaleToFit: true,
 					resolutionWidthPx: <ResolutionWidthPx>160,
 				},
 				gammaCorrection: 0,
@@ -112,10 +111,14 @@ export class ModuleSettings {
 			ModuleSettings.data.main.gamingCanvas.resolutionWidthPx = <ResolutionWidthPx>Number(ModuleDOM.elSettingsValueGraphicsResolution.value);
 		}
 
+		// Done
+		ModuleSettings.normalize();
+
 		// Save
 		ModuleSettings.save();
 
-		// Workers: Update
+		// Apply
+		ModuleSettings.apply();
 		ModuleSettings.workersUpdate();
 	}
 
@@ -147,9 +150,6 @@ export class ModuleSettings {
 		ModuleDOM.elSettingsValueGraphicsFPSShow.checked = ModuleSettings.data.main.fpsDisplay;
 		ModuleDOM.elSettingsValueGraphicsFPS.value = String(ModuleSettings.data.main.fps);
 		ModuleDOM.elSettingsValueGraphicsResolution.value = String(ModuleSettings.data.main.gamingCanvas.resolutionWidthPx || 'null');
-
-		// Done
-		ModuleSettings.normalize();
 	}
 
 	public static async initialize(localStoragePrefix: string): Promise<void> {
