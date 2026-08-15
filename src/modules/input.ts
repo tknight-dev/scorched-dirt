@@ -19,7 +19,8 @@ export class ModuleInput {
 	private static inputLoop(_timestampNow: number): void {}
 	private static inputLoop__funcForward(): void {
 		let input: GamingCanvasInput,
-			inputMouseDown: boolean,
+			inputMouseDownLeft: boolean,
+			inputMouseDownRight: boolean,
 			inputTouchDown: boolean,
 			propriatary: any,
 			position: GamingCanvasInputPosition,
@@ -55,71 +56,67 @@ export class ModuleInput {
 			position = input.propriatary.position;
 
 			if (propriatary.action === GamingCanvasInputMouseAction.LEFT) {
-				inputMouseDown = propriatary.down;
+				inputMouseDownLeft = propriatary.down;
 
-				if (inputMouseDown === true) {
-					WorkerMainCalcBus.sendWeapon({
-						// arctan: (3 * Math.PI) / 4, // 90deg (up)
-						arctan: Math.PI, // 180deg (left)
+				if (inputMouseDownLeft === true) {
+					WorkerMainCalcBus.sendParticle({
+						arctan: (3 * Math.PI) / 4,
 						health: particleEncodingValueHealth,
 						payload: {
-							// powerPercentage: 0.025,
+							powerPercentage: 0.015,
+							tankId: 0,
+						},
+						posX: position.x,
+						posY: position.y,
+						type: ParticleType.WEAPON,
+						typeValue: WeaponType.STANDARD,
+					});
+				}
+			} else if (propriatary.action === GamingCanvasInputMouseAction.RIGHT) {
+				inputMouseDownRight = propriatary.down;
+
+				if (inputMouseDownRight === true) {
+					WorkerMainCalcBus.sendParticle({
+						arctan: 0,
+						health: particleEncodingValueHealth,
+						payload: {
 							powerPercentage: 0,
 							tankId: 0,
 						},
-						posX: ModuleSettings.data.main.worldSize / 2,
-						posY: ModuleSettings.data.main.worldSize / 3,
-						type: ParticleType.WEAPON,
-						typeValue: WeaponType.STANDARD,
-						// type: ParticleType.SOLID,
-						// typeValue: SolidType.DIRT,
+						posX: position.x,
+						posY: position.y,
+						type: ParticleType.SOLID,
+						typeValue: SolidType.WATER,
 					});
-					// WorkerMainCalcBus.sendWeapon({
-					// 	arctan: (3 * Math.PI) / 4, // 90deg (up)
-					// 	health: particleEncodingValueHealth,
-					// 	payload: {
-					// 		powerPercentage: 0.25,
-					// 		tankId: 0,
-					// 	},
-					// 	posX: position.x,
-					// 	posY: position.y,
-					// 	type: ParticleType.WEAPON,
-					// 	typeValue: WeaponType.STANDARD,
-					// 	// type: ParticleType.SOLID,
-					// 	// typeValue: SolidType.DIRT,
-					// });
 				}
 			} else if (propriatary.action === GamingCanvasInputMouseAction.MOVE) {
-				if (inputMouseDown === true) {
-					// WorkerMainCalcBus.sendWeapon({
-					// 	// arctan: (3 * Math.PI) / 4, // 90deg (up)
-					// 	arctan: Math.PI, // 180deg (left)
-					// 	health: particleEncodingValueHealth,
-					// 	payload: {
-					// 		powerPercentage: 0.025,
-					// 		tankId: 0,
-					// 	},
-					// 	posX: ModuleSettings.data.main.worldSize / 2,
-					// 	posY: ModuleSettings.data.main.worldSize / 3,
-					// 	type: ParticleType.WEAPON,
-					// 	typeValue: WeaponType.STANDARD,
-					// 	// type: ParticleType.SOLID,
-					// 	// typeValue: SolidType.DIRT,
-					// });
-					// WorkerMainCalcBus.sendWeapon({
-					// 	arctan: (3 * Math.PI) / 4, // 90deg (up)
-					// 	health: particleEncodingValueHealth,
-					// 	payload: {
-					// 		powerPercentage: 0.25,
-					// 		tankId: 0,
-					// 	},
-					// 	posX: position.x,
-					// 	posY: position.y,
-					// 	type: ParticleType.WEAPON,
-					// 	typeValue: WeaponType.STANDARD,
-					// 	// type: ParticleType.SOLID,
-					// 	// typeValue: SolidType.DIRT,
-					// });
+				if (inputMouseDownLeft === true) {
+					WorkerMainCalcBus.sendParticle({
+						arctan: (3 * Math.PI) / 4,
+						health: particleEncodingValueHealth,
+						payload: {
+							powerPercentage: 0.015,
+							tankId: 0,
+						},
+						posX: position.x,
+						posY: position.y,
+						type: ParticleType.WEAPON,
+						typeValue: WeaponType.STANDARD,
+					});
+				}
+				if (inputMouseDownRight === true) {
+					WorkerMainCalcBus.sendParticle({
+						arctan: 0,
+						health: particleEncodingValueHealth,
+						payload: {
+							powerPercentage: 0,
+							tankId: 0,
+						},
+						posX: position.x,
+						posY: position.y,
+						type: ParticleType.SOLID,
+						typeValue: SolidType.WATER,
+					});
 				}
 			}
 		};
@@ -132,49 +129,48 @@ export class ModuleInput {
 				inputTouchDown = propriatary.down;
 
 				if (inputTouchDown === true) {
-					WorkerMainCalcBus.sendWeapon({
-						// arctan: (3 * Math.PI) / 4, // 90deg (up)
-						arctan: Math.PI, // 180deg (left)
+					WorkerMainCalcBus.sendParticle({
+						arctan: (3 * Math.PI) / 4, // 90deg (up)
 						health: particleEncodingValueHealth,
 						payload: {
-							// powerPercentage: 0.025,
-							powerPercentage: 0,
+							powerPercentage: 0.015,
 							tankId: 0,
 						},
-						posX: ModuleSettings.data.main.worldSize / 2,
-						posY: ModuleSettings.data.main.worldSize / 3,
+						posX: positions[0].x,
+						posY: positions[0].y,
 						type: ParticleType.WEAPON,
 						typeValue: WeaponType.STANDARD,
-						// type: ParticleType.SOLID,
-						// typeValue: SolidType.DIRT,
 					});
-					// WorkerMainCalcBus.sendWeapon({
-					// 	arctan: (3 * Math.PI) / 4, // 90deg (up)
-					// 	health: particleEncodingValueHealth,
-					// 	payload: {
-					// 		powerPercentage: 0.25,
-					// 		tankId: 0,
-					// 	},
-					// 	posX: positions[0].x,
-					// 	posY: positions[0].y,
-					// 	type: ParticleType.WEAPON,
-					// 	typeValue: WeaponType.STANDARD,
-					// });
 				}
 			} else if (propriatary.action === GamingCanvasInputTouchAction.MOVE) {
 				if (inputTouchDown === true) {
-					// WorkerMainCalcBus.sendWeapon({
-					// 	arctan: (3 * Math.PI) / 4, // 90deg (up)
-					// 	health: particleEncodingValueHealth,
-					// 	payload: {
-					// 		powerPercentage: 0.25,
-					// 		tankId: 0,
-					// 	},
-					// 	posX: positions[0].x,
-					// 	posY: positions[0].y,
-					// 	type: ParticleType.WEAPON,
-					// 	typeValue: WeaponType.STANDARD,
-					// });
+					if (positions.length === 1) {
+						WorkerMainCalcBus.sendParticle({
+							arctan: (3 * Math.PI) / 4, // 90deg (up)
+							health: particleEncodingValueHealth,
+							payload: {
+								powerPercentage: 0.015,
+								tankId: 0,
+							},
+							posX: positions[0].x,
+							posY: positions[0].y,
+							type: ParticleType.WEAPON,
+							typeValue: WeaponType.STANDARD,
+						});
+					} else {
+						WorkerMainCalcBus.sendParticle({
+							arctan: 0,
+							health: particleEncodingValueHealth,
+							payload: {
+								powerPercentage: 0,
+								tankId: 0,
+							},
+							posX: positions[0].x,
+							posY: positions[0].y,
+							type: ParticleType.SOLID,
+							typeValue: SolidType.WATER,
+						});
+					}
 				}
 			}
 		};

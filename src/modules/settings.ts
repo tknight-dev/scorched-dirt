@@ -45,6 +45,7 @@ export class ModuleSettings {
 					inputGamepadEnable: true,
 					inputKeyboardEnable: true,
 					inputMouseEnable: true,
+					inputMousePreventContextMenu: true,
 					inputTouchEnable: true,
 					orientation: GamingCanvasOrientation.LANDSCAPE,
 					orientationCanvasRotateEnable: false,
@@ -168,7 +169,6 @@ export class ModuleSettings {
 
 		// Done
 		ModuleDOM.canvases = GamingCanvas.initialize(ModuleDOM.elVideo, ModuleSettings.data.main.gamingCanvas);
-		console.log('devicePixelRatio', GamingCanvas.getReport().devicePixelRatio);
 		ModuleSettings.apply();
 	}
 

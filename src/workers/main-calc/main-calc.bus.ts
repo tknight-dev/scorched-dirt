@@ -79,16 +79,16 @@ export class WorkerMainCalcBus {
 	/*
 	 * Send
 	 */
-	public static sendSettings(data: WorkerMainCalcBusInputDataSettings): void {
+	public static sendParticle(data: ParticleInitial<any>): void {
 		WorkerMainCalcBus.worker.postMessage({
-			cmd: WorkerMainCalcBusInputCmd.SETTINGS,
+			cmd: WorkerMainCalcBusInputCmd.PARTICLE,
 			data: data,
 		});
 	}
 
-	public static sendWeapon(data: ParticleInitial<Weapon>): void {
+	public static sendSettings(data: WorkerMainCalcBusInputDataSettings): void {
 		WorkerMainCalcBus.worker.postMessage({
-			cmd: WorkerMainCalcBusInputCmd.WEAPON,
+			cmd: WorkerMainCalcBusInputCmd.SETTINGS,
 			data: data,
 		});
 	}

@@ -21,8 +21,8 @@ export enum WorkerMainCalcBusStats {
 export enum WorkerMainCalcBusInputCmd {
 	INIT,
 	MAP,
+	PARTICLE,
 	SETTINGS,
-	WEAPON,
 }
 
 export interface WorkerMainCalcBusInputDataInit extends WorkerMainCalcBusInputDataWorld, WorkerMainCalcBusInputDataSettings {}
@@ -41,7 +41,7 @@ export interface WorkerMainCalcBusInputDataSettings {
 
 export interface WorkerMainCalcBusInputPayload {
 	cmd: WorkerMainCalcBusInputCmd;
-	data: ParticleInitial<Weapon> | WorkerMainCalcBusInputDataInit | WorkerMainCalcBusInputDataWorld | WorkerMainCalcBusInputDataSettings;
+	data: ParticleInitial<any> | WorkerMainCalcBusInputDataInit | WorkerMainCalcBusInputDataWorld | WorkerMainCalcBusInputDataSettings;
 }
 
 /*
