@@ -179,7 +179,6 @@ class WorkerMainVideoEngine {
 			gridSideLength: number,
 			gridViewport: GamingCanvasGridViewport = new GamingCanvasGridViewport(1),
 			gridViewportCellSizePx: number,
-			gridViewportCellSizePxEff: number,
 			gridViewportHeightStart: number,
 			gridViewportHeightStartEff: number,
 			gridViewportHeightStartPx: number,
@@ -362,134 +361,96 @@ class WorkerMainVideoEngine {
 			if (cacheGridUpdate === true) {
 				cacheGridUpdate = false;
 
-				//gridViewportCellSizePxEff = gridViewportCellSizePx + 1;
-				gridViewportCellSizePxEff = 1;
 				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
 
 				// Draw: Dirt Inactive
 				cacheGridContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
 				for (x = gridViewportWidthStartEff; x < gridViewportWidthStopEff; x++) {
 					gridIndex = x * gridSideLength;
-					for (y = gridViewportHeightStartEff; y <= yMax; gridIndex++, y++) {
-						if (gridData[gridIndex] !== 0) {
-							yType = gridData[gridIndex] & worldEncodingMaskType;
+					y1 = -10;
+					y2 = -10;
+					yType = -10;
 
-							switch (yType) {
-								case SolidType.DIRT:
-									cacheGridContext.fillStyle = '#905015';
-									break;
-								case SolidType.LAVA:
-									cacheGridContext.fillStyle = '#ff0000';
-									break;
-								case SolidType.ROCK:
-									cacheGridContext.fillStyle = '#505050';
-									break;
-								case SolidType.WATER:
-									cacheGridContext.fillStyle = '#0000ff';
-									break;
+					for (y = gridViewportHeightStartEff; y <= yMax; gridIndex++, y++) {
+						// Draw segments of dirt instead of individual pixels
+
+						if (gridData[gridIndex] !== 0 && y !== yMax) {
+							// Draw previous segment type
+							if (yType !== (gridData[gridIndex] & worldEncodingMaskType)) {
+								if (y2 === -10) {
+									cacheGridContext.fillRect(
+										(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+										(y1 - gridViewportHeightStartEff) * gridViewportCellSizePx,
+										gridViewportCellSizePx,
+										gridViewportCellSizePx,
+									);
+								} else {
+									cacheGridContext.fillRect(
+										(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+										(y1 - gridViewportHeightStartEff) * gridViewportCellSizePx,
+										gridViewportCellSizePx,
+										gridViewportCellSizePx * (y2 - y1) + 1,
+									);
+								}
+
+								y1 = -10;
+								y2 = -10;
+								yType = -10;
 							}
 
-							cacheGridContext.fillRect(
-								(x - gridViewportWidthStart) * gridViewportCellSizePx,
-								(y - gridViewportHeightStart) * gridViewportCellSizePx,
-								gridViewportCellSizePxEff,
-								gridViewportCellSizePxEff,
-							);
+							// Start new segment type
+							if (y1 === -10) {
+								y1 = y;
+								yType = gridData[gridIndex] & worldEncodingMaskType;
+
+								switch (yType) {
+									case SolidType.DIRT:
+										cacheGridContext.fillStyle = '#905015';
+										break;
+									case SolidType.LAVA:
+										cacheGridContext.fillStyle = '#ff0000';
+										break;
+									case SolidType.ROCK:
+										cacheGridContext.fillStyle = '#505050';
+										break;
+									case SolidType.WATER:
+										cacheGridContext.fillStyle = '#0000ff';
+										break;
+								}
+							} else {
+								y2 = y;
+							}
+						} else if (y1 !== -10) {
+							// Draw current segment type
+							if (y2 === -10) {
+								cacheGridContext.fillRect(
+									(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+									(y1 - gridViewportHeightStartEff) * gridViewportCellSizePx,
+									gridViewportCellSizePx,
+									gridViewportCellSizePx,
+								);
+							} else {
+								cacheGridContext.fillRect(
+									(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+									(y1 - gridViewportHeightStartEff) * gridViewportCellSizePx,
+									gridViewportCellSizePx,
+									gridViewportCellSizePx * (y2 - y1) + 1,
+								);
+							}
+
+							y1 = -10;
+							y2 = -10;
+							yType = -10;
 						}
 					}
 				}
-
-				// for (x = gridViewportWidthStartEff; x < gridViewportWidthStopEff; x++) {
-				// 	gridIndex = x * gridSideLength;
-				// 	y1 = -10;
-				// 	y2 = -10;
-				// 	yType = -10;
-
-				// 	for (y = gridViewportHeightStartEff; y <= yMax; gridIndex++, y++) {
-				// 		// Draw segments of dirt instead of individual pixels
-
-				// 		if (gridData[gridIndex] !== 0 && y !== yMax) {
-				// 			// Draw previous segment type
-				// 			if (yType !== (gridData[gridIndex] & worldEncodingMaskType)) {
-				// 				if (y2 === -10) {
-				// 					cacheGridContext.fillRect(
-				// 						(x - gridViewportWidthStart) * gridViewportCellSizePx,
-				// 						(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
-				// 						gridViewportCellSizePxEff,
-				// 						gridViewportCellSizePxEff,
-				// 					);
-				// 				} else {
-				// 					cacheGridContext.fillRect(
-				// 						(x - gridViewportWidthStart) * gridViewportCellSizePx,
-				// 						(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
-				// 						gridViewportCellSizePxEff,
-				// 						gridViewportCellSizePx * (y2 - y1) + 1,
-				// 					);
-				// 				}
-
-				// 				y1 = -10;
-				// 				y2 = -10;
-				// 				yType = -10;
-				// 			}
-
-				// 			// Start new segment type
-				// 			if (y1 === -10) {
-				// 				y1 = y;
-				// 				yType = gridData[gridIndex] & worldEncodingMaskType;
-
-				// 				switch (yType) {
-				// 					case SolidType.DIRT:
-				// 						cacheGridContext.fillStyle = '#905015';
-				// 						break;
-				// 					case SolidType.LAVA:
-				// 						cacheGridContext.fillStyle = '#ff0000';
-				// 						break;
-				// 					case SolidType.ROCK:
-				// 						cacheGridContext.fillStyle = '#505050';
-				// 						break;
-				// 					case SolidType.WATER:
-				// 						cacheGridContext.fillStyle = '#0000ff';
-				// 						break;
-				// 				}
-				// 			} else {
-				// 				y2 = y;
-				// 			}
-				// 		} else if (y1 !== -10) {
-				// 			// Draw current segment type
-				// 			if (y2 === -10) {
-				// 				cacheGridContext.fillRect(
-				// 					(x - gridViewportWidthStart) * gridViewportCellSizePx,
-				// 					(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
-				// 					gridViewportCellSizePxEff,
-				// 					gridViewportCellSizePxEff,
-				// 				);
-				// 			} else {
-				// 				cacheGridContext.fillRect(
-				// 					(x - gridViewportWidthStart) * gridViewportCellSizePx,
-				// 					(y1 - gridViewportHeightStart) * gridViewportCellSizePx,
-				// 					gridViewportCellSizePxEff,
-				// 					gridViewportCellSizePx * (y2 - y1) + 1,
-				// 				);
-				// 			}
-
-				// 			y1 = -10;
-				// 			y2 = -10;
-				// 			yType = -10;
-				// 		}
-				// 	}
-				// }
 			}
 
 			if (cacheParticlesUpdate === true) {
 				cacheParticlesUpdate = false;
 
-				//gridViewportCellSizePxEff = gridViewportCellSizePx + 1;
-				gridViewportCellSizePxEff = 1;
-
-				// Clear
-				cacheParticlesContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
-
 				// Draw: Solids
+				cacheParticlesContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
 				for (gridIndex of particlesSolid.keys()) {
 					y = gridIndex % gridSideLength;
 					x = (gridIndex - y) / gridSideLength;
@@ -511,14 +472,14 @@ class WorkerMainVideoEngine {
 								cacheParticlesContext.fillStyle = '#0000ff';
 								break;
 						}
-					}
 
-					cacheParticlesContext.fillRect(
-						(x - gridViewportWidthStart) * gridViewportCellSizePx,
-						(y - gridViewportHeightStart) * gridViewportCellSizePx,
-						gridViewportCellSizePxEff,
-						gridViewportCellSizePxEff,
-					);
+						cacheParticlesContext.fillRect(
+							(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+							(y - gridViewportHeightStartEff) * gridViewportCellSizePx,
+							gridViewportCellSizePx,
+							gridViewportCellSizePx,
+						);
+					}
 				}
 
 				// // Draw: Tanks
@@ -540,10 +501,10 @@ class WorkerMainVideoEngine {
 					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
 						particleInitialBase = <ParticleInitialBase>particlesWeapon.get(gridIndex);
 						cacheParticlesContext.fillRect(
-							(x - gridViewportWidthStart) * gridViewportCellSizePx,
-							(y - gridViewportHeightStart) * gridViewportCellSizePx,
-							gridViewportCellSizePxEff,
-							gridViewportCellSizePxEff,
+							(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+							(y - gridViewportHeightStartEff) * gridViewportCellSizePx,
+							gridViewportCellSizePx,
+							gridViewportCellSizePx,
 						);
 					}
 				}
