@@ -1,6 +1,14 @@
 import { GamingCanvasDoubleLinkedList, GamingCanvasDoubleLinkedListNode, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
 import { GamingCanvasGridUint32Array } from '../../gaming-canvas/modules/grid/grid.js';
-import { Solid, SolidType, World, worldEncodingMaskHealth, worldEncodingMaskType, worldEncodingShiftHealth } from '../../models/world.model.js';
+import {
+	Solid,
+	SolidType,
+	World,
+	worldEncodingMaskHealth,
+	worldEncodingMaskType,
+	worldEncodingShiftHealth,
+	worldEncodingValueHealth,
+} from '../../models/world.model.js';
 import {
 	Particle,
 	particleEncodingMaskType,
@@ -207,7 +215,7 @@ class WorkerMainCalcEngine {
 			particlePoolInstanceNode: GamingCanvasDoubleLinkedListNode<Particle<any>>,
 			particles: GamingCanvasDoubleLinkedList<Particle<any>> = new GamingCanvasDoubleLinkedList(),
 			particlesEncoded: Uint32Array | undefined,
-			physicsGravity: number = 0.00005,
+			physicsGravity: number = 0.000075,
 			physicsGravityLimit: number = -3,
 			physicsLiquidAvailableLeft: boolean,
 			physicsLiquidAvailableRight: boolean,
@@ -216,8 +224,8 @@ class WorkerMainCalcEngine {
 			physicsLiquidGridIndexRight: number,
 			physicsLiquidParticle: Particle<any> | undefined,
 			physicsResistanceFriction: number = 0.95, // The closer to 1 the less this has effect
-			physicsResistanceLiquid: number = 0.6, // The closer to 1 the less this has effect
-			physicsResistanceLiquidLimit: number = 0.04,
+			physicsResistanceLiquidLimit: number = 0.025,
+			physicsResistanceLiquidSurfaceTension: number = 0.1, // The closer to 1 the less this has effect
 			physicsResistanceSecondary: number = 0.5, // Collision X will reduce velocity Y by this amount
 			physicsTranslated: boolean,
 			physicsVelocityMin: number = 0.01,
@@ -278,6 +286,61 @@ class WorkerMainCalcEngine {
 		// 	shotTypeProperty: WeaponTypeProperty,
 		// 	shots: GamingCanvasDoubleLinkedList<ParticleCalculated<Weapon>> = WorkerMainCalcEngine.shots,
 
+		const particleFromPool = (
+			gridIndex: number = 0,
+			health: number = worldEncodingValueHealth,
+			particleType: ParticleType = ParticleType.SOLID,
+			particleTypeValue: number = 0,
+			posX: number = 0,
+			posY: number = 0,
+		): Particle<any> => {
+			particlePoolInstance = particlePool.popStart();
+			if (particlePoolInstance === undefined) {
+				particlePoolInstance = {
+					arctan: 0,
+					arctanOriginal: 0,
+					gridIndex: gridIndex,
+					health: health,
+					id: particleId++,
+					node: <any>undefined,
+					payload: undefined,
+					posX: posX,
+					posXOriginal: posX,
+					posY: posY,
+					posYOriginal: posY,
+					type: particleType,
+					typeValue: particleTypeValue,
+					velX: 0,
+					velXScaled: 0,
+					velY: 0,
+					velYScaled: 0,
+				};
+			} else {
+				particlePoolInstance.arctan = 0;
+				particlePoolInstance.arctanOriginal = 0;
+				particlePoolInstance.gridIndex = gridIndex;
+				particlePoolInstance.health = health;
+				particlePoolInstance.id = particleId++;
+				particlePoolInstance.payload = undefined;
+				particlePoolInstance.posX = posX;
+				particlePoolInstance.posXOriginal = posX;
+				particlePoolInstance.posY = posY;
+				particlePoolInstance.posYOriginal = posY;
+				particlePoolInstance.type = particleType;
+				particlePoolInstance.typeValue = particleTypeValue;
+				particlePoolInstance.velX = 0;
+				particlePoolInstance.velXScaled = 0;
+				particlePoolInstance.velY = 0;
+				particlePoolInstance.velYScaled = 0;
+			}
+
+			// Done
+			particleMap.set(gridIndex, particlePoolInstance);
+			particlePoolInstance.node = particles.pushEnd(particlePoolInstance);
+
+			return particlePoolInstance;
+		};
+
 		const go = (timestampNow: number) => {
 			// Always start the request for the next frame first!
 			WorkerMainCalcEngine.animationFrameRequest = requestAnimationFrame(go);
@@ -326,49 +389,14 @@ class WorkerMainCalcEngine {
 
 						if (collisionNextType === SolidType.LAVA || collisionNextType === SolidType.WATER) {
 							if (y < gridYLimit === true) {
-								particlePoolInstance = particlePool.popStart();
-								if (particlePoolInstance === undefined) {
-									particlePoolInstance = {
-										arctan: 0,
-										arctanOriginal: 0,
-										gridIndex: gridIndex,
-										health: (gridData[gridIndex] & worldEncodingMaskHealth) >> worldEncodingShiftHealth,
-										id: particleId++,
-										node: <any>undefined,
-										payload: undefined,
-										posX: x,
-										posXOriginal: x,
-										posY: y,
-										posYOriginal: y,
-										type: ParticleType.SOLID,
-										typeValue: gridData[gridIndex] & worldEncodingMaskType,
-										velX: 0,
-										velXScaled: 0,
-										velY: 0,
-										velYScaled: 0,
-									};
-								} else {
-									particlePoolInstance.arctan = 0;
-									particlePoolInstance.arctanOriginal = 0;
-									particlePoolInstance.gridIndex = gridIndex;
-									particlePoolInstance.health = (gridData[gridIndex] & worldEncodingMaskHealth) >> worldEncodingShiftHealth;
-									particlePoolInstance.id = particleId++;
-									particlePoolInstance.payload = undefined;
-									particlePoolInstance.posX = x;
-									particlePoolInstance.posXOriginal = x;
-									particlePoolInstance.posY = y;
-									particlePoolInstance.posYOriginal = y;
-									particlePoolInstance.type = ParticleType.SOLID;
-									particlePoolInstance.typeValue = gridData[gridIndex] & worldEncodingMaskType;
-									particlePoolInstance.velX = 0;
-									particlePoolInstance.velXScaled = 0;
-									particlePoolInstance.velY = 0;
-									particlePoolInstance.velYScaled = 0;
-								}
-
-								// Done
-								particleMap.set(gridIndex, particlePoolInstance);
-								particlePoolInstance.node = particles.pushEnd(particlePoolInstance);
+								particlePoolInstance = particleFromPool(
+									gridIndex,
+									(gridData[gridIndex] & worldEncodingMaskHealth) >> worldEncodingShiftHealth,
+									ParticleType.SOLID,
+									collisionNextType,
+									x,
+									y,
+								);
 							}
 
 							gridData[gridIndex] = 0;
@@ -423,7 +451,20 @@ class WorkerMainCalcEngine {
 
 					// Gravity: Limit the effect of gravity to simulate terminal velocity
 					if ((particle.posY | 0) !== gridYLimit && particle.velY > physicsGravityLimit) {
-						particle.velY -= timestampCPUDelta * physicsGravity;
+						collisionNextParticle = particleMap.get(particle.gridIndex + 1);
+						if (
+							collisionNextParticle !== undefined &&
+							collisionNextParticle.type === ParticleType.SOLID &&
+							(collisionNextParticle.typeValue === SolidType.WATER || collisionNextParticle.typeValue === SolidType.LAVA)
+						) {
+							// Falling through LIQUID
+							if (Math.abs(particle.velY) < physicsResistanceLiquidLimit) {
+								particle.velY -= (timestampCPUDelta * physicsGravity) / 2;
+							}
+						} else {
+							// Falling through AIR
+							particle.velY -= timestampCPUDelta * physicsGravity;
+						}
 					}
 
 					// Done
@@ -685,7 +726,7 @@ class WorkerMainCalcEngine {
 										gridUpdate = true;
 									}
 								} else if (particle.typeValue === SolidType.DIRT || particle.typeValue === SolidType.ROCK) {
-									console.log('COLLISION', 'DIRT/ROCK', particle.id);
+									console.log('COLLISION', particle.typeValue === SolidType.DIRT ? 'DIRT' : 'ROCK', particle.id);
 									switch (collisionNextType) {
 										case SolidType.DIRT:
 											if (collisionNextParticle !== undefined) {
@@ -699,9 +740,6 @@ class WorkerMainCalcEngine {
 
 												particle.velX *= 0.5;
 												particle.velY *= 0.5;
-
-												collisionNextParticle.velX += particle.velX;
-												collisionNextParticle.velY += particle.velY;
 											} else {
 												console.log('  >> ON DIRT B');
 												collisionNextResultHardStop = true;
@@ -730,52 +768,18 @@ class WorkerMainCalcEngine {
 												// 		}
 
 												// 		// Convert grid solid to particle
-												// 		particlePoolInstance = particlePool.popStart();
-												// 		if (particlePoolInstance === undefined) {
-												// 			particlePoolInstance = {
-												// 				arctan: 0,
-												// 				arctanOriginal: 0,
-												// 				gridIndex: gridIndex,
-												// 				health: (gridData[gridIndex] & worldEncodingMaskHealth) >> worldEncodingShiftHealth,
-												// 				id: particleId++,
-												// 				node: <any>undefined,
-												// 				payload: undefined,
-												// 				posX: x,
-												// 				posXOriginal: x,
-												// 				posY: y,
-												// 				posYOriginal: y,
-												// 				type: ParticleType.SOLID,
-												// 				typeValue: gridData[gridIndex] & worldEncodingMaskType,
-												// 				velX: 0,
-												// 				velXScaled: 0,
-												// 				velY: 0,
-												// 				velYScaled: 0,
-												// 			};
-												// 		} else {
-												// 			particlePoolInstance.arctan = 0;
-												// 			particlePoolInstance.arctanOriginal = 0;
-												// 			particlePoolInstance.gridIndex = gridIndex;
-												// 			particlePoolInstance.health =
-												// 				(gridData[gridIndex] & worldEncodingMaskHealth) >> worldEncodingShiftHealth;
-												// 			particlePoolInstance.id = particleId++;
-												// 			particlePoolInstance.payload = undefined;
-												// 			particlePoolInstance.posX = x;
-												// 			particlePoolInstance.posXOriginal = x;
-												// 			particlePoolInstance.posY = y;
-												// 			particlePoolInstance.posYOriginal = y;
-												// 			particlePoolInstance.type = ParticleType.SOLID;
-												// 			particlePoolInstance.typeValue = gridData[gridIndex] & worldEncodingMaskType;
-												// 			particlePoolInstance.velX = 0;
-												// 			particlePoolInstance.velXScaled = 0;
-												// 			particlePoolInstance.velY = 0;
-												// 			particlePoolInstance.velYScaled = 0;
-												// 		}
+												// 		particlePoolInstance = particleFromPool(
+												// 			gridIndex,
+												// 			(gridData[gridIndex] & worldEncodingMaskHealth) >> worldEncodingShiftHealth,
+												// 			ParticleType.SOLID,
+												// 			gridData[gridIndex] & worldEncodingMaskType,
+												// 			x,
+												// 			y,
+												// 		);
 
 												// 		// Done
 												// 		gridData[gridIndex] = 0;
 												// 		gridUpdate = true;
-												// 		particleMap.set(gridIndex, particlePoolInstance);
-												// 		particlePoolInstance.node = particles.pushEnd(particlePoolInstance);
 												// 	}
 												// }
 											}
@@ -791,17 +795,21 @@ class WorkerMainCalcEngine {
 												continue;
 											}
 
-											collisionNextResultHardStop = true;
-											particle.typeValue = SolidType.LAVA;
-											// TODO trigger lava strike animation at this gridIndex
+											if (particle.typeValue === SolidType.DIRT) {
+												collisionNextResultHardStop = true;
+												particle.typeValue = SolidType.LAVA;
 
-											if (collisionX === true) {
-												particle.posX = posXInteger;
-												particle.velX = 0;
-											}
-											if (collisionY === true) {
-												particle.posY = posYInteger;
-												particle.velY = 0;
+												if (collisionX === true) {
+													particle.posX = posXInteger;
+													particle.velX = 0;
+												}
+												if (collisionY === true) {
+													particle.posY = posYInteger;
+													particle.velY = 0;
+												}
+											} else {
+												// ROCK
+												collisionNextResultLiquidSwap = true;
 											}
 											break;
 										case SolidType.ROCK:
@@ -817,23 +825,30 @@ class WorkerMainCalcEngine {
 											break;
 									}
 								} else if (particle.typeValue === SolidType.LAVA || particle.typeValue === SolidType.WATER) {
-									particle.posX = posXInteger;
-									particle.posY = posYInteger;
-									particle.velX = 0;
-									particle.velY = 0;
-
 									if (particle.typeValue === SolidType.LAVA) {
-										// console.log('COLLISION', 'LAVA', particle.id);
 										switch (collisionNextType) {
 											case SolidType.DIRT:
-											case SolidType.LAVA:
 											case SolidType.ROCK:
-												particle.posX = posXInteger;
-												particle.posY = posYInteger;
-												particle.velX = 0;
-												particle.velY = 0;
+												// console.log('COLLISION', 'LAVA > DIRT/ROCK', particle.id);
+												collisionNextResultHardStop = true;
+												break;
+											case SolidType.LAVA:
+												// console.log('COLLISION', 'LAVA > LAVA', particle.id);
+												if (collisionNextParticle !== undefined) {
+													if (collisionX === true) {
+														particle.posX = posXInteger;
+													}
+													if (collisionY === true) {
+														particle.posY = posYInteger;
+													}
+
+													particle.velX *= 0.5;
+													particle.velY *= 0.5;
+												}
 												break;
 											case SolidType.WATER:
+												// console.log('COLLISION', 'LAVA > WATER', particle.id);
+
 												// Convert LAVA to ROCK
 												particle.typeValue = SolidType.ROCK;
 												collisionNextResultLiquidSwap = true;
@@ -843,24 +858,35 @@ class WorkerMainCalcEngine {
 												break;
 										}
 									} else {
-										// console.log('COLLISION', 'WATER', particle.id);
 										switch (collisionNextType) {
 											case SolidType.DIRT:
 											case SolidType.ROCK:
-											case SolidType.WATER:
-												particle.posX = posXInteger;
-												particle.posY = posYInteger;
-												particle.velX = 0;
-												particle.velY = 0;
+												// console.log('COLLISION', 'WATER > SOLID', particle.id);
+												collisionNextResultHardStop = true;
 												break;
 											case SolidType.LAVA:
-												// Convert WATER to ROCK
-												if (collisionNextParticle === undefined) {
-													console.error('DirtCalc > collision: WATER on LAVA failed');
-												} else {
+												// console.log('COLLISION', 'WATER > LAVA', particle.id);
+												// Convert LAVA to ROCK and Remove water
+												if (collisionNextParticle !== undefined) {
 													collisionNextParticle.typeValue = SolidType.ROCK;
 												}
+
+												particles.remove(particle.node);
 												continue;
+											case SolidType.WATER:
+												// console.log('COLLISION', 'WATER > WATER', particle.id);
+												if (collisionNextParticle !== undefined) {
+													if (collisionX === true) {
+														particle.posX = posXInteger;
+													}
+													if (collisionY === true) {
+														particle.posY = posYInteger;
+													}
+
+													particle.velX *= 0.5;
+													particle.velY *= 0.5;
+												}
+												break;
 											case SolidType.WEAPON:
 												console.error('DirtCalc > collision: WATER on WEAPON failed');
 												break;
@@ -1115,7 +1141,7 @@ class WorkerMainCalcEngine {
 											collisionNextParticle.posX = posXInteger + (collisionNextParticle.posX % 1);
 
 											if (Math.abs(particle.velX) > physicsResistanceLiquidLimit) {
-												particle.velX *= physicsResistanceLiquid;
+												particle.velX *= physicsResistanceLiquidSurfaceTension;
 											}
 										}
 
@@ -1124,7 +1150,7 @@ class WorkerMainCalcEngine {
 											collisionNextParticle.posY = posYInteger + (collisionNextParticle.posY % 1);
 
 											if (Math.abs(particle.velY) > physicsResistanceLiquidLimit) {
-												particle.velY *= physicsResistanceLiquid;
+												particle.velY *= physicsResistanceLiquidSurfaceTension;
 											}
 										}
 
