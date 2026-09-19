@@ -20,11 +20,13 @@ export class ModuleDOM {
 	public static elMenuContent: HTMLElement;
 	public static elMenuSettings: HTMLElement;
 	public static elPerformance: HTMLElement;
+	public static elPerformanceGridVideo: HTMLElement;
+	public static elPerformanceGridVideoAll: HTMLElement;
 	public static elPerformanceMainCalc: HTMLElement;
 	public static elPerformanceMainCalcAll: HTMLElement;
 	public static elPerformanceMainParticleCount: HTMLElement;
-	public static elPerformanceMainVideo: HTMLElement;
-	public static elPerformanceMainVideoAll: HTMLElement;
+	public static elPerformanceParticleVideo: HTMLElement;
+	public static elPerformanceParticleVideoAll: HTMLElement;
 	public static elSettings: HTMLElement;
 	public static elSettingsApply: HTMLElement;
 	public static elSettingsCancel: HTMLElement;
@@ -98,11 +100,13 @@ export class ModuleDOM {
 
 		// Performance
 		ModuleDOM.elPerformance = <HTMLElement>document.getElementById('performance');
+		ModuleDOM.elPerformanceGridVideo = <HTMLElement>document.getElementById('performance-grid-video');
+		ModuleDOM.elPerformanceGridVideoAll = <HTMLElement>document.getElementById('performance-grid-video-all');
 		ModuleDOM.elPerformanceMainCalc = <HTMLElement>document.getElementById('performance-main-calc');
 		ModuleDOM.elPerformanceMainCalcAll = <HTMLElement>document.getElementById('performance-main-calc-all');
 		ModuleDOM.elPerformanceMainParticleCount = <HTMLElement>document.getElementById('performance-main-calc-particle-count');
-		ModuleDOM.elPerformanceMainVideo = <HTMLElement>document.getElementById('performance-main-video');
-		ModuleDOM.elPerformanceMainVideoAll = <HTMLElement>document.getElementById('performance-main-video-all');
+		ModuleDOM.elPerformanceParticleVideo = <HTMLElement>document.getElementById('performance-particle-video');
+		ModuleDOM.elPerformanceParticleVideoAll = <HTMLElement>document.getElementById('performance-particle-video-all');
 
 		// Settings: Menu
 		ModuleDOM.elSettings = <HTMLElement>document.getElementById('settings');

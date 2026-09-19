@@ -1,6 +1,7 @@
+import { WorkerGridVideoBus } from '../workers/grid-video/grid-video.bus.js';
 import { WorkerMainCalcBus } from '../workers/main-calc/main-calc.bus.js';
 import { WorkerMainCalcBusOutputData } from '../workers/main-calc/main-calc.model.js';
-import { WorkerMainVideoBus } from '../workers/main-video/main-video.bus.js';
+import { WorkerParticleVideoBus } from '../workers/particle-video/particle-video.bus.js';
 
 /**
  * Bridge communication between buses
@@ -10,9 +11,13 @@ import { WorkerMainVideoBus } from '../workers/main-video/main-video.bus.js';
 
 export class ModuleBridge {
 	public static async initialize(): Promise<void> {
-		// Worker: Dirt Calc
 		WorkerMainCalcBus.setCallbackData((data: WorkerMainCalcBusOutputData) => {
-			WorkerMainVideoBus.sendCalc(data);
+			if (data.grid !== undefined) {
+				WorkerGridVideoBus.sendCalc(data.grid);
+			}
+			if (data.particles !== undefined) {
+				WorkerParticleVideoBus.sendCalc(data.particles);
+			}
 		});
 	}
 }

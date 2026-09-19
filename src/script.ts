@@ -6,8 +6,10 @@ import { ModuleSettings } from './modules/settings.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from './gaming-canvas/modules/grid/index.js';
 import { WorkerMainCalcBus } from './workers/main-calc/main-calc.bus.js';
 import { WorkerMainCalcBusOutputDataStats } from './workers/main-calc/main-calc.model.js';
-import { WorkerMainVideoBus } from './workers/main-video/main-video.bus.js';
-import { WorkerMainVideoBusOutputDataStats } from './workers/main-video/main-video.model.js';
+import { WorkerGridVideoBus } from './workers/grid-video/grid-video.bus.js';
+import { WorkerGridVideoBusOutputDataStats } from './workers/grid-video/grid-video.model.js';
+import { WorkerParticleVideoBus } from './workers/particle-video/particle-video.bus.js';
+import { WorkerParticleVideoBusOutputDataStats } from './workers/particle-video/particle-video.model.js';
 import { GamingCanvas } from './gaming-canvas/main/gaming-canvas.js';
 import { GamingCanvasStat, GamingCanvasStatCalcType } from './gaming-canvas/main/stat.js';
 import { ModuleInput } from './modules/input.js';
@@ -71,18 +73,26 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			precision: number = 2;
 
 		// Stats
+		WorkerGridVideoBus.setCallbackStats((data: WorkerGridVideoBusOutputDataStats) => {
+			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
+
+			ModuleDOM.elPerformanceGridVideoAll.innerHTML = displayNumberAll(all, precision);
+
+			ScorchedDirt.statFPS['grid-video'] = data.fps;
+			ScorchedDirt.displayStatFPS();
+		});
 		WorkerMainCalcBus.setCallbackStats((data: WorkerMainCalcBusOutputDataStats) => {
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
 
 			ModuleDOM.elPerformanceMainCalcAll.innerHTML = displayNumberAll(all, precision);
 			ModuleDOM.elPerformanceMainParticleCount.innerHTML = displayNumber(data.particleCount, 0, '', '');
 		});
-		WorkerMainVideoBus.setCallbackStats((data: WorkerMainVideoBusOutputDataStats) => {
+		WorkerParticleVideoBus.setCallbackStats((data: WorkerParticleVideoBusOutputDataStats) => {
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
 
-			ModuleDOM.elPerformanceMainVideoAll.innerHTML = displayNumberAll(all, precision);
+			ModuleDOM.elPerformanceParticleVideoAll.innerHTML = displayNumberAll(all, precision);
 
-			ScorchedDirt.statFPS['dirt-video'] = data.fps;
+			ScorchedDirt.statFPS['particle-video'] = data.fps;
 			ScorchedDirt.displayStatFPS();
 		});
 	}
@@ -188,18 +198,22 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			world: World = ModuleWorld.worldActive;
 
 		return new Promise<void>((resolve: any) => {
-			WorkerMainCalcBus.initialize(ModuleSettings.data.workerDirtCalc, world, () => {
-				// Done
+			WorkerMainCalcBus.initialize(ModuleSettings.data.workerMainCalc, world, () => {
 				console.log('WorkerMainCalcBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
-				// Load video-editor
+				// Done
 				then = performance.now();
-				WorkerMainVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerDirtVideo, world, () => {
-					// Done
-					console.log('WorkerMainVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
+				WorkerGridVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerGridVideo, world, () => {
+					console.log('WorkerGridVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
-					// Resolve initial promise
-					resolve();
+					// Done
+					then = performance.now();
+					WorkerParticleVideoBus.initialize(ModuleDOM.canvases[1], gridCamera, gridViewport, ModuleSettings.data.workerParticleVideo, world, () => {
+						console.log('WorkerParticleVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
+
+						// Resolve initial promise
+						resolve();
+					});
 				});
 			});
 		});

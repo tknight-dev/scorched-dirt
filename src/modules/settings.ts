@@ -1,10 +1,12 @@
 import { GamingCanvas, GamingCanvasAudioType, GamingCanvasOptions, GamingCanvasOrientation, GamingCanvasRenderStyle } from '../gaming-canvas/main/index.js';
 import { ModuleDOM } from './dom.js';
 import { FPS, WorldSize, ResolutionWidthPx, WindStrength } from '../models/settings.model.js';
+import { WorkerGridVideoBus } from '../workers/grid-video/grid-video.bus.js';
+import { WorkerGridVideoBusInputDataSettings } from '../workers/grid-video/grid-video.model.js';
 import { WorkerMainCalcBus } from '../workers/main-calc/main-calc.bus.js';
 import { WorkerMainCalcBusInputDataSettings } from '../workers/main-calc/main-calc.model.js';
-import { WorkerMainVideoBus } from '../workers/main-video/main-video.bus.js';
-import { WorkerMainVideoBusInputDataSettings } from '../workers/main-video/main-video.model.js';
+import { WorkerParticleVideoBus } from '../workers/particle-video/particle-video.bus.js';
+import { WorkerParticleVideoBusInputDataSettings } from '../workers/particle-video/particle-video.model.js';
 
 /**
  * @author tknight-dev
@@ -38,7 +40,7 @@ export class ModuleSettings {
 				gamingCanvas: <GamingCanvasOptions>{
 					aspectRatio: 16 / 9,
 					audioEnable: true,
-					canvasCount: 1,
+					canvasCount: 2,
 					debug: true,
 					dpiSupportEnable: false,
 					elementInteractive: ModuleDOM.elVideoInteractive,
@@ -58,14 +60,22 @@ export class ModuleSettings {
 				windRandomize: false,
 				windStrength: WindStrength.NONE,
 			},
-			workerDirtCalc: <WorkerMainCalcBusInputDataSettings>{
+			workerGridVideo: <WorkerGridVideoBusInputDataSettings>{
+				debug: false,
+				edgesWrap: true,
+				fps: FPS._60,
+				gammaCorrection: 0,
+				grayscale: false,
+				renderStyle: GamingCanvasRenderStyle.PIXELATED,
+			},
+			workerMainCalc: <WorkerMainCalcBusInputDataSettings>{
 				edgesWrap: true,
 				fps: FPS._60,
 				particlePoolSize: 500,
 				windRandomize: false,
 				windStrength: WindStrength.NONE,
 			},
-			workerDirtVideo: <WorkerMainVideoBusInputDataSettings>{
+			workerParticleVideo: <WorkerParticleVideoBusInputDataSettings>{
 				debug: false,
 				edgesWrap: true,
 				fps: FPS._60,
@@ -201,16 +211,24 @@ export class ModuleSettings {
 	}
 
 	private static normalize(): void {
-		ModuleSettings.data.workerDirtCalc.edgesWrap = ModuleSettings.data.main.edgesWrap;
-		ModuleSettings.data.workerDirtCalc.fps = ModuleSettings.data.main.fps;
-		ModuleSettings.data.workerDirtCalc.windRandomize = ModuleSettings.data.main.windRandomize;
-		ModuleSettings.data.workerDirtCalc.windStrength = ModuleSettings.data.main.windStrength;
-		ModuleSettings.data.workerDirtVideo.debug = <boolean>ModuleSettings.data.main.gamingCanvas.debug;
-		ModuleSettings.data.workerDirtVideo.edgesWrap = ModuleSettings.data.main.edgesWrap;
-		ModuleSettings.data.workerDirtVideo.fps = ModuleSettings.data.main.fps;
-		ModuleSettings.data.workerDirtVideo.gammaCorrection = ModuleSettings.data.main.gammaCorrection;
-		ModuleSettings.data.workerDirtVideo.grayscale = ModuleSettings.data.main.grayscale;
-		ModuleSettings.data.workerDirtVideo.renderStyle = <GamingCanvasRenderStyle>ModuleSettings.data.main.gamingCanvas.renderStyle;
+		ModuleSettings.data.workerGridVideo.debug = <boolean>ModuleSettings.data.main.gamingCanvas.debug;
+		ModuleSettings.data.workerGridVideo.edgesWrap = ModuleSettings.data.main.edgesWrap;
+		ModuleSettings.data.workerGridVideo.fps = ModuleSettings.data.main.fps;
+		ModuleSettings.data.workerGridVideo.gammaCorrection = ModuleSettings.data.main.gammaCorrection;
+		ModuleSettings.data.workerGridVideo.grayscale = ModuleSettings.data.main.grayscale;
+		ModuleSettings.data.workerGridVideo.renderStyle = <GamingCanvasRenderStyle>ModuleSettings.data.main.gamingCanvas.renderStyle;
+
+		ModuleSettings.data.workerMainCalc.edgesWrap = ModuleSettings.data.main.edgesWrap;
+		ModuleSettings.data.workerMainCalc.fps = ModuleSettings.data.main.fps;
+		ModuleSettings.data.workerMainCalc.windRandomize = ModuleSettings.data.main.windRandomize;
+		ModuleSettings.data.workerMainCalc.windStrength = ModuleSettings.data.main.windStrength;
+
+		ModuleSettings.data.workerParticleVideo.debug = <boolean>ModuleSettings.data.main.gamingCanvas.debug;
+		ModuleSettings.data.workerParticleVideo.edgesWrap = ModuleSettings.data.main.edgesWrap;
+		ModuleSettings.data.workerParticleVideo.fps = ModuleSettings.data.main.fps;
+		ModuleSettings.data.workerParticleVideo.gammaCorrection = ModuleSettings.data.main.gammaCorrection;
+		ModuleSettings.data.workerParticleVideo.grayscale = ModuleSettings.data.main.grayscale;
+		ModuleSettings.data.workerParticleVideo.renderStyle = <GamingCanvasRenderStyle>ModuleSettings.data.main.gamingCanvas.renderStyle;
 	}
 
 	private static parseURL(): void {
@@ -256,7 +274,8 @@ export class ModuleSettings {
 	}
 
 	private static workersUpdate(): void {
-		WorkerMainCalcBus.sendSettings(ModuleSettings.data.workerDirtCalc);
-		WorkerMainVideoBus.sendSettings(ModuleSettings.data.workerDirtVideo);
+		WorkerGridVideoBus.sendSettings(ModuleSettings.data.workerGridVideo);
+		WorkerMainCalcBus.sendSettings(ModuleSettings.data.workerMainCalc);
+		WorkerParticleVideoBus.sendSettings(ModuleSettings.data.workerParticleVideo);
 	}
 }

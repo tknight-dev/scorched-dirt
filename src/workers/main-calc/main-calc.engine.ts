@@ -195,6 +195,7 @@ class WorkerMainCalcEngine {
 			gridClone: GamingCanvasGridUint32Array | undefined,
 			gridData: Uint32Array, // AKA inactive solids
 			gridIndex: number,
+			gridIndexEff: number,
 			gridSideLength: number,
 			gridUpdate: boolean,
 			gridYLimit: number,
@@ -217,11 +218,16 @@ class WorkerMainCalcEngine {
 			particlesEncoded: Uint32Array | undefined,
 			physicsGravity: number = 0.000075,
 			physicsGravityLimit: number = -3,
-			physicsLiquidAvailableLeft: boolean,
-			physicsLiquidAvailableRight: boolean,
+			physicsLiquidAvailable: boolean,
+			physicsLiquidDirection: number,
+			physicsLiquidDirectionMomentum: number = 0.0105,
+			physicsLiquidDirectionMomentumMax: number = 0.01,
+			physicsLiquidDirections: number[] = [1, -1],
 			physicsLiquidGridIndex: number,
 			physicsLiquidGridIndexLeft: number,
 			physicsLiquidGridIndexRight: number,
+			physicsLiquidMoved: boolean,
+			physicsLiquidOverAirCount: number,
 			physicsLiquidParticle: Particle<any> | undefined,
 			physicsResistanceFriction: number = 0.95, // The closer to 1 the less this has effect
 			physicsResistanceLiquidLimit: number = 0.025,
@@ -240,6 +246,8 @@ class WorkerMainCalcEngine {
 			posYIntegerNext: number,
 			posYIntegerNextOriginal: number,
 			posYOriginal: number,
+			randomNumbers: number[] = [...Array(100)].map((e) => Math.random()),
+			randomNumbersIndex: number = 0,
 			timestampCPU: number = performance.now(),
 			timestampCPUDelta: number,
 			timestampFPSDelta: number,
@@ -893,181 +901,171 @@ class WorkerMainCalcEngine {
 										}
 									}
 
-									// Liquid redistributions
+									/**
+									 * Liquid redistributions
+									 */
 									if (
 										collisionY === true && // Falling collision
-										// collisionNextType === particle.typeValue && // Of same type
 										collisionNextResultLiquidSwap !== true &&
 										posYIntegerNext > posYInteger // Colliding downwards
 									) {
 										x = particle.posX | 0;
 										y = particle.posY | 0;
-										gridIndex = x * gridSideLength + y;
+										gridIndex = x * gridSideLength;
 
-										// Only do this if there is some kind of ground at the bottom of the line of water
-										physicsLiquidAvailableLeft = false;
-										for (xNext = 1, yNext = y; yNext < gridYLimit; xNext++, yNext++) {
-											if (gridData[gridIndex + xNext] !== 0) {
-												physicsLiquidAvailableLeft = true;
-												break;
-											} else if (particleMap.has(gridIndex + xNext) !== true) {
-												break;
-											}
-										}
+										// Only calculate for the top-most layer of liquid
+										physicsLiquidAvailable = true;
+										particleLiquid = particleMap.get(gridIndex + (y - 1));
+										if (particleLiquid === undefined || particleLiquid.typeValue !== particle.typeValue) {
+											// Water column must be resting on the ground
+											physicsLiquidAvailable = false;
+											for (yNext = y + 1; yNext < gridYLimit; yNext++) {
+												gridIndexEff = gridIndex + yNext;
 
-										if (physicsLiquidAvailableLeft === true) {
-											// Check: Left
-											physicsLiquidAvailableLeft = false;
-											if (x === 0) {
-												if (settingsEdgesWrap === true) {
-													// Is neighbor available
-													physicsLiquidGridIndexLeft = (gridSideLength - 1) * gridSideLength + y;
-													if (gridData[physicsLiquidGridIndexLeft] === 0 && particleMap.has(physicsLiquidGridIndexLeft) === false) {
-														physicsLiquidAvailableLeft = true;
-													}
-
-													// Is pixel available on the left one pixel lower at any distance
-													if (physicsLiquidAvailableLeft === true) {
-														physicsLiquidAvailableLeft = false;
-														physicsLiquidGridIndexLeft += 1;
-
-														for (xNext = gridSideLength - 1; xNext !== x; xNext--, physicsLiquidGridIndexLeft -= gridSideLength) {
-															if (gridData[physicsLiquidGridIndexLeft] !== 0) {
-																break;
-															}
-
-															particleLiquid = particleMap.get(physicsLiquidGridIndexLeft);
-															if (particleLiquid === undefined) {
-																physicsLiquidAvailableLeft = true;
-																break;
-															} else if (particleLiquid.typeValue !== particle.typeValue) {
-																physicsLiquidAvailableLeft = true;
-																break;
-															}
-														}
-													}
-												}
-											} else {
-												// Is neighbor available
-												physicsLiquidGridIndexLeft = gridIndex - gridSideLength;
-												if (gridData[physicsLiquidGridIndexLeft] === 0 && particleMap.has(physicsLiquidGridIndexLeft) === false) {
-													physicsLiquidAvailableLeft = true;
-												}
-
-												// Is pixel available on the left one pixel lower at any distance
-												if (physicsLiquidAvailableLeft === true) {
-													physicsLiquidAvailableLeft = false;
-													physicsLiquidGridIndexLeft += 1;
-
-													for (xNext = x - 1; xNext !== 0; xNext--, physicsLiquidGridIndexLeft -= gridSideLength) {
-														if (gridData[physicsLiquidGridIndexLeft] !== 0) {
-															break;
-														}
-
-														particleLiquid = particleMap.get(physicsLiquidGridIndexLeft);
-														if (particleLiquid === undefined) {
-															physicsLiquidAvailableLeft = true;
-															break;
-														} else if (particleLiquid.typeValue !== particle.typeValue) {
-															physicsLiquidAvailableLeft = true;
-															break;
-														}
-													}
+												if (gridData[gridIndexEff] !== 0) {
+													physicsLiquidAvailable = true;
+													yNext--; // Offset to reference the last y value before reaching the ground
+													break;
+												} else if (particleMap.has(gridIndexEff) !== true) {
+													break;
 												}
 											}
 
-											// Check: Right
-											physicsLiquidAvailableRight = false;
-											if (x === gridSideLength) {
-												if (settingsEdgesWrap === true) {
-													// Is neighbor available
-													physicsLiquidGridIndexRight = y;
-													if (gridData[physicsLiquidGridIndexRight] === 0 && particleMap.has(physicsLiquidGridIndexRight) === false) {
-														physicsLiquidAvailableRight = true;
+											if (physicsLiquidAvailable === true) {
+												// Same-type redistribution
+												if (collisionNextType === particle.typeValue) {
+													// Random initial direction
+													if (randomNumbers[randomNumbersIndex++] > 0.5 === true) {
+														physicsLiquidDirection = physicsLiquidDirections[0];
+														physicsLiquidDirections[0] = physicsLiquidDirections[1];
+														physicsLiquidDirections[1] = physicsLiquidDirection;
+													}
+													if (randomNumbersIndex >= randomNumbers.length) {
+														randomNumbersIndex = 0;
 													}
 
-													// Is pixel available on the left one pixel lower at any distance
-													if (physicsLiquidAvailableRight === true) {
-														physicsLiquidAvailableRight = false;
-														physicsLiquidGridIndexRight += 1;
+													// Iterate from the bottom to the top to find an available position
+													physicsLiquidMoved = false;
+													for (; yNext !== y; yNext--) {
+														// Iterate left and right to find an available position
+														for (physicsLiquidDirection of physicsLiquidDirections) {
+															physicsLiquidOverAirCount = 0;
 
-														for (xNext = 0; xNext !== x; xNext++, physicsLiquidGridIndexRight += gridSideLength) {
-															if (gridData[physicsLiquidGridIndexRight] !== 0) {
-																break;
+															// Iterate in a horizontal direction to find an available position
+															// xNext = x + direction so as to not reference the immediate vertical column of liquids
+															for (
+																xNext = x + physicsLiquidDirection;
+																xNext !== -1 && xNext !== gridSideLength;
+																xNext += physicsLiquidDirection
+															) {
+																gridIndex = xNext * gridSideLength + yNext;
+
+																// Check if the next position is a particle
+																particleLiquid = particleMap.get(gridIndex);
+																if (particleLiquid !== undefined) {
+																	if (particle.typeValue === particleLiquid.typeValue) {
+																		// How far out over the air are we stretching?
+																		if (gridData[gridIndex + 1] === 0 && particleMap.has(gridIndex + 1) !== true) {
+																			physicsLiquidOverAirCount++;
+
+																			// Limit how wide a waterfall of liquids can be based on the height of the original particle
+																			if (physicsLiquidOverAirCount === yNext - y) {
+																				break;
+																			}
+																		}
+
+																		continue;
+																	}
+
+																	// Convert LAVA if touching water
+																	if (particle.typeValue === SolidType.WATER && particleLiquid.typeValue === SolidType.LAVA) {
+																		particleLiquid.typeValue = SolidType.ROCK;
+																	}
+
+																	// Next position not available in this direction
+																	break;
+																} else if (gridData[gridIndex] !== 0) {
+																	// Next position not available in this direction
+																	break;
+																} else {
+																	// Move Particle to new position
+																	collisionNextResultHardStop = false;
+																	particle.posX = xNext + (particle.posX % 1);
+																	particle.posY = yNext + (particle.posY % 1);
+
+																	if (Math.abs(particle.velX) < physicsLiquidDirectionMomentumMax) {
+																		particle.velX += physicsLiquidDirectionMomentum * physicsLiquidDirection;
+																	}
+
+																	physicsLiquidMoved = true;
+																	break;
+																}
 															}
 
-															particleLiquid = particleMap.get(physicsLiquidGridIndexRight);
-															if (particleLiquid === undefined) {
-																physicsLiquidAvailableRight = true;
-																break;
-															} else if (particleLiquid.typeValue !== particle.typeValue) {
-																physicsLiquidAvailableRight = true;
+															// Water was repositioned, exit the loop
+															if (physicsLiquidMoved === true) {
 																break;
 															}
 														}
-													}
-												}
-											} else {
-												// Is neighbor available
-												physicsLiquidGridIndexRight = gridIndex + gridSideLength;
-												if (gridData[physicsLiquidGridIndexRight] === 0 && particleMap.has(physicsLiquidGridIndexRight) === false) {
-													physicsLiquidAvailableRight = true;
-												}
 
-												// Is pixel available on the left one pixel lower at any distance
-												if (physicsLiquidAvailableRight === true) {
-													physicsLiquidAvailableRight = false;
-													physicsLiquidGridIndexRight += 1;
-
-													for (xNext = x + 1; xNext !== gridSideLength; xNext++, physicsLiquidGridIndexRight += gridSideLength) {
-														if (gridData[physicsLiquidGridIndexRight] !== 0) {
-															break;
-														}
-
-														particleLiquid = particleMap.get(physicsLiquidGridIndexRight);
-														if (particleLiquid === undefined) {
-															physicsLiquidAvailableRight = true;
-															break;
-														} else if (particleLiquid.typeValue !== particle.typeValue) {
-															physicsLiquidAvailableRight = true;
+														// Water was repositioned, exit the loop
+														if (physicsLiquidMoved === true) {
 															break;
 														}
 													}
-												}
-											}
+												} else if (y < gridYLimit) {
+													// Different-type redistribution
+													// Random initial direction
+													if (randomNumbers[randomNumbersIndex++] > 0.5 === true) {
+														physicsLiquidDirection = physicsLiquidDirections[0];
+														physicsLiquidDirections[0] = physicsLiquidDirections[1];
+														physicsLiquidDirections[1] = physicsLiquidDirection;
+													}
+													if (randomNumbersIndex >= randomNumbers.length) {
+														randomNumbersIndex = 0;
+													}
 
-											// Redistribute particle if a gridIndex is available one lower on the map
-											if (physicsLiquidAvailableLeft === true || physicsLiquidAvailableRight === true) {
-												if (physicsLiquidAvailableLeft === true && physicsLiquidAvailableRight === false) {
-													// Fall left
-													physicsLiquidGridIndex = physicsLiquidGridIndexLeft;
-												} else if (physicsLiquidAvailableLeft === false && physicsLiquidAvailableRight === true) {
-													// Fall right
-													physicsLiquidGridIndex = physicsLiquidGridIndexRight;
-												} else {
-													// Fall random left or right
-													physicsLiquidGridIndex = Math.random() > 0.5 ? physicsLiquidGridIndexLeft : physicsLiquidGridIndexRight;
-												}
+													for (physicsLiquidDirection of physicsLiquidDirections) {
+														xNext = x + physicsLiquidDirection;
 
-												// Move liquid to available gridIndex
-												y = physicsLiquidGridIndex % gridSideLength;
-												x = (physicsLiquidGridIndex - y) / gridSideLength;
-												particle.posX = x;
-												particle.posY = y;
+														if (xNext !== 0 && xNext !== gridSideLength) {
+															gridIndex = xNext * gridSideLength + y;
 
-												// Check if Lava needs to turn to rock after redistribution
-												if (particle.typeValue === SolidType.LAVA) {
-													particle.gridIndex = (particle.posX | 0) * gridSideLength + (particle.posY | 0);
+															// Check if the next position is a particle
+															particleLiquid = particleMap.get(gridIndex);
+															if (particleLiquid !== undefined) {
+																// Check if the next same liquid position is stackable for redistribution
+																if (particle.typeValue === particleLiquid.typeValue) {
+																	xNext += physicsLiquidDirection;
+																	gridIndex = xNext * gridSideLength + y;
 
-													// Left
-													particleLiquid = particleMap.get(particle.gridIndex - gridSideLength);
-													if (particleLiquid !== undefined && particleLiquid.typeValue === SolidType.WATER) {
-														particle.typeValue = SolidType.ROCK;
-													} else {
-														// Right
-														particleLiquid = particleMap.get(particle.gridIndex + gridSideLength);
-														if (particleLiquid !== undefined && particleLiquid.typeValue === SolidType.WATER) {
-															particle.typeValue = SolidType.ROCK;
+																	particleLiquid = particleMap.get(gridIndex);
+																	if (particleLiquid === undefined && gridData[gridIndex] === 0) {
+																		// Move Particle to new position
+																		collisionNextResultHardStop = false;
+																		particle.posX += physicsLiquidDirection * 2;
+
+																		if (Math.abs(particle.velX) < physicsLiquidDirectionMomentumMax) {
+																			particle.velX += physicsLiquidDirectionMomentum * physicsLiquidDirection;
+																		}
+
+																		physicsLiquidMoved = true;
+																	}
+																}
+
+																break;
+															} else if (gridData[gridIndex] === 0) {
+																// Move Particle to new position
+																collisionNextResultHardStop = false;
+																particle.posX += physicsLiquidDirection;
+
+																if (Math.abs(particle.velX) < physicsLiquidDirectionMomentumMax) {
+																	particle.velX += physicsLiquidDirectionMomentum * physicsLiquidDirection;
+																}
+
+																physicsLiquidMoved = true;
+																break;
+															}
 														}
 													}
 												}
