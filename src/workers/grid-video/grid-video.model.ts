@@ -19,11 +19,17 @@ export enum WorkerGridVideoBusStats {
  */
 export enum WorkerGridVideoBusInputCmd {
 	CALC,
+	CALC_HEIGHT_MAPS,
 	INIT,
 	REPORT,
 	SETTINGS,
 	VIEW,
 	WORLD,
+}
+
+export interface WorkerGridVideoBusInputDataCalcHeightMaps {
+	heightMapGrid?: Uint32Array;
+	heightMapParticles?: Uint32Array;
 }
 
 export interface WorkerGridVideoBusInputDataInit extends WorkerGridVideoBusInputDataSettings, WorkerGridVideoBusInputDataView {
@@ -49,8 +55,9 @@ export interface WorkerGridVideoBusInputDataView {
 export interface WorkerGridVideoBusInputPayload {
 	cmd: WorkerGridVideoBusInputCmd;
 	data:
-		| GamingCanvasGridUint32Array
 		| GamingCanvasReport
+		| GamingCanvasGridUint32Array
+		| WorkerGridVideoBusInputDataCalcHeightMaps
 		| WorkerGridVideoBusInputDataInit
 		| WorkerGridVideoBusInputDataSettings
 		| WorkerGridVideoBusInputDataView

@@ -101,6 +101,29 @@ export class WorkerParticleVideoBus {
 		);
 	}
 
+	public static sendCalcHeightMaps(heightMapGrid?: Uint32Array, heightMapParticles?: Uint32Array): void {
+		let buffers: ArrayBufferLike[] = [];
+
+		if (heightMapGrid !== undefined) {
+			buffers.push(heightMapGrid.buffer);
+		}
+
+		if (heightMapParticles !== undefined) {
+			buffers.push(heightMapParticles.buffer);
+		}
+
+		WorkerParticleVideoBus.worker.postMessage(
+			{
+				cmd: WorkerParticleVideoBusInputCmd.CALC_HEIGHT_MAPS,
+				data: {
+					heightMapGrid: heightMapGrid,
+					heightMapParticles: heightMapParticles,
+				},
+			},
+			buffers,
+		);
+	}
+
 	public static sendReport(data: GamingCanvasReport): void {
 		WorkerParticleVideoBus.worker.postMessage({
 			cmd: WorkerParticleVideoBusInputCmd.REPORT,

@@ -19,7 +19,7 @@ import {
 	ParticleInitial,
 	ParticleType,
 } from '../../models/physics.model.js';
-import { WindStrength } from '../../models/settings.model.js';
+import { WindStrength, WorldSize } from '../../models/settings.model.js';
 import { Weapon } from '../../models/weapon.model.js';
 import {
 	WorkerMainCalcBusInputCmd,
@@ -200,6 +200,8 @@ class WorkerMainCalcEngine {
 			gridSideLength: number,
 			gridUpdate: boolean,
 			gridYLimit: number,
+			heightMapGrid: number[],
+			heightMapParticles: number[],
 			i: number,
 			j: number,
 			particle: Particle<any>,
@@ -452,7 +454,6 @@ class WorkerMainCalcEngine {
 
 				// Calc: Pre-motion Physics
 				particleNode = particles.start;
-				velChanged = true;
 				while (particleNode !== undefined) {
 					particle = particleNode.data;
 					gridIndex = (particle.posX | 0) * gridSideLength + (particle.posY | 0);
@@ -483,12 +484,12 @@ class WorkerMainCalcEngine {
 							yVel = particle.velY < 0 ? -particle.velY : particle.velY;
 							if (yVel < physicsResistanceLiquidLimitY) {
 								particle.velY -= (timestampCPUDelta * physicsGravity) / 2;
-								// velChanged === true && console.log('  >> LIQUID');
+								// vconsole.log('  >> LIQUID');
 							}
 						} else {
 							// Falling through AIR
 							particle.velY -= timestampCPUDelta * physicsGravity;
-							// velChanged === true && console.log('  >> AIR', particle.velY);
+							// console.log('  >> AIR', particle.velY);
 						}
 					}
 
@@ -594,7 +595,6 @@ class WorkerMainCalcEngine {
 								collisionNextEdge = true;
 								collisionX = true;
 								particle.velX = 0;
-								velChanged = true;
 							}
 
 							particle.gridIndex = posXIntegerNext * gridSideLength + posYIntegerNext;
@@ -602,8 +602,6 @@ class WorkerMainCalcEngine {
 
 						// Position: Y max check
 						if (posYIntegerNext >= gridYLimit) {
-							velChanged = true;
-
 							if (worldBedrock === true) {
 								collisionNextEdge = true;
 								collisionY = true;
@@ -692,8 +690,6 @@ class WorkerMainCalcEngine {
 
 						// Calc: Collisions
 						if (collisionX === true || collisionY === true) {
-							velChanged = true;
-
 							// TMP
 							if (particle.typeValue === SolidType.WEAPON) {
 								particle.typeValue = SolidType.DIRT; // TMP
@@ -949,9 +945,13 @@ class WorkerMainCalcEngine {
 																		physicsLiquidOverAirCount++;
 
 																		// Limit how wide a waterfall of liquids can be based on the height of the original particle
-																		if (physicsLiquidOverAirCount === yNext - y) {
+																		if (
+																			randomNumbers[randomNumbersIndex++ % randomNumberLength] > 0.75 === true ||
+																			physicsLiquidOverAirCount === yNext - y
+																		) {
 																			break;
 																		}
+																		break;
 																	}
 
 																	continue;
@@ -1358,6 +1358,7 @@ class WorkerMainCalcEngine {
 							data: {
 								grid: gridClone,
 								particles: particlesEncoded,
+								worldSize: <WorldSize>gridSideLength,
 							},
 						},
 					],

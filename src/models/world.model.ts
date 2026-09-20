@@ -1,4 +1,5 @@
 import { GamingCanvasGridUint32Array } from '../gaming-canvas/modules/grid/index.js';
+import { WorldSize } from './settings.model.js';
 
 /**
  * @author tknight-dev

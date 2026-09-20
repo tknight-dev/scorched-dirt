@@ -1,4 +1,4 @@
-import { FPS, WindStrength } from '../../models/settings.model.js';
+import { FPS, WindStrength, WorldSize } from '../../models/settings.model.js';
 import { World } from '../../models/world.model.js';
 import { ParticleInitial } from '../../models/physics.model.js';
 import { GamingCanvasGridUint32Array } from '../../gaming-canvas/modules/grid/grid.js';
@@ -56,6 +56,7 @@ export enum WorkerMainCalcBusOutputCmd {
 export interface WorkerMainCalcBusOutputData {
 	grid?: GamingCanvasGridUint32Array;
 	particles?: Uint32Array;
+	worldSize: WorldSize;
 }
 
 export interface WorkerMainCalcBusOutputDataStats {

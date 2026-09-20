@@ -20,6 +20,7 @@ import { Solid, SolidType, World, worldEncodingMaskType } from '../../models/wor
 import { WorkerMainCalcBusOutputData } from '../main-calc/main-calc.model.js';
 import {
 	WorkerParticleVideoBusInputCmd,
+	WorkerParticleVideoBusInputDataCalcHeightMaps,
 	WorkerParticleVideoBusInputDataInit,
 	WorkerParticleVideoBusInputDataSettings,
 	WorkerParticleVideoBusInputDataView,
@@ -43,6 +44,9 @@ self.onmessage = (event: MessageEvent) => {
 		case WorkerParticleVideoBusInputCmd.CALC:
 			WorkerParticleVideoEngine.inputCalc(<Uint32Array>payload.data);
 			break;
+		case WorkerParticleVideoBusInputCmd.CALC_HEIGHT_MAPS:
+			WorkerParticleVideoEngine.inputCalcHeightMaps(<WorkerParticleVideoBusInputDataCalcHeightMaps>payload.data);
+			break;
 		case WorkerParticleVideoBusInputCmd.INIT:
 			WorkerParticleVideoEngine.initialize(<WorkerParticleVideoBusInputDataInit>payload.data);
 			break;
@@ -63,8 +67,11 @@ self.onmessage = (event: MessageEvent) => {
 
 class WorkerParticleVideoEngine {
 	private static animationFrameRequest: number;
-	private static calcParticles: Uint32Array;
+	private static calcHeightMapGrid: Uint32Array | undefined;
+	private static calcHeightMapParticles: Uint32Array | undefined;
+	private static calcHeightMapsNew: boolean;
 	private static calcNew: boolean;
+	private static calcParticles: Uint32Array;
 	private static world: World;
 	private static worldNew: boolean;
 	private static offscreenCanvas: OffscreenCanvas;
@@ -119,6 +126,12 @@ class WorkerParticleVideoEngine {
 		WorkerParticleVideoEngine.calcNew = true;
 	}
 
+	public static inputCalcHeightMaps(data: WorkerParticleVideoBusInputDataCalcHeightMaps): void {
+		WorkerParticleVideoEngine.calcHeightMapGrid = data.heightMapGrid;
+		WorkerParticleVideoEngine.calcHeightMapParticles = data.heightMapParticles;
+		WorkerParticleVideoEngine.calcHeightMapsNew = true;
+	}
+
 	public static inputWorld(data: World): void {
 		WorkerParticleVideoEngine.world = data;
 		WorkerParticleVideoEngine.world.grid = GamingCanvasGridUint32Array.from(data.grid.data);
@@ -168,6 +181,7 @@ class WorkerParticleVideoEngine {
 			gridCamera: GamingCanvasGridCamera = new GamingCanvasGridCamera(),
 			gridData: Uint32Array,
 			gridDataValue: number,
+			gridHeightMap: Uint32Array,
 			gridIndex: number,
 			gridSideLength: number,
 			gridViewport: GamingCanvasGridViewport = new GamingCanvasGridViewport(1),
@@ -190,6 +204,7 @@ class WorkerParticleVideoEngine {
 			offscreenCanvasWidthPx: number = -1,
 			particleInitialBase: ParticleInitialBase,
 			particlesEncoded: Uint32Array,
+			particlesHeightMap: Uint32Array,
 			particlesSolid: Map<number, ParticleInitialBase> = new Map(),
 			particlesTank: Map<number, ParticleInitialBase> = new Map(),
 			particlesWeapon: Map<number, ParticleInitialBase> = new Map(),
@@ -203,6 +218,7 @@ class WorkerParticleVideoEngine {
 			settingsGammaCorrection: number,
 			settingsGrayscale: boolean,
 			settingsRenderStyle: GamingCanvasRenderStyle,
+			shaderDepthHighlight: number = 3,
 			statAll: GamingCanvasStat = WorkerParticleVideoEngine.stats[WorkerParticleVideoBusStats.ALL],
 			statAllRaw: Float32Array,
 			timestampDelta: number,
@@ -227,6 +243,7 @@ class WorkerParticleVideoEngine {
 			if (WorkerParticleVideoEngine.calcNew === true) {
 				WorkerParticleVideoEngine.calcNew = false;
 				cacheUpdate = true;
+
 				particlesEncoded = WorkerParticleVideoEngine.calcParticles;
 				particlesSolid.clear();
 				particlesWeapon.clear();
@@ -262,13 +279,29 @@ class WorkerParticleVideoEngine {
 				}
 			}
 
+			if (WorkerParticleVideoEngine.calcHeightMapsNew === true) {
+				WorkerParticleVideoEngine.calcHeightMapsNew = false;
+				cacheUpdate = true;
+
+				if (WorkerParticleVideoEngine.calcHeightMapGrid !== undefined) {
+					gridHeightMap = WorkerParticleVideoEngine.calcHeightMapGrid;
+				}
+
+				if (WorkerParticleVideoEngine.calcHeightMapParticles !== undefined) {
+					particlesHeightMap = WorkerParticleVideoEngine.calcHeightMapParticles;
+				}
+			}
+
 			if (WorkerParticleVideoEngine.worldNew === true) {
 				WorkerParticleVideoEngine.worldNew = false;
 				cacheUpdate = true;
 
 				// Grid
+				gridHeightMap = new Uint32Array(WorkerParticleVideoEngine.world.grid.sideLength).fill(WorkerParticleVideoEngine.world.grid.sideLength);
 				gridSideLength = WorkerParticleVideoEngine.world.grid.sideLength;
 				gridYLimit = (gridSideLength * 9) / 16;
+
+				particlesHeightMap = new Uint32Array(WorkerParticleVideoEngine.world.grid.sideLength).fill(WorkerParticleVideoEngine.world.grid.sideLength);
 
 				world = WorkerParticleVideoEngine.world;
 			}
@@ -391,18 +424,23 @@ class WorkerParticleVideoEngine {
 				cacheParticlesContext.fillStyle = '#ffffff';
 				for ([x, y] of heightMap.entries()) {
 					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
+						y = particlesHeightMap[x];
+						y1 = gridHeightMap[x];
+
+						if (y1 !== gridSideLength && y - y1 > 0) {
+							continue;
+						}
+
 						// Hightlight
-						cacheParticlesContext.globalAlpha = 0.1;
-						for (i = 0; i < 3; i++) {
+						for (i = 0; i < shaderDepthHighlight; i++) {
 							if (particlesSolid.get(x * gridSideLength + y + i) !== undefined) {
+								cacheParticlesContext.globalAlpha = 0.15 / (1 + i);
 								cacheParticlesContext.fillRect(
 									(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
 									(y - gridViewportHeightStartEff + i) * gridViewportCellSizePx,
 									gridViewportCellSizePx,
 									gridViewportCellSizePx,
 								);
-
-								cacheParticlesContext.globalAlpha /= 2;
 							} else {
 								break;
 							}

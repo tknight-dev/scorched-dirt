@@ -20,6 +20,7 @@ import { Solid, SolidType, World, worldEncodingMaskType } from '../../models/wor
 import { WorkerMainCalcBusOutputData } from '../main-calc/main-calc.model.js';
 import {
 	WorkerGridVideoBusInputCmd,
+	WorkerGridVideoBusInputDataCalcHeightMaps,
 	WorkerGridVideoBusInputDataInit,
 	WorkerGridVideoBusInputDataSettings,
 	WorkerGridVideoBusInputDataView,
@@ -43,6 +44,9 @@ self.onmessage = (event: MessageEvent) => {
 		case WorkerGridVideoBusInputCmd.CALC:
 			WorkerGridVideoEngine.inputCalc(<GamingCanvasGridUint32Array>payload.data);
 			break;
+		case WorkerGridVideoBusInputCmd.CALC_HEIGHT_MAPS:
+			WorkerGridVideoEngine.inputCalcHeightMaps(<WorkerGridVideoBusInputDataCalcHeightMaps>payload.data);
+			break;
 		case WorkerGridVideoBusInputCmd.INIT:
 			WorkerGridVideoEngine.initialize(<WorkerGridVideoBusInputDataInit>payload.data);
 			break;
@@ -64,6 +68,9 @@ self.onmessage = (event: MessageEvent) => {
 class WorkerGridVideoEngine {
 	private static animationFrameRequest: number;
 	private static calcGrid: GamingCanvasGridUint32Array;
+	private static calcHeightMapGrid: Uint32Array | undefined;
+	private static calcHeightMapParticles: Uint32Array | undefined;
+	private static calcHeightMapsNew: boolean;
 	private static calcNew: boolean;
 	private static world: World;
 	private static worldNew: boolean;
@@ -119,6 +126,12 @@ class WorkerGridVideoEngine {
 		WorkerGridVideoEngine.calcNew = true;
 	}
 
+	public static inputCalcHeightMaps(data: WorkerGridVideoBusInputDataCalcHeightMaps): void {
+		WorkerGridVideoEngine.calcHeightMapGrid = data.heightMapGrid;
+		WorkerGridVideoEngine.calcHeightMapParticles = data.heightMapParticles;
+		WorkerGridVideoEngine.calcHeightMapsNew = true;
+	}
+
 	public static inputWorld(data: World): void {
 		WorkerGridVideoEngine.world = data;
 		WorkerGridVideoEngine.world.grid = GamingCanvasGridUint32Array.from(data.grid.data);
@@ -168,6 +181,7 @@ class WorkerGridVideoEngine {
 			gridCamera: GamingCanvasGridCamera = new GamingCanvasGridCamera(),
 			gridData: Uint32Array,
 			gridDataValue: number,
+			gridHeightMap: Uint32Array,
 			gridIndex: number,
 			gridSideLength: number,
 			gridViewport: GamingCanvasGridViewport = new GamingCanvasGridViewport(1),
@@ -189,6 +203,7 @@ class WorkerGridVideoEngine {
 			offscreenCanvasWidthPx: number = -1,
 			particleInitialBase: ParticleInitialBase,
 			particlesEncoded: Uint32Array,
+			particlesHeightMap: Uint32Array,
 			particlesSolid: Map<number, ParticleInitialBase> = new Map(),
 			particlesTank: Map<number, ParticleInitialBase> = new Map(),
 			particlesWeapon: Map<number, ParticleInitialBase> = new Map(),
@@ -199,6 +214,9 @@ class WorkerGridVideoEngine {
 			settingsGammaCorrection: number,
 			settingsGrayscale: boolean,
 			settingsRenderStyle: GamingCanvasRenderStyle,
+			shaderDepthHighlight: number = 3,
+			shaderDepthHighlightEff: number,
+			shaderDepthHighlightDim: boolean,
 			statAll: GamingCanvasStat = WorkerGridVideoEngine.stats[WorkerGridVideoBusStats.ALL],
 			statAllRaw: Float32Array,
 			timestampDelta: number,
@@ -230,6 +248,19 @@ class WorkerGridVideoEngine {
 				gridYLimit = (gridSideLength * 9) / 16;
 			}
 
+			if (WorkerGridVideoEngine.calcHeightMapsNew === true) {
+				WorkerGridVideoEngine.calcHeightMapsNew = false;
+				cacheUpdate = true;
+
+				if (WorkerGridVideoEngine.calcHeightMapGrid !== undefined) {
+					gridHeightMap = WorkerGridVideoEngine.calcHeightMapGrid;
+				}
+
+				if (WorkerGridVideoEngine.calcHeightMapParticles !== undefined) {
+					particlesHeightMap = WorkerGridVideoEngine.calcHeightMapParticles;
+				}
+			}
+
 			if (WorkerGridVideoEngine.worldNew === true) {
 				WorkerGridVideoEngine.worldNew = false;
 				cacheUpdate = true;
@@ -237,8 +268,10 @@ class WorkerGridVideoEngine {
 				// Grid
 				grid = WorkerGridVideoEngine.world.grid;
 				gridData = grid.data;
+				gridHeightMap = new Uint32Array(grid.sideLength).fill(grid.sideLength);
 				gridSideLength = grid.sideLength;
 				gridYLimit = (gridSideLength * 9) / 16;
+				particlesHeightMap = new Uint32Array(grid.sideLength).fill(grid.sideLength);
 
 				// Grid: Remove liquids (these are particles only)
 				for (x = 0; x < gridSideLength; x++) {
@@ -399,34 +432,25 @@ class WorkerGridVideoEngine {
 				// Draw: Highlight
 				cacheGridContext.fillStyle = '#ffffff';
 				for (x = gridViewportWidthStartEff; x < gridViewportWidthStopEff; x++) {
-					gridIndex = x * gridSideLength;
+					y1 = gridHeightMap[x];
+					y2 = particlesHeightMap[x];
 
-					for (y = 0; y < gridYLimit; y++) {
-						gridDataValue = gridData[gridIndex + y];
-
+					gridIndex = x * gridSideLength + y1;
+					shaderDepthHighlightEff = y1 - y2 > 0 ? 1 : 0;
+					for (i = 0; i < shaderDepthHighlight; i++, shaderDepthHighlightEff++) {
+						gridDataValue = gridData[gridIndex + i];
 						if (gridDataValue === 0) {
 							continue;
 						}
 
 						// Hightlight
-						cacheGridContext.globalAlpha = 0.1;
-						for (i = 0; i < 3; i++) {
-							gridDataValue = gridData[gridIndex + y + i];
-
-							if (gridDataValue !== 0) {
-								cacheGridContext.fillRect(
-									(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
-									(y - gridViewportHeightStartEff + i) * gridViewportCellSizePx,
-									gridViewportCellSizePx,
-									gridViewportCellSizePx,
-								);
-
-								cacheGridContext.globalAlpha /= 2;
-							} else {
-								break;
-							}
-						}
-						break;
+						cacheGridContext.globalAlpha = 0.15 / (1 + shaderDepthHighlightEff);
+						cacheGridContext.fillRect(
+							(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+							(y1 - gridViewportHeightStartEff + i) * gridViewportCellSizePx,
+							gridViewportCellSizePx,
+							gridViewportCellSizePx,
+						);
 					}
 				}
 			}
