@@ -182,6 +182,7 @@ class WorkerParticleVideoEngine {
 			gridViewportWidthStopEff: number,
 			gridYLimit: number,
 			health: number,
+			heightMap: Map<number, number> = new Map(),
 			i: number,
 			offscreenCanvas: OffscreenCanvas = WorkerParticleVideoEngine.offscreenCanvas,
 			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerParticleVideoEngine.offscreenCanvasContext,
@@ -192,6 +193,9 @@ class WorkerParticleVideoEngine {
 			particlesSolid: Map<number, ParticleInitialBase> = new Map(),
 			particlesTank: Map<number, ParticleInitialBase> = new Map(),
 			particlesWeapon: Map<number, ParticleInitialBase> = new Map(),
+			randomNumberLength: number = 100,
+			randomNumbers: number[] = [...Array(randomNumberLength)].map((e) => Math.random()),
+			randomNumbersIndex: number = 0,
 			report: GamingCanvasReport = WorkerParticleVideoEngine.report,
 			settingsDebug: boolean,
 			settingsEdgesWrap: boolean,
@@ -263,22 +267,8 @@ class WorkerParticleVideoEngine {
 				cacheUpdate = true;
 
 				// Grid
-				grid = WorkerParticleVideoEngine.world.grid;
-				gridData = grid.data;
-				gridSideLength = grid.sideLength;
+				gridSideLength = WorkerParticleVideoEngine.world.grid.sideLength;
 				gridYLimit = (gridSideLength * 9) / 16;
-
-				// Grid: Remove liquids (these are particles only)
-				for (x = 0; x < gridSideLength; x++) {
-					for (y = 0; y < gridSideLength; y++) {
-						gridIndex = x * gridSideLength + y;
-						yType = gridData[gridIndex] & worldEncodingMaskType;
-
-						if (yType === SolidType.LAVA || yType === SolidType.WATER) {
-							gridData[gridIndex] = 0;
-						}
-					}
-				}
 
 				world = WorkerParticleVideoEngine.world;
 			}
@@ -339,10 +329,16 @@ class WorkerParticleVideoEngine {
 			if (cacheUpdate === true) {
 				cacheUpdate = false;
 
+				// Reset height map
+				for (x = 0; x < gridSideLength; x++) {
+					heightMap.set(x, gridSideLength);
+				}
+
+				cacheParticlesContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
 				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
 
-				// Draw: Solids
-				cacheParticlesContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
+				// Draw: Base Pass
+				cacheParticlesContext.globalAlpha = 1;
 				for (gridIndex of particlesSolid.keys()) {
 					y = gridIndex % gridSideLength;
 					x = (gridIndex - y) / gridSideLength;
@@ -350,18 +346,35 @@ class WorkerParticleVideoEngine {
 					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
 						particleInitialBase = <ParticleInitialBase>particlesSolid.get(gridIndex);
 
+						// Find the highest particle
+						if (y < <number>heightMap.get(x)) {
+							heightMap.set(x, y);
+						}
+
 						switch (particleInitialBase.typeValue) {
 							case SolidType.DIRT:
 								cacheParticlesContext.fillStyle = '#905015';
 								break;
 							case SolidType.LAVA:
-								cacheParticlesContext.fillStyle = '#ff0000';
+								if ((x % 2) + (y % 2) === (timestampNow % 400 > 200 ? 1 : 0)) {
+									cacheParticlesContext.fillStyle = '#ee0000';
+								} else {
+									cacheParticlesContext.fillStyle = '#e70000';
+								}
 								break;
 							case SolidType.ROCK:
-								cacheParticlesContext.fillStyle = '#505050';
+								if (timestampNow % 200 > 100 === true) {
+									cacheParticlesContext.fillStyle = '#a01000';
+								} else {
+									cacheParticlesContext.fillStyle = '#901000';
+								}
 								break;
 							case SolidType.WATER:
-								cacheParticlesContext.fillStyle = '#0000ff';
+								if ((x % 2) + (y % 2) === (timestampNow % 400 > 200 ? 1 : 0)) {
+									cacheParticlesContext.fillStyle = '#0000ee';
+								} else {
+									cacheParticlesContext.fillStyle = '#0000e7';
+								}
 								break;
 						}
 
@@ -371,6 +384,29 @@ class WorkerParticleVideoEngine {
 							gridViewportCellSizePx,
 							gridViewportCellSizePx,
 						);
+					}
+				}
+
+				// Draw: Highlights
+				cacheParticlesContext.fillStyle = '#ffffff';
+				for ([x, y] of heightMap.entries()) {
+					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
+						// Hightlight
+						cacheParticlesContext.globalAlpha = 0.1;
+						for (i = 0; i < 3; i++) {
+							if (particlesSolid.get(x * gridSideLength + y + i) !== undefined) {
+								cacheParticlesContext.fillRect(
+									(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+									(y - gridViewportHeightStartEff + i) * gridViewportCellSizePx,
+									gridViewportCellSizePx,
+									gridViewportCellSizePx,
+								);
+
+								cacheParticlesContext.globalAlpha /= 2;
+							} else {
+								break;
+							}
+						}
 					}
 				}
 

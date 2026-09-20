@@ -311,10 +311,11 @@ class WorkerGridVideoEngine {
 			if (cacheUpdate === true) {
 				cacheUpdate = false;
 
+				cacheGridContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
+				cacheGridContext.globalAlpha = 1;
 				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
 
-				// Draw: Dirt Inactive
-				cacheGridContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
+				// Draw: Base Pass
 				for (x = gridViewportWidthStartEff; x < gridViewportWidthStopEff; x++) {
 					gridIndex = x * gridSideLength;
 					y1 = -10;
@@ -358,13 +359,13 @@ class WorkerGridVideoEngine {
 										cacheGridContext.fillStyle = '#905015';
 										break;
 									case SolidType.LAVA:
-										cacheGridContext.fillStyle = '#ff0000';
+										cacheGridContext.fillStyle = '#ee0000';
 										break;
 									case SolidType.ROCK:
 										cacheGridContext.fillStyle = '#505050';
 										break;
 									case SolidType.WATER:
-										cacheGridContext.fillStyle = '#0000ff';
+										cacheGridContext.fillStyle = '#0000ee';
 										break;
 								}
 							} else {
@@ -392,6 +393,40 @@ class WorkerGridVideoEngine {
 							y2 = -10;
 							yType = -10;
 						}
+					}
+				}
+
+				// Draw: Highlight
+				cacheGridContext.fillStyle = '#ffffff';
+				for (x = gridViewportWidthStartEff; x < gridViewportWidthStopEff; x++) {
+					gridIndex = x * gridSideLength;
+
+					for (y = 0; y < gridYLimit; y++) {
+						gridDataValue = gridData[gridIndex + y];
+
+						if (gridDataValue === 0) {
+							continue;
+						}
+
+						// Hightlight
+						cacheGridContext.globalAlpha = 0.1;
+						for (i = 0; i < 3; i++) {
+							gridDataValue = gridData[gridIndex + y + i];
+
+							if (gridDataValue !== 0) {
+								cacheGridContext.fillRect(
+									(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+									(y - gridViewportHeightStartEff + i) * gridViewportCellSizePx,
+									gridViewportCellSizePx,
+									gridViewportCellSizePx,
+								);
+
+								cacheGridContext.globalAlpha /= 2;
+							} else {
+								break;
+							}
+						}
+						break;
 					}
 				}
 			}

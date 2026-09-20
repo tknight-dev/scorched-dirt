@@ -1,6 +1,6 @@
 import { GamingCanvas, GamingCanvasAudioType, GamingCanvasOptions, GamingCanvasOrientation, GamingCanvasRenderStyle } from '../gaming-canvas/main/index.js';
 import { ModuleDOM } from './dom.js';
-import { FPS, WorldSize, ResolutionWidthPx, WindStrength } from '../models/settings.model.js';
+import { FPS, WorldSize, WindStrength } from '../models/settings.model.js';
 import { WorkerGridVideoBus } from '../workers/grid-video/grid-video.bus.js';
 import { WorkerGridVideoBusInputDataSettings } from '../workers/grid-video/grid-video.model.js';
 import { WorkerMainCalcBus } from '../workers/main-calc/main-calc.bus.js';
@@ -29,6 +29,8 @@ export class ModuleSettings {
 	}
 
 	public static applyDefault(): void {
+		let worldSize: WorldSize = 192;
+
 		ModuleSettings.data = {
 			main: {
 				audioVolume: 1,
@@ -41,7 +43,7 @@ export class ModuleSettings {
 					aspectRatio: 16 / 9,
 					audioEnable: true,
 					canvasCount: 2,
-					debug: true,
+					debug: false,
 					dpiSupportEnable: false,
 					elementInteractive: ModuleDOM.elVideoInteractive,
 					inputGamepadEnable: true,
@@ -52,11 +54,11 @@ export class ModuleSettings {
 					orientation: GamingCanvasOrientation.LANDSCAPE,
 					orientationCanvasRotateEnable: false,
 					renderStyle: GamingCanvasRenderStyle.PIXELATED,
-					resolutionWidthPx: <ResolutionWidthPx>160,
+					resolutionWidthPx: worldSize,
 				},
 				gammaCorrection: 0,
 				grayscale: false,
-				worldSize: <WorldSize>160,
+				worldSize: worldSize,
 				windRandomize: false,
 				windStrength: WindStrength.NONE,
 			},
@@ -102,7 +104,6 @@ export class ModuleSettings {
 		// Game
 		ModuleSettings.data.main.gamingCanvas.debug = ModuleDOM.elSettingsValueGameDebug.checked;
 		ModuleSettings.data.main.edgesWrap = ModuleDOM.elSettingsValueGameEdgesWrap.checked;
-		ModuleSettings.data.main.worldSize = <WorldSize>Number(ModuleDOM.elSettingsValueGameWorldSize.value);
 		ModuleSettings.data.main.windRandomize = ModuleDOM.elSettingsValueGameWindRandomize.checked;
 		ModuleSettings.data.main.windStrength = <WindStrength>Number(ModuleDOM.elSettingsValueGameWindStrength.value);
 
@@ -115,11 +116,6 @@ export class ModuleSettings {
 		ModuleSettings.data.main.fpsDisplay = ModuleDOM.elSettingsValueGraphicsFPSShow.checked;
 		ModuleSettings.data.main.gammaCorrection = Number(ModuleDOM.elSettingsValueGraphicsGamma.value);
 		ModuleSettings.data.main.grayscale = ModuleDOM.elSettingsValueGraphicsGrayscale.checked;
-		if (ModuleDOM.elSettingsValueGraphicsResolution.value === 'null') {
-			ModuleSettings.data.main.gamingCanvas.resolutionWidthPx = undefined;
-		} else {
-			ModuleSettings.data.main.gamingCanvas.resolutionWidthPx = <ResolutionWidthPx>Number(ModuleDOM.elSettingsValueGraphicsResolution.value);
-		}
 
 		// Done
 		ModuleSettings.normalize();
@@ -147,7 +143,6 @@ export class ModuleSettings {
 		// Game
 		ModuleDOM.elSettingsValueGameDebug.checked = ModuleSettings.data.main.gamingCanvas.debug === true;
 		ModuleDOM.elSettingsValueGameEdgesWrap.checked = ModuleSettings.data.main.edgesWrap;
-		ModuleDOM.elSettingsValueGameWorldSize.value = String(ModuleSettings.data.main.worldSize);
 		ModuleDOM.elSettingsValueGameWindRandomize.value = ModuleSettings.data.main.windRandomize;
 		ModuleDOM.elSettingsValueGameWindStrength.value = String(ModuleSettings.data.main.windStrength);
 
@@ -159,7 +154,6 @@ export class ModuleSettings {
 		ModuleDOM.elSettingsValueGraphicsGrayscale.checked = ModuleSettings.data.main.grayscale;
 		ModuleDOM.elSettingsValueGraphicsFPSShow.checked = ModuleSettings.data.main.fpsDisplay;
 		ModuleDOM.elSettingsValueGraphicsFPS.value = String(ModuleSettings.data.main.fps);
-		ModuleDOM.elSettingsValueGraphicsResolution.value = String(ModuleSettings.data.main.gamingCanvas.resolutionWidthPx || 'null');
 	}
 
 	public static async initialize(localStoragePrefix: string): Promise<void> {
@@ -246,21 +240,6 @@ export class ModuleSettings {
 					break;
 				case 'music':
 					ModuleSettings.data.main.audioVolumeMusic = Math.max(0, Math.min(100, Number(value) | 0)) / 100;
-					break;
-				case 'res':
-					if (String(value).toLowerCase() === 'null') {
-						ModuleSettings.data.main.gamingCanvas.resolutionWidthPx = undefined;
-					} else {
-						switch (<ResolutionWidthPx>Number(value)) {
-							case 320:
-							case 640:
-							case 1280:
-							case 1920:
-							case 2560:
-								ModuleSettings.data.main.gamingCanvas.resolutionWidthPx = <ResolutionWidthPx>Number(value);
-								break;
-						}
-					}
 					break;
 				case 'volume':
 					ModuleSettings.data.main.audioVolume = Math.max(0, Math.min(1, Number(value)));

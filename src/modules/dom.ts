@@ -44,7 +44,6 @@ export class ModuleDOM {
 	public static elSettingsValueAudioVolumeMusicReadout: HTMLInputElement;
 	public static elSettingsValueGameDebug: HTMLInputElement;
 	public static elSettingsValueGameEdgesWrap: HTMLInputElement;
-	public static elSettingsValueGameWorldSize: HTMLInputElement;
 	public static elSettingsValueGameWindRandomize: HTMLInputElement;
 	public static elSettingsValueGameWindStrength: HTMLInputElement;
 	public static elSettingsValueGraphicsAntialias: HTMLInputElement;
@@ -54,7 +53,6 @@ export class ModuleDOM {
 	public static elSettingsValueGraphicsGamma: HTMLInputElement;
 	public static elSettingsValueGraphicsGammaReadout: HTMLInputElement;
 	public static elSettingsValueGraphicsGrayscale: HTMLInputElement;
-	public static elSettingsValueGraphicsResolution: HTMLInputElement;
 	public static elSpinner: HTMLElement;
 	public static elStatFPS: HTMLElement;
 	public static elVideo: HTMLElement;
@@ -170,7 +168,6 @@ export class ModuleDOM {
 		// Settings: Values - Game
 		ModuleDOM.elSettingsValueGameDebug = <HTMLInputElement>document.getElementById('settings-value-game-debug');
 		ModuleDOM.elSettingsValueGameEdgesWrap = <HTMLInputElement>document.getElementById('settings-value-game-edges-wrap');
-		ModuleDOM.elSettingsValueGameWorldSize = <HTMLInputElement>document.getElementById('settings-value-world-size');
 		ModuleDOM.elSettingsValueGameWindRandomize = <HTMLInputElement>document.getElementById('settings-value-wind-randomize');
 		ModuleDOM.elSettingsValueGameWindStrength = <HTMLInputElement>document.getElementById('settings-value-wind-strength');
 
@@ -188,7 +185,6 @@ export class ModuleDOM {
 		ModuleDOM.elSettingsValueGraphicsGammaReadout = <HTMLInputElement>document.getElementById('settings-value-graphics-gamma-readout');
 
 		ModuleDOM.elSettingsValueGraphicsGrayscale = <HTMLInputElement>document.getElementById('settings-value-graphics-grayscale');
-		ModuleDOM.elSettingsValueGraphicsResolution = <HTMLInputElement>document.getElementById('settings-value-graphics-resolution');
 
 		// Done
 		ModuleDOM.elVersion.innerText = packageJSON.version;

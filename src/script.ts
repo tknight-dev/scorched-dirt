@@ -198,18 +198,18 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			world: World = ModuleWorld.worldActive;
 
 		return new Promise<void>((resolve: any) => {
-			WorkerMainCalcBus.initialize(ModuleSettings.data.workerMainCalc, world, () => {
-				console.log('WorkerMainCalcBus: Loaded in', (performance.now() - then) | 0, 'ms');
+			WorkerGridVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerGridVideo, world, () => {
+				console.log('WorkerGridVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
 				// Done
 				then = performance.now();
-				WorkerGridVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerGridVideo, world, () => {
-					console.log('WorkerGridVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
+				WorkerParticleVideoBus.initialize(ModuleDOM.canvases[1], gridCamera, gridViewport, ModuleSettings.data.workerParticleVideo, world, () => {
+					console.log('WorkerParticleVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
 					// Done
 					then = performance.now();
-					WorkerParticleVideoBus.initialize(ModuleDOM.canvases[1], gridCamera, gridViewport, ModuleSettings.data.workerParticleVideo, world, () => {
-						console.log('WorkerParticleVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
+					WorkerMainCalcBus.initialize(ModuleSettings.data.workerMainCalc, world, () => {
+						console.log('WorkerMainCalcBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
 						// Resolve initial promise
 						resolve();
