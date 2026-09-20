@@ -356,16 +356,16 @@ class WorkerGridVideoEngine {
 
 								switch (yType) {
 									case SolidType.DIRT:
-										cacheGridContext.fillStyle = '#905015';
+										cacheGridContext.fillStyle = '#804000';
 										break;
 									case SolidType.LAVA:
-										cacheGridContext.fillStyle = '#ee0000';
+										cacheGridContext.fillStyle = '#dd0000';
 										break;
 									case SolidType.ROCK:
-										cacheGridContext.fillStyle = '#505050';
+										cacheGridContext.fillStyle = '#404040';
 										break;
 									case SolidType.WATER:
-										cacheGridContext.fillStyle = '#0000ee';
+										cacheGridContext.fillStyle = '#0000dd';
 										break;
 								}
 							} else {
