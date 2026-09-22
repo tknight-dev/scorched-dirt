@@ -164,17 +164,12 @@ class WorkerParticleVideoEngine {
 	 * Main Loop
 	 */
 	private static animationLoop(): void {
-		let cacheGrid: OffscreenCanvas = new OffscreenCanvas(1, 1),
-			cacheGridContext: OffscreenCanvasRenderingContext2D = cacheGrid.getContext(
-				'2d',
-				WorkerParticleVideoEngine.offscreenCanvasContextOptions,
-			) as OffscreenCanvasRenderingContext2D,
-			cacheGridUpdate: boolean,
-			cacheParticles: OffscreenCanvas = new OffscreenCanvas(1, 1),
+		let cacheParticles: OffscreenCanvas = new OffscreenCanvas(1, 1),
 			cacheParticlesContext: OffscreenCanvasRenderingContext2D = cacheParticles.getContext(
 				'2d',
 				WorkerParticleVideoEngine.offscreenCanvasContextOptions,
 			) as OffscreenCanvasRenderingContext2D,
+			cacheParticlesUniversalGradient: CanvasGradient,
 			cacheUpdate: boolean,
 			frameCount: number = 0,
 			grid: GamingCanvasGridUint32Array,
@@ -327,14 +322,19 @@ class WorkerParticleVideoEngine {
 					offscreenCanvasHeightPx = report.canvasHeight;
 					offscreenCanvasWidthPx = report.canvasWidth;
 
-					cacheGrid.height = offscreenCanvasHeightPx;
-					cacheGrid.width = offscreenCanvasWidthPx;
+					// Canvas
 					cacheParticles.height = offscreenCanvasHeightPx;
 					cacheParticles.width = offscreenCanvasWidthPx;
 					offscreenCanvas.height = offscreenCanvasHeightPx;
 					offscreenCanvas.width = offscreenCanvasWidthPx;
 
-					GamingCanvas.renderStyle([cacheGridContext, cacheParticlesContext, offscreenCanvasContext], settingsRenderStyle);
+					GamingCanvas.renderStyle([cacheParticlesContext, offscreenCanvasContext], settingsRenderStyle);
+
+					// Gradient
+					cacheParticlesUniversalGradient = cacheParticlesContext.createLinearGradient(0, 0, 0, offscreenCanvasHeightPx);
+					cacheParticlesUniversalGradient.addColorStop(0, 'transparent');
+					cacheParticlesUniversalGradient.addColorStop(0.25, 'transparent');
+					cacheParticlesUniversalGradient.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
 				}
 			}
 
@@ -474,6 +474,13 @@ class WorkerParticleVideoEngine {
 						);
 					}
 				}
+
+				// Draw: Final pass (universal shading)
+				cacheParticlesContext.globalAlpha = 1;
+				cacheParticlesContext.globalCompositeOperation = 'source-atop';
+				cacheParticlesContext.fillStyle = cacheParticlesUniversalGradient;
+				cacheParticlesContext.fillRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
+				cacheParticlesContext.globalCompositeOperation = 'source-over';
 			}
 
 			// Animate
@@ -487,7 +494,6 @@ class WorkerParticleVideoEngine {
 				offscreenCanvasContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
 
 				// Draw: Dirt Inactive
-				offscreenCanvasContext.drawImage(cacheGrid, 0, 0);
 				offscreenCanvasContext.drawImage(cacheParticles, 0, 0);
 
 				// Done

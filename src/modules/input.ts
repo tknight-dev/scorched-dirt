@@ -2,8 +2,8 @@ import { GamingCanvasFIFOQueue } from '../gaming-canvas/main/fifo-queue.js';
 import { GamingCanvas } from '../gaming-canvas/main/gaming-canvas.js';
 import { GamingCanvasInputMouse, GamingCanvasInputMouseAction, GamingCanvasInputTouch, GamingCanvasInputTouchAction } from '../gaming-canvas/main/index.js';
 import { GamingCanvasInput, GamingCanvasInputPosition, GamingCanvasInputType } from '../gaming-canvas/main/inputs.js';
-import { particleEncodingValueHealth, ParticleType } from '../models/physics.model.js';
-import { WeaponType } from '../models/weapon.model.js';
+import { particleEncodingValueHealth, ParticleInitial, ParticleType } from '../models/physics.model.js';
+import { Weapon, WeaponType } from '../models/weapon.model.js';
 import { SolidType } from '../models/world.model.js';
 import { WorkerMainCalcBus } from '../workers/main-calc/main-calc.bus.js';
 import { ModuleSettings } from './settings.js';
@@ -21,11 +21,17 @@ export class ModuleInput {
 		let input: GamingCanvasInput,
 			inputMouseDownLeft: boolean,
 			inputMouseDownRight: boolean,
+			inputMouseTypeValue: number | undefined,
+			inputMouseWheelDown: boolean,
+			inputMouseWheelDownArray: ParticleInitial<Weapon>[] = [],
+			inputMouseWheelDownSize: number = 1,
 			inputTouchDown: boolean,
 			propriatary: any,
 			position: GamingCanvasInputPosition,
 			positions: GamingCanvasInputPosition[],
-			queue: GamingCanvasFIFOQueue<GamingCanvasInput> = GamingCanvas.getInputQueue();
+			queue: GamingCanvasFIFOQueue<GamingCanvasInput> = GamingCanvas.getInputQueue(),
+			x: number,
+			y: number;
 
 		const go = (timestampNow: number) => {
 			// Start the request for the next frame before processing the data (faster)
@@ -91,33 +97,50 @@ export class ModuleInput {
 				}
 			} else if (propriatary.action === GamingCanvasInputMouseAction.MOVE) {
 				if (inputMouseDownLeft === true) {
-					WorkerMainCalcBus.sendParticle({
-						arctan: (3 * Math.PI) / 4,
-						health: particleEncodingValueHealth,
-						payload: {
-							powerPercentage: 0,
-							tankId: 0,
-						},
-						posX: position.x,
-						posY: position.y,
-						type: ParticleType.SOLID,
-						typeValue: SolidType.LAVA,
-					});
+					inputMouseTypeValue = SolidType.LAVA;
+				} else if (inputMouseDownRight === true) {
+					inputMouseTypeValue = SolidType.WATER;
+				} else {
+					inputMouseTypeValue = undefined;
 				}
-				if (inputMouseDownRight === true) {
-					WorkerMainCalcBus.sendParticle({
-						arctan: 0,
-						health: particleEncodingValueHealth,
-						payload: {
-							powerPercentage: 0,
-							tankId: 0,
-						},
-						posX: position.x,
-						posY: position.y,
-						type: ParticleType.SOLID,
-						typeValue: SolidType.WATER,
-					});
+
+				if (inputMouseTypeValue !== undefined) {
+					if (inputMouseWheelDown !== true) {
+						WorkerMainCalcBus.sendParticle({
+							arctan: 0,
+							health: particleEncodingValueHealth,
+							payload: {
+								powerPercentage: 0,
+								tankId: 0,
+							},
+							posX: position.x,
+							posY: position.y,
+							type: ParticleType.SOLID,
+							typeValue: inputMouseTypeValue,
+						});
+					} else {
+						inputMouseWheelDownArray.length = 0;
+						for (x = -inputMouseWheelDownSize; x < inputMouseWheelDownSize; x++) {
+							for (y = -inputMouseWheelDownSize; y < inputMouseWheelDownSize; y++) {
+								inputMouseWheelDownArray.push({
+									arctan: 0,
+									health: particleEncodingValueHealth,
+									payload: {
+										powerPercentage: 0,
+										tankId: 0,
+									},
+									posX: position.x + x + inputMouseWheelDownSize,
+									posY: position.y + y + inputMouseWheelDownSize,
+									type: ParticleType.SOLID,
+									typeValue: inputMouseTypeValue,
+								});
+							}
+						}
+						WorkerMainCalcBus.sendParticle(inputMouseWheelDownArray);
+					}
 				}
+			} else if (propriatary.action === GamingCanvasInputMouseAction.WHEEL) {
+				inputMouseWheelDown = propriatary.down;
 			}
 		};
 

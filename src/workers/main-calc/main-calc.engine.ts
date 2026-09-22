@@ -17,6 +17,7 @@ import {
 	particleEncodingShiftTypeValue,
 	particleEncodingShiftX,
 	ParticleInitial,
+	ParticleInitialBase,
 	ParticleType,
 } from '../../models/physics.model.js';
 import { WindStrength, WorldSize } from '../../models/settings.model.js';
@@ -51,7 +52,7 @@ self.onmessage = (event: MessageEvent) => {
 			WorkerMainCalcEngine.inputWorld(<WorkerMainCalcBusInputDataWorld>payload.data);
 			break;
 		case WorkerMainCalcBusInputCmd.PARTICLE:
-			WorkerMainCalcEngine.inputParticle(<ParticleInitial<any>>payload.data);
+			WorkerMainCalcEngine.inputParticle(<ParticleInitial<Weapon> | ParticleInitial<Weapon>[]>payload.data);
 			break;
 		case WorkerMainCalcBusInputCmd.SETTINGS:
 			WorkerMainCalcEngine.inputSettings(<WorkerMainCalcBusInputDataSettings>payload.data);
@@ -118,10 +119,8 @@ class WorkerMainCalcEngine {
 	/*
 	 * Input
 	 */
-	public static inputParticle(data: ParticleInitial<Weapon>): void {
-		let particle: Particle<Weapon> = <any>data,
-			payload: Weapon = <Weapon>data.payload,
-			tank: Tank | undefined = WorkerMainCalcEngine.tanks.get(payload.tankId);
+	public static inputParticle(data: ParticleInitial<Weapon> | ParticleInitial<Weapon>[]): void {
+		let datam: ParticleInitial<Weapon>, particle: Particle<Weapon>, tank: Tank | undefined;
 
 		// TMP: eventually this will just be a map of actual tanks to use instead
 		if (tank === undefined) {
@@ -138,23 +137,29 @@ class WorkerMainCalcEngine {
 			WorkerMainCalcEngine.tanks.set(tank.id, tank);
 		}
 
-		particle.arctanOriginal = particle.arctan;
-		particle.posXOriginal = particle.posX;
-		particle.posYOriginal = particle.posY;
-		particle.velX = payload.powerPercentage * tank.statPower * Math.cos(particle.arctan);
-		particle.velY = payload.powerPercentage * tank.statPower * Math.sin(particle.arctan);
-
-		// Fix rounding errors
-		if (Math.abs(particle.velX) < 0.00001) {
-			particle.velX = 0;
-		}
-		if (Math.abs(particle.velY) < 0.00001) {
-			particle.velY = 0;
+		if (Array.isArray(data) !== true) {
+			data = [data];
 		}
 
-		// console.log('add', particle.velX);
+		for (datam of data) {
+			particle = <Particle<Weapon>>datam;
 
-		WorkerMainCalcEngine.particles.pushEnd(particle);
+			particle.arctanOriginal = particle.arctan;
+			particle.posXOriginal = particle.posX;
+			particle.posYOriginal = particle.posY;
+			particle.velX = particle.payload.powerPercentage * tank.statPower * Math.cos(particle.arctan);
+			particle.velY = particle.payload.powerPercentage * tank.statPower * Math.sin(particle.arctan);
+
+			// Fix rounding errors
+			if (Math.abs(particle.velX) < 0.00001) {
+				particle.velX = 0;
+			}
+			if (Math.abs(particle.velY) < 0.00001) {
+				particle.velY = 0;
+			}
+
+			WorkerMainCalcEngine.particles.pushEnd(particle);
+		}
 	}
 
 	public static inputSettings(data: WorkerMainCalcBusInputDataSettings): void {
@@ -213,6 +218,7 @@ class WorkerMainCalcEngine {
 			particleNext: Particle<any> | undefined,
 			particlePrevious: Particle<any> | undefined,
 			particleNode: GamingCanvasDoubleLinkedListNode<Particle<any>> | undefined,
+			particleNodeNext: GamingCanvasDoubleLinkedListNode<Particle<any>> | undefined,
 			particleLast: Particle<any>,
 			particlePool: GamingCanvasDoubleLinkedList<Particle<any>> = WorkerMainCalcEngine.particlePool,
 			particlePoolInstance: Particle<any> | undefined,
@@ -423,6 +429,7 @@ class WorkerMainCalcEngine {
 			if (WorkerMainCalcEngine.particles.length !== 0) {
 				particleNode = WorkerMainCalcEngine.particles.start;
 				while (particleNode !== undefined) {
+					particleNodeNext = particleNode.next;
 					gridIndex = (particleNode.data.posX | 0) * gridSideLength + (particleNode.data.posY | 0);
 
 					// Can't conflict with the grid or another particle unless the spawning particle is a weapon
@@ -436,7 +443,7 @@ class WorkerMainCalcEngine {
 					}
 
 					// Done
-					particleNode = particleNode.next;
+					particleNode = particleNodeNext;
 				}
 				WorkerMainCalcEngine.particles.clear();
 			}

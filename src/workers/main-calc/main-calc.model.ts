@@ -41,7 +41,12 @@ export interface WorkerMainCalcBusInputDataSettings {
 
 export interface WorkerMainCalcBusInputPayload {
 	cmd: WorkerMainCalcBusInputCmd;
-	data: ParticleInitial<any> | WorkerMainCalcBusInputDataInit | WorkerMainCalcBusInputDataWorld | WorkerMainCalcBusInputDataSettings;
+	data:
+		| ParticleInitial<Weapon>
+		| ParticleInitial<Weapon>[]
+		| WorkerMainCalcBusInputDataInit
+		| WorkerMainCalcBusInputDataWorld
+		| WorkerMainCalcBusInputDataSettings;
 }
 
 /*

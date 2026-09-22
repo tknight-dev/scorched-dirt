@@ -79,7 +79,7 @@ export class WorkerMainCalcBus {
 	/*
 	 * Send
 	 */
-	public static sendParticle(data: ParticleInitial<any>): void {
+	public static sendParticle(data: ParticleInitial<Weapon> | ParticleInitial<Weapon>[]): void {
 		WorkerMainCalcBus.worker.postMessage({
 			cmd: WorkerMainCalcBusInputCmd.PARTICLE,
 			data: data,

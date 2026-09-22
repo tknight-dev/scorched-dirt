@@ -169,13 +169,8 @@ class WorkerGridVideoEngine {
 				'2d',
 				WorkerGridVideoEngine.offscreenCanvasContextOptions,
 			) as OffscreenCanvasRenderingContext2D,
+			cacheGridUniversalGradient: CanvasGradient,
 			cacheUpdate: boolean,
-			cacheParticles: OffscreenCanvas = new OffscreenCanvas(1, 1),
-			cacheParticlesContext: OffscreenCanvasRenderingContext2D = cacheParticles.getContext(
-				'2d',
-				WorkerGridVideoEngine.offscreenCanvasContextOptions,
-			) as OffscreenCanvasRenderingContext2D,
-			cacheParticlesUpdate: boolean,
 			frameCount: number = 0,
 			grid: GamingCanvasGridUint32Array,
 			gridCamera: GamingCanvasGridCamera = new GamingCanvasGridCamera(),
@@ -309,14 +304,19 @@ class WorkerGridVideoEngine {
 					offscreenCanvasHeightPx = report.canvasHeight;
 					offscreenCanvasWidthPx = report.canvasWidth;
 
+					// Canvas
 					cacheGrid.height = offscreenCanvasHeightPx;
 					cacheGrid.width = offscreenCanvasWidthPx;
-					cacheParticles.height = offscreenCanvasHeightPx;
-					cacheParticles.width = offscreenCanvasWidthPx;
 					offscreenCanvas.height = offscreenCanvasHeightPx;
 					offscreenCanvas.width = offscreenCanvasWidthPx;
 
-					GamingCanvas.renderStyle([cacheGridContext, cacheParticlesContext, offscreenCanvasContext], settingsRenderStyle);
+					GamingCanvas.renderStyle([cacheGridContext, offscreenCanvasContext], settingsRenderStyle);
+
+					// Gradient
+					cacheGridUniversalGradient = cacheGridContext.createLinearGradient(0, 0, 0, offscreenCanvasHeightPx);
+					cacheGridUniversalGradient.addColorStop(0, 'transparent');
+					cacheGridUniversalGradient.addColorStop(0.25, 'transparent');
+					cacheGridUniversalGradient.addColorStop(1, 'rgba(0, 0, 0, 0.35)');
 				}
 			}
 
@@ -453,6 +453,13 @@ class WorkerGridVideoEngine {
 						);
 					}
 				}
+
+				// Draw: Final pass (universal shading)
+				cacheGridContext.globalAlpha = 1;
+				cacheGridContext.globalCompositeOperation = 'source-atop';
+				cacheGridContext.fillStyle = cacheGridUniversalGradient;
+				cacheGridContext.fillRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
+				cacheGridContext.globalCompositeOperation = 'source-over';
 			}
 
 			// Animate
@@ -467,7 +474,6 @@ class WorkerGridVideoEngine {
 
 				// Draw: Dirt Inactive
 				offscreenCanvasContext.drawImage(cacheGrid, 0, 0);
-				offscreenCanvasContext.drawImage(cacheParticles, 0, 0);
 
 				// Done
 				statAll.watchStop();
