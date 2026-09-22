@@ -616,10 +616,10 @@ class WorkerMainCalcEngine {
 								}
 
 								// Remove particle
-								particles.remove(particleNode);
+								particles.remove(particle.node);
 								if (particlePool.length < settingsParticlePoolSize) {
 									// Recover the particle if the pool is low
-									particlePool.pushEndNode(particleNode);
+									particlePool.pushEndNode(particle.node);
 								}
 
 								// Done
@@ -706,6 +706,10 @@ class WorkerMainCalcEngine {
 								if (collisionNextParticle !== undefined) {
 									particleMap.delete(collisionNextGridIndex);
 									particles.remove(collisionNextParticle.node);
+									if (particlePool.length < settingsParticlePoolSize) {
+										// Recover the particle if the pool is low
+										particlePool.pushEndNode(collisionNextParticle.node);
+									}
 								} else {
 									gridData[collisionNextGridIndex] = 0;
 									gridUpdate = true;
@@ -765,7 +769,7 @@ class WorkerMainCalcEngine {
 									case SolidType.LAVA:
 										// console.log('  >> ON LAVA');
 										if (collisionNextParticle === undefined) {
-											console.error('DirtCalc > collision: DIRT on LAVA failed');
+											console.error('MainCalc > collision: DIRT on LAVA failed');
 											if (particleMapUpdate === true) {
 												particleMap.set(particle.gridIndex, particle);
 											}
@@ -799,7 +803,7 @@ class WorkerMainCalcEngine {
 										collisionNextResultLiquidSwap = true;
 										break;
 									case SolidType.WEAPON:
-										console.error('DirtCalc > collision: DIRT on WEAPON failed');
+										console.error('MainCalc > collision: DIRT on WEAPON failed');
 										break;
 								}
 							} else if (particle.typeValue === SolidType.LAVA || particle.typeValue === SolidType.WATER) {
@@ -835,13 +839,17 @@ class WorkerMainCalcEngine {
 												if (collisionNextParticle !== undefined) {
 													particleMap.delete(collisionNextParticle.gridIndex);
 													particles.remove(collisionNextParticle.node);
+													if (particlePool.length < settingsParticlePoolSize) {
+														// Recover the particle if the pool is low
+														particlePool.pushEndNode(collisionNextParticle.node);
+													}
 												}
 											} else {
 												collisionNextResultLiquidSwap = true;
 											}
 											break;
 										case SolidType.WEAPON:
-											console.error('DirtCalc > collision: LAVA on WEAPON failed');
+											console.error('MainCalc > collision: LAVA on WEAPON failed');
 											break;
 									}
 								} else {
@@ -859,6 +867,11 @@ class WorkerMainCalcEngine {
 											}
 
 											particles.remove(particle.node);
+											if (particlePool.length < settingsParticlePoolSize) {
+												// Recover the particle if the pool is low
+												particlePool.pushEndNode(particle.node);
+											}
+											particleNode = particleNode.next;
 											continue;
 										case SolidType.WATER:
 											// console.log('COLLISION', 'WATER > WATER', particle.id);
@@ -875,7 +888,7 @@ class WorkerMainCalcEngine {
 											}
 											break;
 										case SolidType.WEAPON:
-											console.error('DirtCalc > collision: WATER on WEAPON failed');
+											console.error('MainCalc > collision: WATER on WEAPON failed');
 											break;
 									}
 								}
@@ -945,13 +958,13 @@ class WorkerMainCalcEngine {
 																		physicsLiquidOverAirCount++;
 
 																		// Limit how wide a waterfall of liquids can be based on the height of the original particle
+																		// Randomize effect to simulate turbulence
 																		if (
-																			randomNumbers[randomNumbersIndex++ % randomNumberLength] > 0.75 === true ||
-																			physicsLiquidOverAirCount === yNext - y
+																			randomNumbers[randomNumbersIndex++ % randomNumberLength] > 0.5 === true ||
+																			physicsLiquidOverAirCount >= yNext - y
 																		) {
 																			break;
 																		}
-																		break;
 																	}
 
 																	continue;
@@ -974,6 +987,10 @@ class WorkerMainCalcEngine {
 																	// Remove the water particle
 																	particleMap.delete(particleLiquid.gridIndex);
 																	particles.remove(particleLiquid.node);
+																	if (particlePool.length < settingsParticlePoolSize) {
+																		// Recover the particle if the pool is low
+																		particlePool.pushEndNode(particleLiquid.node);
+																	}
 
 																	physicsLiquidMoved = true;
 																	break;
@@ -987,6 +1004,10 @@ class WorkerMainCalcEngine {
 																	if (randomNumbers[randomNumbersIndex++ % randomNumberLength] > 0.5 === true) {
 																		particleMapUpdate = false;
 																		particles.remove(particle.node);
+																		if (particlePool.length < settingsParticlePoolSize) {
+																			// Recover the particle if the pool is low
+																			particlePool.pushEndNode(particle.node);
+																		}
 																		physicsLiquidMoved = true;
 																		break;
 																	}
@@ -1087,6 +1108,10 @@ class WorkerMainCalcEngine {
 								collisionWeapons.add(posXInteger * gridSideLength + posYInteger);
 								particleMapUpdate = false;
 								particles.remove(particle.node);
+								if (particlePool.length < settingsParticlePoolSize) {
+									// Recover the particle if the pool is low
+									particlePool.pushEndNode(particle.node);
+								}
 							}
 
 							// Calc: Hard Stop
@@ -1128,7 +1153,7 @@ class WorkerMainCalcEngine {
 								// TODO trigger water strike animation at this gridIndex
 
 								if (collisionNextParticle === undefined) {
-									console.error('DirtCalc > collision: Liquid swap failed');
+									console.error('MainCalc > collision: Liquid swap failed');
 								} else {
 									// console.log(
 									// 	'    >> LIQUID SWAP',
@@ -1203,6 +1228,10 @@ class WorkerMainCalcEngine {
 
 								particleMapUpdate = false;
 								particles.remove(particle.node);
+								if (particlePool.length < settingsParticlePoolSize) {
+									// Recover the particle if the pool is low
+									particlePool.pushEndNode(particle.node);
+								}
 							}
 						}
 					}
@@ -1210,6 +1239,15 @@ class WorkerMainCalcEngine {
 					// Done
 					if (particleMapUpdate === true) {
 						particleMap.set(particle.gridIndex, particle);
+					}
+					if (particleNode.next !== undefined && particleNode.next.data.id === particleNode.data.id) {
+						console.error('MainCalc: cyclical loop detected');
+						particles.remove(particle.node);
+						if (particlePool.length < settingsParticlePoolSize) {
+							// Recover the particle if the pool is low
+							particlePool.pushEndNode(particle.node);
+						}
+						break;
 					}
 					particleNode = particleNode.next;
 				}
@@ -1290,7 +1328,7 @@ class WorkerMainCalcEngine {
 
 				statAllRaw = <Float32Array>statAll.encode();
 
-				// console.log('particleCount', particles.length);
+				// console.log('particleCount', particles.length, particlePool.length);
 
 				// Output
 				WorkerMainCalcEngine.post(
