@@ -611,8 +611,11 @@ class WorkerMainCalcEngine {
 						if (posYIntegerNext >= gridYLimit) {
 							if (worldBedrock === true) {
 								collisionNextEdge = true;
+								collisionNextGridIndex = posXIntegerNext * gridSideLength + posYIntegerNext;
+								collisionNextParticle = undefined;
+								collisionNextType = SolidType.ROCK;
 								collisionY = true;
-								posYIntegerNext = gridYLimit;
+								posYIntegerNext = gridYLimit - 1;
 								particle.posY = posYIntegerNext;
 								particle.velY = 0;
 
@@ -928,6 +931,12 @@ class WorkerMainCalcEngine {
 											} else if (particleMap.has(gridIndexEff) !== true) {
 												break;
 											}
+										}
+
+										// Exception for bedrock at the bottom of the map
+										if (worldBedrock === true && yNext === gridYLimit) {
+											physicsLiquidAvailable = true;
+											yNext--;
 										}
 
 										if (physicsLiquidAvailable === true) {

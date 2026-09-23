@@ -88,7 +88,7 @@ export class ModuleWorld {
 		for (x = (worldSize / 4) | 0; x < ((worldSize / 3) | 0); x++) {
 			xIndex = x * worldSize;
 
-			for (y = 0; y < yLimit - 1; y++) {
+			for (y = 0; y < yLimit; y++) {
 				gridData[xIndex + y] = 0;
 			}
 		}
