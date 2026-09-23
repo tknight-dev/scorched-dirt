@@ -732,13 +732,14 @@ class WorkerMainCalcEngine {
 											// console.log('  >> ON DIRT A');
 											if (collisionX === true) {
 												particle.posX = posXInteger;
+												particle.velX *= 0.5;
+												collisionNextParticle.velX += particle.velX;
 											}
 											if (collisionY === true) {
 												particle.posY = posYInteger;
+												particle.velY *= 0.5;
+												collisionNextParticle.velY += particle.velY;
 											}
-
-											particle.velX *= 0.5;
-											particle.velY *= 0.5;
 										} else {
 											// console.log('  >> ON DIRT B');
 											collisionNextResultHardStop = true;
@@ -829,13 +830,14 @@ class WorkerMainCalcEngine {
 											if (collisionNextParticle !== undefined) {
 												if (collisionX === true) {
 													particle.posX = posXInteger;
+													particle.velX *= 0.5;
+													collisionNextParticle.velX += particle.velX;
 												}
 												if (collisionY === true) {
 													particle.posY = posYInteger;
+													particle.velY *= 0.5;
+													collisionNextParticle.velY += particle.velY;
 												}
-
-												particle.velX *= 0.5;
-												particle.velY *= 0.5;
 											}
 											break;
 										case SolidType.WATER:
@@ -888,13 +890,14 @@ class WorkerMainCalcEngine {
 											if (collisionNextParticle !== undefined) {
 												if (collisionX === true) {
 													particle.posX = posXInteger;
+													particle.velX *= 0.5;
+													collisionNextParticle.velX += particle.velX;
 												}
 												if (collisionY === true) {
 													particle.posY = posYInteger;
+													particle.velY *= 0.5;
+													collisionNextParticle.velY += particle.velY;
 												}
-
-												particle.velX *= 0.5;
-												particle.velY *= 0.5;
 											}
 											break;
 										case SolidType.WEAPON:
@@ -1209,9 +1212,25 @@ class WorkerMainCalcEngine {
 											particleLiquid.type !== ParticleType.SOLID ||
 											(particleLiquid.typeValue !== SolidType.LAVA && particleLiquid.typeValue !== SolidType.WATER)
 										) {
-											yVel = particle.velY < 0 ? -particle.velY : particle.velY;
-											if (yVel > physicsResistanceLiquidLimitY) {
-												particle.velY *= physicsResistanceLiquidSurfaceTensionY;
+											// Water column must be resting on the ground
+											physicsLiquidAvailable = false;
+											for (yNext = y + 1; yNext < gridYLimit; yNext++) {
+												gridIndexEff = gridIndex + yNext;
+
+												if (gridData[gridIndexEff] !== 0) {
+													physicsLiquidAvailable = true;
+													yNext--; // Offset to reference the last y value before reaching the ground
+													break;
+												} else if (particleMap.has(gridIndexEff) !== true) {
+													break;
+												}
+											}
+
+											if (physicsLiquidAvailable === true) {
+												yVel = particle.velY < 0 ? -particle.velY : particle.velY;
+												if (yVel > physicsResistanceLiquidLimitY) {
+													particle.velY *= physicsResistanceLiquidSurfaceTensionY;
+												}
 											}
 										}
 									}
