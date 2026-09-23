@@ -1,8 +1,9 @@
 import { particleEncodingMaskX, particleEncodingMaskY, particleEncodingShiftX } from '../models/physics.model.js';
+import { WorkerEffectsVideoBus } from '../workers/effects-video/effects-video.bus.js';
 import { WorkerGridVideoBus } from '../workers/grid-video/grid-video.bus.js';
 import { WorkerMainCalcBus } from '../workers/main-calc/main-calc.bus.js';
 import { WorkerMainCalcBusOutputData } from '../workers/main-calc/main-calc.model.js';
-import { WorkerParticleVideoBus } from '../workers/particle-video/particle-video.bus.js';
+import { WorkerParticlesVideoBus } from '../workers/particles-video/particles-video.bus.js';
 
 /**
  * Bridge communication between buses
@@ -67,13 +68,28 @@ export class ModuleBridge {
 			}
 
 			/**
+			 * Data Transfer: Effects
+			 */
+			if (data.splashes !== undefined) {
+				WorkerEffectsVideoBus.sendCalc({
+					splashes: data.splashes,
+				});
+			}
+
+			/**
 			 * Data Transfer: Height Maps
 			 */
-			WorkerGridVideoBus.sendCalcHeightMaps(
-				heightMapGrid !== undefined ? heightMapGrid.slice() : undefined,
-				heightMapParticles !== undefined ? heightMapParticles.slice() : undefined,
-			);
-			WorkerParticleVideoBus.sendCalcHeightMaps(heightMapGrid, heightMapParticles);
+			if(heightMapGrid !== undefined || heightMapParticles !== undefined) {
+				WorkerEffectsVideoBus.sendCalcHeightMaps(
+					heightMapGrid !== undefined ? heightMapGrid.slice() : undefined,
+					heightMapParticles !== undefined ? heightMapParticles.slice() : undefined,
+				);
+				WorkerGridVideoBus.sendCalcHeightMaps(
+					heightMapGrid !== undefined ? heightMapGrid.slice() : undefined,
+					heightMapParticles !== undefined ? heightMapParticles.slice() : undefined,
+				);
+				WorkerParticlesVideoBus.sendCalcHeightMaps(heightMapGrid, heightMapParticles);
+			}
 
 			/**
 			 * Data Transfer: Solids
@@ -82,7 +98,7 @@ export class ModuleBridge {
 				WorkerGridVideoBus.sendCalc(data.grid);
 			}
 			if (data.particles !== undefined) {
-				WorkerParticleVideoBus.sendCalc(data.particles);
+				WorkerParticlesVideoBus.sendCalc(data.particles);
 			}
 		});
 	}

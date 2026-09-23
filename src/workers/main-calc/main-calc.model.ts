@@ -61,12 +61,14 @@ export enum WorkerMainCalcBusOutputCmd {
 export interface WorkerMainCalcBusOutputData {
 	grid?: GamingCanvasGridUint32Array;
 	particles?: Uint32Array;
+	splashes?: Uint32Array;
 	worldSize: WorldSize;
 }
 
 export interface WorkerMainCalcBusOutputDataStats {
 	all: Float32Array;
 	particleCount: number;
+	particlePoolSize: number;
 }
 
 export interface WorkerMainCalcBusOutputPayload {

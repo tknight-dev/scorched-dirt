@@ -40,7 +40,6 @@ export interface WorkerGridVideoBusInputDataInit extends WorkerGridVideoBusInput
 
 export interface WorkerGridVideoBusInputDataSettings {
 	debug: boolean;
-	edgesWrap: boolean;
 	fps: FPS;
 	gammaCorrection: number;
 	grayscale: boolean;

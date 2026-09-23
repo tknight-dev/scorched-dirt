@@ -19,16 +19,16 @@ import { Weapon } from '../../models/weapon.model.js';
 import { Solid, SolidType, World, worldEncodingMaskType } from '../../models/world.model.js';
 import { WorkerMainCalcBusOutputData } from '../main-calc/main-calc.model.js';
 import {
-	WorkerParticleVideoBusInputCmd,
-	WorkerParticleVideoBusInputDataCalcHeightMaps,
-	WorkerParticleVideoBusInputDataInit,
-	WorkerParticleVideoBusInputDataSettings,
-	WorkerParticleVideoBusInputDataView,
-	WorkerParticleVideoBusInputPayload,
-	WorkerParticleVideoBusOutputCmd,
-	WorkerParticleVideoBusOutputPayload,
-	WorkerParticleVideoBusStats,
-} from './particle-video.model.js';
+	WorkerParticlesVideoBusInputCmd,
+	WorkerParticlesVideoBusInputDataCalcHeightMaps,
+	WorkerParticlesVideoBusInputDataInit,
+	WorkerParticlesVideoBusInputDataSettings,
+	WorkerParticlesVideoBusInputDataView,
+	WorkerParticlesVideoBusInputPayload,
+	WorkerParticlesVideoBusOutputCmd,
+	WorkerParticlesVideoBusOutputPayload,
+	WorkerParticlesVideoBusStats,
+} from './particles-video.model.js';
 
 /**
  * @author tknight-dev
@@ -38,34 +38,34 @@ import {
  * Input: from Main Thread
  */
 self.onmessage = (event: MessageEvent) => {
-	const payload: WorkerParticleVideoBusInputPayload = event.data;
+	const payload: WorkerParticlesVideoBusInputPayload = event.data;
 
 	switch (payload.cmd) {
-		case WorkerParticleVideoBusInputCmd.CALC:
-			WorkerParticleVideoEngine.inputCalc(<Uint32Array>payload.data);
+		case WorkerParticlesVideoBusInputCmd.CALC:
+			WorkerParticlesVideoEngine.inputCalc(<Uint32Array>payload.data);
 			break;
-		case WorkerParticleVideoBusInputCmd.CALC_HEIGHT_MAPS:
-			WorkerParticleVideoEngine.inputCalcHeightMaps(<WorkerParticleVideoBusInputDataCalcHeightMaps>payload.data);
+		case WorkerParticlesVideoBusInputCmd.CALC_HEIGHT_MAPS:
+			WorkerParticlesVideoEngine.inputCalcHeightMaps(<WorkerParticlesVideoBusInputDataCalcHeightMaps>payload.data);
 			break;
-		case WorkerParticleVideoBusInputCmd.INIT:
-			WorkerParticleVideoEngine.initialize(<WorkerParticleVideoBusInputDataInit>payload.data);
+		case WorkerParticlesVideoBusInputCmd.INIT:
+			WorkerParticlesVideoEngine.initialize(<WorkerParticlesVideoBusInputDataInit>payload.data);
 			break;
-		case WorkerParticleVideoBusInputCmd.REPORT:
-			WorkerParticleVideoEngine.inputReport(<GamingCanvasReport>payload.data);
+		case WorkerParticlesVideoBusInputCmd.REPORT:
+			WorkerParticlesVideoEngine.inputReport(<GamingCanvasReport>payload.data);
 			break;
-		case WorkerParticleVideoBusInputCmd.SETTINGS:
-			WorkerParticleVideoEngine.inputSettings(<WorkerParticleVideoBusInputDataSettings>payload.data);
+		case WorkerParticlesVideoBusInputCmd.SETTINGS:
+			WorkerParticlesVideoEngine.inputSettings(<WorkerParticlesVideoBusInputDataSettings>payload.data);
 			break;
-		case WorkerParticleVideoBusInputCmd.VIEW:
-			WorkerParticleVideoEngine.inputView(<WorkerParticleVideoBusInputDataView>payload.data);
+		case WorkerParticlesVideoBusInputCmd.VIEW:
+			WorkerParticlesVideoEngine.inputView(<WorkerParticlesVideoBusInputDataView>payload.data);
 			break;
-		case WorkerParticleVideoBusInputCmd.WORLD:
-			WorkerParticleVideoEngine.inputWorld(<World>payload.data);
+		case WorkerParticlesVideoBusInputCmd.WORLD:
+			WorkerParticlesVideoEngine.inputWorld(<World>payload.data);
 			break;
 	}
 };
 
-class WorkerParticleVideoEngine {
+class WorkerParticlesVideoEngine {
 	private static animationFrameRequest: number;
 	private static calcHeightMapGrid: Uint32Array | undefined;
 	private static calcHeightMapParticles: Uint32Array | undefined;
@@ -85,34 +85,34 @@ class WorkerParticleVideoEngine {
 	};
 	private static report: GamingCanvasReport;
 	private static reportNew: boolean;
-	private static settings: WorkerParticleVideoBusInputDataSettings;
+	private static settings: WorkerParticlesVideoBusInputDataSettings;
 	private static settingsNew: boolean;
 	private static stats: { [key: number]: GamingCanvasStat } = {};
-	private static view: WorkerParticleVideoBusInputDataView;
+	private static view: WorkerParticlesVideoBusInputDataView;
 	private static viewNew: boolean;
 
-	public static async initialize(data: WorkerParticleVideoBusInputDataInit): Promise<void> {
+	public static async initialize(data: WorkerParticlesVideoBusInputDataInit): Promise<void> {
 		// Config: Canvas
-		WorkerParticleVideoEngine.offscreenCanvas = data.offscreenCanvas;
-		WorkerParticleVideoEngine.offscreenCanvasContext = data.offscreenCanvas.getContext(
+		WorkerParticlesVideoEngine.offscreenCanvas = data.offscreenCanvas;
+		WorkerParticlesVideoEngine.offscreenCanvasContext = data.offscreenCanvas.getContext(
 			'2d',
-			WorkerParticleVideoEngine.offscreenCanvasContextOptions,
+			WorkerParticlesVideoEngine.offscreenCanvasContextOptions,
 		) as OffscreenCanvasRenderingContext2D;
 
 		// Config
-		WorkerParticleVideoEngine.inputReport(data.report);
-		WorkerParticleVideoEngine.inputWorld(data.world);
-		WorkerParticleVideoEngine.inputSettings(data as WorkerParticleVideoBusInputDataSettings);
-		WorkerParticleVideoEngine.inputView(data as WorkerParticleVideoBusInputDataView);
+		WorkerParticlesVideoEngine.inputReport(data.report);
+		WorkerParticlesVideoEngine.inputWorld(data.world);
+		WorkerParticlesVideoEngine.inputSettings(data as WorkerParticlesVideoBusInputDataSettings);
+		WorkerParticlesVideoEngine.inputView(data as WorkerParticlesVideoBusInputDataView);
 
 		// Stats
-		WorkerParticleVideoEngine.stats[WorkerParticleVideoBusStats.ALL] = new GamingCanvasStat(50);
+		WorkerParticlesVideoEngine.stats[WorkerParticlesVideoBusStats.ALL] = new GamingCanvasStat(50);
 
 		// Done
-		WorkerParticleVideoEngine.animationLoop();
-		WorkerParticleVideoEngine.post([
+		WorkerParticlesVideoEngine.animationLoop();
+		WorkerParticlesVideoEngine.post([
 			{
-				cmd: WorkerParticleVideoBusOutputCmd.INIT_COMPLETE,
+				cmd: WorkerParticlesVideoBusOutputCmd.INIT_COMPLETE,
 				data: true,
 			},
 		]);
@@ -122,41 +122,41 @@ class WorkerParticleVideoEngine {
 	 * Input
 	 */
 	public static inputCalc(data: Uint32Array): void {
-		WorkerParticleVideoEngine.calcParticles = data;
-		WorkerParticleVideoEngine.calcNew = true;
+		WorkerParticlesVideoEngine.calcParticles = data;
+		WorkerParticlesVideoEngine.calcNew = true;
 	}
 
-	public static inputCalcHeightMaps(data: WorkerParticleVideoBusInputDataCalcHeightMaps): void {
-		WorkerParticleVideoEngine.calcHeightMapGrid = data.heightMapGrid;
-		WorkerParticleVideoEngine.calcHeightMapParticles = data.heightMapParticles;
-		WorkerParticleVideoEngine.calcHeightMapsNew = true;
+	public static inputCalcHeightMaps(data: WorkerParticlesVideoBusInputDataCalcHeightMaps): void {
+		WorkerParticlesVideoEngine.calcHeightMapGrid = data.heightMapGrid;
+		WorkerParticlesVideoEngine.calcHeightMapParticles = data.heightMapParticles;
+		WorkerParticlesVideoEngine.calcHeightMapsNew = true;
 	}
 
 	public static inputWorld(data: World): void {
-		WorkerParticleVideoEngine.world = data;
-		WorkerParticleVideoEngine.world.grid = GamingCanvasGridUint32Array.from(data.grid.data);
-		WorkerParticleVideoEngine.worldNew = true;
+		WorkerParticlesVideoEngine.world = data;
+		WorkerParticlesVideoEngine.world.grid = GamingCanvasGridUint32Array.from(data.grid.data);
+		WorkerParticlesVideoEngine.worldNew = true;
 	}
 
 	public static inputReport(data: GamingCanvasReport): void {
-		WorkerParticleVideoEngine.report = data;
-		WorkerParticleVideoEngine.reportNew = true;
+		WorkerParticlesVideoEngine.report = data;
+		WorkerParticlesVideoEngine.reportNew = true;
 	}
 
-	public static inputSettings(data: WorkerParticleVideoBusInputDataSettings): void {
-		WorkerParticleVideoEngine.settings = data;
-		WorkerParticleVideoEngine.settingsNew = true;
+	public static inputSettings(data: WorkerParticlesVideoBusInputDataSettings): void {
+		WorkerParticlesVideoEngine.settings = data;
+		WorkerParticlesVideoEngine.settingsNew = true;
 	}
 
-	public static inputView(data: WorkerParticleVideoBusInputDataView): void {
-		WorkerParticleVideoEngine.view = data;
-		WorkerParticleVideoEngine.viewNew = true;
+	public static inputView(data: WorkerParticlesVideoBusInputDataView): void {
+		WorkerParticlesVideoEngine.view = data;
+		WorkerParticlesVideoEngine.viewNew = true;
 	}
 
 	/*
 	 * Output: to Main Thread
 	 */
-	private static post(payloads: WorkerParticleVideoBusOutputPayload[], data?: Transferable[]): void {
+	private static post(payloads: WorkerParticlesVideoBusOutputPayload[], data?: Transferable[]): void {
 		self.postMessage(payloads, (data || []) as any);
 	}
 
@@ -167,7 +167,7 @@ class WorkerParticleVideoEngine {
 		let cacheParticles: OffscreenCanvas = new OffscreenCanvas(1, 1),
 			cacheParticlesContext: OffscreenCanvasRenderingContext2D = cacheParticles.getContext(
 				'2d',
-				WorkerParticleVideoEngine.offscreenCanvasContextOptions,
+				WorkerParticlesVideoEngine.offscreenCanvasContextOptions,
 			) as OffscreenCanvasRenderingContext2D,
 			cacheParticlesUniversalGradient: CanvasGradient,
 			cacheUpdate: boolean,
@@ -193,8 +193,8 @@ class WorkerParticleVideoEngine {
 			health: number,
 			heightMap: Map<number, number> = new Map(),
 			i: number,
-			offscreenCanvas: OffscreenCanvas = WorkerParticleVideoEngine.offscreenCanvas,
-			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerParticleVideoEngine.offscreenCanvasContext,
+			offscreenCanvas: OffscreenCanvas = WorkerParticlesVideoEngine.offscreenCanvas,
+			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerParticlesVideoEngine.offscreenCanvasContext,
 			offscreenCanvasHeightPx: number = -1,
 			offscreenCanvasWidthPx: number = -1,
 			particleInitialBase: ParticleInitialBase,
@@ -206,15 +206,14 @@ class WorkerParticleVideoEngine {
 			randomNumberLength: number = 100,
 			randomNumbers: number[] = [...Array(randomNumberLength)].map((e) => Math.random()),
 			randomNumbersIndex: number = 0,
-			report: GamingCanvasReport = WorkerParticleVideoEngine.report,
+			report: GamingCanvasReport = WorkerParticlesVideoEngine.report,
 			settingsDebug: boolean,
-			settingsEdgesWrap: boolean,
 			settingsFPMS: number = 16.666,
 			settingsGammaCorrection: number,
 			settingsGrayscale: boolean,
 			settingsRenderStyle: GamingCanvasRenderStyle,
 			shaderDepthHighlight: number = 3,
-			statAll: GamingCanvasStat = WorkerParticleVideoEngine.stats[WorkerParticleVideoBusStats.ALL],
+			statAll: GamingCanvasStat = WorkerParticlesVideoEngine.stats[WorkerParticlesVideoBusStats.ALL],
 			statAllRaw: Float32Array,
 			timestampDelta: number,
 			timestampStats: number = performance.now(),
@@ -229,17 +228,17 @@ class WorkerParticleVideoEngine {
 
 		const go = (timestampNow: number) => {
 			// Always start the request for the next frame first!
-			WorkerParticleVideoEngine.animationFrameRequest = requestAnimationFrame(go);
+			WorkerParticlesVideoEngine.animationFrameRequest = requestAnimationFrame(go);
 
 			// Timing
 			timestampDelta = timestampNow - timestampThen;
 
 			// Config
-			if (WorkerParticleVideoEngine.calcNew === true) {
-				WorkerParticleVideoEngine.calcNew = false;
+			if (WorkerParticlesVideoEngine.calcNew === true) {
+				WorkerParticlesVideoEngine.calcNew = false;
 				cacheUpdate = true;
 
-				particlesEncoded = WorkerParticleVideoEngine.calcParticles;
+				particlesEncoded = WorkerParticlesVideoEngine.calcParticles;
 				particlesSolid.clear();
 				particlesWeapon.clear();
 
@@ -274,50 +273,49 @@ class WorkerParticleVideoEngine {
 				}
 			}
 
-			if (WorkerParticleVideoEngine.calcHeightMapsNew === true) {
-				WorkerParticleVideoEngine.calcHeightMapsNew = false;
+			if (WorkerParticlesVideoEngine.calcHeightMapsNew === true) {
+				WorkerParticlesVideoEngine.calcHeightMapsNew = false;
 				cacheUpdate = true;
 
-				if (WorkerParticleVideoEngine.calcHeightMapGrid !== undefined) {
-					gridHeightMap = WorkerParticleVideoEngine.calcHeightMapGrid;
+				if (WorkerParticlesVideoEngine.calcHeightMapGrid !== undefined) {
+					gridHeightMap = WorkerParticlesVideoEngine.calcHeightMapGrid;
 				}
 
-				if (WorkerParticleVideoEngine.calcHeightMapParticles !== undefined) {
-					particlesHeightMap = WorkerParticleVideoEngine.calcHeightMapParticles;
+				if (WorkerParticlesVideoEngine.calcHeightMapParticles !== undefined) {
+					particlesHeightMap = WorkerParticlesVideoEngine.calcHeightMapParticles;
 				}
 			}
 
-			if (WorkerParticleVideoEngine.worldNew === true) {
-				WorkerParticleVideoEngine.worldNew = false;
+			if (WorkerParticlesVideoEngine.worldNew === true) {
+				WorkerParticlesVideoEngine.worldNew = false;
 				cacheUpdate = true;
 
 				// Grid
-				gridHeightMap = new Uint32Array(WorkerParticleVideoEngine.world.grid.sideLength).fill(WorkerParticleVideoEngine.world.grid.sideLength);
-				gridSideLength = WorkerParticleVideoEngine.world.grid.sideLength;
+				gridHeightMap = new Uint32Array(WorkerParticlesVideoEngine.world.grid.sideLength).fill(WorkerParticlesVideoEngine.world.grid.sideLength);
+				gridSideLength = WorkerParticlesVideoEngine.world.grid.sideLength;
 				gridYLimit = (gridSideLength * 9) / 16;
 
-				particlesHeightMap = new Uint32Array(WorkerParticleVideoEngine.world.grid.sideLength).fill(WorkerParticleVideoEngine.world.grid.sideLength);
+				particlesHeightMap = new Uint32Array(WorkerParticlesVideoEngine.world.grid.sideLength).fill(WorkerParticlesVideoEngine.world.grid.sideLength);
 
-				world = WorkerParticleVideoEngine.world;
+				world = WorkerParticlesVideoEngine.world;
 			}
 
-			if (WorkerParticleVideoEngine.settingsNew === true) {
-				WorkerParticleVideoEngine.settingsNew = false;
+			if (WorkerParticlesVideoEngine.settingsNew === true) {
+				WorkerParticlesVideoEngine.settingsNew = false;
 				cacheUpdate = true;
 
-				settingsDebug = WorkerParticleVideoEngine.settings.debug;
-				settingsEdgesWrap = WorkerParticleVideoEngine.settings.edgesWrap;
-				settingsFPMS = Math.round((1000 / WorkerParticleVideoEngine.settings.fps) * 1000) / 1000;
-				settingsGammaCorrection = WorkerParticleVideoEngine.settings.gammaCorrection;
-				settingsGrayscale = WorkerParticleVideoEngine.settings.grayscale;
-				settingsRenderStyle = WorkerParticleVideoEngine.settings.renderStyle;
+				settingsDebug = WorkerParticlesVideoEngine.settings.debug;
+				settingsFPMS = Math.round((1000 / WorkerParticlesVideoEngine.settings.fps) * 1000) / 1000;
+				settingsGammaCorrection = WorkerParticlesVideoEngine.settings.gammaCorrection;
+				settingsGrayscale = WorkerParticlesVideoEngine.settings.grayscale;
+				settingsRenderStyle = WorkerParticlesVideoEngine.settings.renderStyle;
 			}
 
-			if (WorkerParticleVideoEngine.reportNew === true) {
-				WorkerParticleVideoEngine.reportNew = false;
+			if (WorkerParticlesVideoEngine.reportNew === true) {
+				WorkerParticlesVideoEngine.reportNew = false;
 				cacheUpdate = true;
 
-				report = WorkerParticleVideoEngine.report;
+				report = WorkerParticlesVideoEngine.report;
 				if (offscreenCanvasHeightPx !== report.canvasHeight || offscreenCanvasWidthPx !== report.canvasWidth) {
 					offscreenCanvasHeightPx = report.canvasHeight;
 					offscreenCanvasWidthPx = report.canvasWidth;
@@ -338,15 +336,15 @@ class WorkerParticleVideoEngine {
 				}
 			}
 
-			if (WorkerParticleVideoEngine.viewNew === true) {
-				WorkerParticleVideoEngine.viewNew = false;
+			if (WorkerParticlesVideoEngine.viewNew === true) {
+				WorkerParticlesVideoEngine.viewNew = false;
 				cacheUpdate = true;
 
 				// Camera
-				gridCamera.decode(WorkerParticleVideoEngine.view.gridCameraEncoded);
+				gridCamera.decode(WorkerParticlesVideoEngine.view.gridCameraEncoded);
 
 				// Viewport
-				gridViewport.decode(WorkerParticleVideoEngine.view.gridViewportEncoded);
+				gridViewport.decode(WorkerParticlesVideoEngine.view.gridViewportEncoded);
 				gridViewportCellSizePx = gridViewport.cellSizePx;
 				gridViewportHeightStart = gridViewport.heightStart;
 				gridViewportHeightStartEff = Math.max(0, (gridViewportHeightStart - 1) | 0);
@@ -507,10 +505,10 @@ class WorkerParticleVideoEngine {
 				statAllRaw = <Float32Array>statAll.encode();
 
 				// Output
-				WorkerParticleVideoEngine.post(
+				WorkerParticlesVideoEngine.post(
 					[
 						{
-							cmd: WorkerParticleVideoBusOutputCmd.STATS,
+							cmd: WorkerParticlesVideoBusOutputCmd.STATS,
 							data: {
 								all: statAllRaw,
 								fps: frameCount,
@@ -523,6 +521,6 @@ class WorkerParticleVideoEngine {
 			}
 		};
 
-		WorkerParticleVideoEngine.animationFrameRequest = requestAnimationFrame(go);
+		WorkerParticlesVideoEngine.animationFrameRequest = requestAnimationFrame(go);
 	}
 }

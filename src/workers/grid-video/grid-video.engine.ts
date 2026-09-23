@@ -204,7 +204,6 @@ class WorkerGridVideoEngine {
 			particlesWeapon: Map<number, ParticleInitialBase> = new Map(),
 			report: GamingCanvasReport = WorkerGridVideoEngine.report,
 			settingsDebug: boolean,
-			settingsEdgesWrap: boolean,
 			settingsFPMS: number = 16.666,
 			settingsGammaCorrection: number,
 			settingsGrayscale: boolean,
@@ -288,7 +287,6 @@ class WorkerGridVideoEngine {
 				cacheUpdate = true;
 
 				settingsDebug = WorkerGridVideoEngine.settings.debug;
-				settingsEdgesWrap = WorkerGridVideoEngine.settings.edgesWrap;
 				settingsFPMS = Math.round((1000 / WorkerGridVideoEngine.settings.fps) * 1000) / 1000;
 				settingsGammaCorrection = WorkerGridVideoEngine.settings.gammaCorrection;
 				settingsGrayscale = WorkerGridVideoEngine.settings.grayscale;

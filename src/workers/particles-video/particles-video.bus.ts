@@ -3,53 +3,53 @@ import { GamingCanvasGridCamera, GamingCanvasGridViewport } from '../../gaming-c
 import { World } from '../../models/world.model.js';
 import { WorkerMainCalcBusOutputData } from '../main-calc/main-calc.model.js';
 import {
-	WorkerParticleVideoBusInputCmd,
-	WorkerParticleVideoBusInputDataInit,
-	WorkerParticleVideoBusInputDataSettings,
-	WorkerParticleVideoBusInputDataView,
-	WorkerParticleVideoBusOutputCmd,
-	WorkerParticleVideoBusOutputDataStats,
-	WorkerParticleVideoBusOutputPayload,
-} from './particle-video.model.js';
+	WorkerParticlesVideoBusInputCmd,
+	WorkerParticlesVideoBusInputDataInit,
+	WorkerParticlesVideoBusInputDataSettings,
+	WorkerParticlesVideoBusInputDataView,
+	WorkerParticlesVideoBusOutputCmd,
+	WorkerParticlesVideoBusOutputDataStats,
+	WorkerParticlesVideoBusOutputPayload,
+} from './particles-video.model.js';
 
 /**
  * @author tknight-dev
  */
 
-export class WorkerParticleVideoBus {
+export class WorkerParticlesVideoBus {
 	private static callbackInitComplete: (status: boolean) => void;
-	private static callbackStats: (data: WorkerParticleVideoBusOutputDataStats) => void;
+	private static callbackStats: (data: WorkerParticlesVideoBusOutputDataStats) => void;
 	private static worker: Worker;
 
 	public static initialize(
 		canvas: HTMLCanvasElement,
 		gridCamera: GamingCanvasGridCamera,
 		gridViewport: GamingCanvasGridViewport,
-		settings: WorkerParticleVideoBusInputDataSettings,
+		settings: WorkerParticlesVideoBusInputDataSettings,
 		world: World,
 		callback: (status: boolean) => void,
 	): void {
-		WorkerParticleVideoBus.callbackInitComplete = callback;
+		WorkerParticlesVideoBus.callbackInitComplete = callback;
 
 		// Spawn the WebWorker
 		if (window.Worker) {
-			WorkerParticleVideoBus.worker = new Worker(new URL('./particle-video.engine.mjs', import.meta.url), {
-				name: 'WorkerParticleVideoEngine',
+			WorkerParticlesVideoBus.worker = new Worker(new URL('./particles-video.engine.mjs', import.meta.url), {
+				name: 'WorkerParticlesVideoEngine',
 				type: 'module', // ESM
 			});
 
 			// Listen for a response from the WebWorker
-			WorkerParticleVideoBus.listen();
+			WorkerParticlesVideoBus.listen();
 
 			// Init the webworker
 			const gridCameraEncoded: Float64Array = gridCamera.encode(),
 				gridViewportEncoded: Float64Array = gridViewport.encode(),
 				offscreenCanvas: OffscreenCanvas = canvas.transferControlToOffscreen();
-			WorkerParticleVideoBus.worker.postMessage(
+			WorkerParticlesVideoBus.worker.postMessage(
 				{
-					cmd: WorkerParticleVideoBusInputCmd.INIT,
+					cmd: WorkerParticlesVideoBusInputCmd.INIT,
 					data: Object.assign(
-						<WorkerParticleVideoBusInputDataInit>{
+						<WorkerParticlesVideoBusInputDataInit>{
 							gridCameraEncoded: gridCameraEncoded,
 							gridViewportEncoded: gridViewportEncoded,
 							world: world,
@@ -63,24 +63,24 @@ export class WorkerParticleVideoBus {
 			);
 		} else {
 			alert('Web Workers are not supported by your browser');
-			WorkerParticleVideoBus.callbackInitComplete(false);
+			WorkerParticlesVideoBus.callbackInitComplete(false);
 		}
 	}
 
 	private static listen(): void {
-		let payload: WorkerParticleVideoBusOutputPayload, payloads: WorkerParticleVideoBusOutputPayload[];
+		let payload: WorkerParticlesVideoBusOutputPayload, payloads: WorkerParticlesVideoBusOutputPayload[];
 
-		WorkerParticleVideoBus.worker.onmessage = async (event: MessageEvent) => {
+		WorkerParticlesVideoBus.worker.onmessage = async (event: MessageEvent) => {
 			payloads = event.data;
 
 			for (payload of payloads) {
 				switch (payload.cmd) {
-					case WorkerParticleVideoBusOutputCmd.INIT_COMPLETE:
-						WorkerParticleVideoBus.callbackInitComplete(<boolean>payload.data);
+					case WorkerParticlesVideoBusOutputCmd.INIT_COMPLETE:
+						WorkerParticlesVideoBus.callbackInitComplete(<boolean>payload.data);
 						break;
-					case WorkerParticleVideoBusOutputCmd.STATS:
-						if (WorkerParticleVideoBus.callbackStats !== undefined) {
-							WorkerParticleVideoBus.callbackStats(<WorkerParticleVideoBusOutputDataStats>payload.data);
+					case WorkerParticlesVideoBusOutputCmd.STATS:
+						if (WorkerParticlesVideoBus.callbackStats !== undefined) {
+							WorkerParticlesVideoBus.callbackStats(<WorkerParticlesVideoBusOutputDataStats>payload.data);
 						}
 						break;
 				}
@@ -92,9 +92,9 @@ export class WorkerParticleVideoBus {
 	 * Send
 	 */
 	public static sendCalc(data: Uint32Array): void {
-		WorkerParticleVideoBus.worker.postMessage(
+		WorkerParticlesVideoBus.worker.postMessage(
 			{
-				cmd: WorkerParticleVideoBusInputCmd.CALC,
+				cmd: WorkerParticlesVideoBusInputCmd.CALC,
 				data: data,
 			},
 			[data.buffer],
@@ -112,9 +112,9 @@ export class WorkerParticleVideoBus {
 			buffers.push(heightMapParticles.buffer);
 		}
 
-		WorkerParticleVideoBus.worker.postMessage(
+		WorkerParticlesVideoBus.worker.postMessage(
 			{
-				cmd: WorkerParticleVideoBusInputCmd.CALC_HEIGHT_MAPS,
+				cmd: WorkerParticlesVideoBusInputCmd.CALC_HEIGHT_MAPS,
 				data: {
 					heightMapGrid: heightMapGrid,
 					heightMapParticles: heightMapParticles,
@@ -125,23 +125,23 @@ export class WorkerParticleVideoBus {
 	}
 
 	public static sendReport(data: GamingCanvasReport): void {
-		WorkerParticleVideoBus.worker.postMessage({
-			cmd: WorkerParticleVideoBusInputCmd.REPORT,
+		WorkerParticlesVideoBus.worker.postMessage({
+			cmd: WorkerParticlesVideoBusInputCmd.REPORT,
 			data: data,
 		});
 	}
 
-	public static sendSettings(data: WorkerParticleVideoBusInputDataSettings): void {
-		WorkerParticleVideoBus.worker.postMessage({
-			cmd: WorkerParticleVideoBusInputCmd.SETTINGS,
+	public static sendSettings(data: WorkerParticlesVideoBusInputDataSettings): void {
+		WorkerParticlesVideoBus.worker.postMessage({
+			cmd: WorkerParticlesVideoBusInputCmd.SETTINGS,
 			data: data,
 		});
 	}
 
-	public static sendView(data: WorkerParticleVideoBusInputDataView): void {
-		WorkerParticleVideoBus.worker.postMessage(
+	public static sendView(data: WorkerParticlesVideoBusInputDataView): void {
+		WorkerParticlesVideoBus.worker.postMessage(
 			{
-				cmd: WorkerParticleVideoBusInputCmd.VIEW,
+				cmd: WorkerParticlesVideoBusInputCmd.VIEW,
 				data: data,
 			},
 			[data.gridCameraEncoded, data.gridViewportEncoded],
@@ -149,13 +149,13 @@ export class WorkerParticleVideoBus {
 	}
 
 	public static sendWorld(data: World): void {
-		WorkerParticleVideoBus.worker.postMessage({
-			cmd: WorkerParticleVideoBusInputCmd.WORLD,
+		WorkerParticlesVideoBus.worker.postMessage({
+			cmd: WorkerParticlesVideoBusInputCmd.WORLD,
 			data: data,
 		});
 	}
 
-	public static setCallbackStats(callbackStats: (data: WorkerParticleVideoBusOutputDataStats) => void): void {
-		WorkerParticleVideoBus.callbackStats = callbackStats;
+	public static setCallbackStats(callbackStats: (data: WorkerParticlesVideoBusOutputDataStats) => void): void {
+		WorkerParticlesVideoBus.callbackStats = callbackStats;
 	}
 }

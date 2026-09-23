@@ -25,6 +25,7 @@ export class ModuleDOM {
 	public static elPerformanceMainCalc: HTMLElement;
 	public static elPerformanceMainCalcAll: HTMLElement;
 	public static elPerformanceMainParticleCount: HTMLElement;
+	public static elPerformanceMainParticlePoolSize: HTMLElement;
 	public static elPerformanceParticleVideo: HTMLElement;
 	public static elPerformanceParticleVideoAll: HTMLElement;
 	public static elSettings: HTMLElement;
@@ -103,6 +104,7 @@ export class ModuleDOM {
 		ModuleDOM.elPerformanceMainCalc = <HTMLElement>document.getElementById('performance-main-calc');
 		ModuleDOM.elPerformanceMainCalcAll = <HTMLElement>document.getElementById('performance-main-calc-all');
 		ModuleDOM.elPerformanceMainParticleCount = <HTMLElement>document.getElementById('performance-main-calc-particle-count');
+		ModuleDOM.elPerformanceMainParticlePoolSize = <HTMLElement>document.getElementById('performance-main-calc-particle-pool-size');
 		ModuleDOM.elPerformanceParticleVideo = <HTMLElement>document.getElementById('performance-particle-video');
 		ModuleDOM.elPerformanceParticleVideoAll = <HTMLElement>document.getElementById('performance-particle-video-all');
 

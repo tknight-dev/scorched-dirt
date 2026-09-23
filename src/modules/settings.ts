@@ -1,12 +1,14 @@
 import { GamingCanvas, GamingCanvasAudioType, GamingCanvasOptions, GamingCanvasOrientation, GamingCanvasRenderStyle } from '../gaming-canvas/main/index.js';
 import { ModuleDOM } from './dom.js';
 import { FPS, WorldSize, WindStrength } from '../models/settings.model.js';
+import { WorkerEffectsVideoBus } from '../workers/effects-video/effects-video.bus.js';
+import { WorkerEffectsVideoBusInputDataSettings } from '../workers/effects-video/effects-video.model.js';
 import { WorkerGridVideoBus } from '../workers/grid-video/grid-video.bus.js';
 import { WorkerGridVideoBusInputDataSettings } from '../workers/grid-video/grid-video.model.js';
 import { WorkerMainCalcBus } from '../workers/main-calc/main-calc.bus.js';
 import { WorkerMainCalcBusInputDataSettings } from '../workers/main-calc/main-calc.model.js';
-import { WorkerParticleVideoBus } from '../workers/particle-video/particle-video.bus.js';
-import { WorkerParticleVideoBusInputDataSettings } from '../workers/particle-video/particle-video.model.js';
+import { WorkerParticlesVideoBus } from '../workers/particles-video/particles-video.bus.js';
+import { WorkerParticlesVideoBusInputDataSettings } from '../workers/particles-video/particles-video.model.js';
 
 /**
  * @author tknight-dev
@@ -42,7 +44,7 @@ export class ModuleSettings {
 				gamingCanvas: <GamingCanvasOptions>{
 					aspectRatio: 16 / 9,
 					audioEnable: true,
-					canvasCount: 2,
+					canvasCount: 3,
 					debug: false,
 					dpiSupportEnable: false,
 					elementInteractive: ModuleDOM.elVideoInteractive,
@@ -62,9 +64,15 @@ export class ModuleSettings {
 				windRandomize: false,
 				windStrength: WindStrength.NONE,
 			},
+			workerEffectsVideo: <WorkerEffectsVideoBusInputDataSettings>{
+				debug: false,
+				fps: FPS._60,
+				gammaCorrection: 0,
+				grayscale: false,
+				renderStyle: GamingCanvasRenderStyle.PIXELATED,
+			},
 			workerGridVideo: <WorkerGridVideoBusInputDataSettings>{
 				debug: false,
-				edgesWrap: true,
 				fps: FPS._60,
 				gammaCorrection: 0,
 				grayscale: false,
@@ -73,13 +81,12 @@ export class ModuleSettings {
 			workerMainCalc: <WorkerMainCalcBusInputDataSettings>{
 				edgesWrap: true,
 				fps: FPS._60,
-				particlePoolSize: 500,
+				particlePoolSize: 2000,
 				windRandomize: false,
 				windStrength: WindStrength.NONE,
 			},
-			workerParticleVideo: <WorkerParticleVideoBusInputDataSettings>{
+			workerParticlesVideo: <WorkerParticlesVideoBusInputDataSettings>{
 				debug: false,
-				edgesWrap: true,
 				fps: FPS._60,
 				gammaCorrection: 0,
 				grayscale: false,
@@ -217,12 +224,12 @@ export class ModuleSettings {
 		ModuleSettings.data.workerMainCalc.windRandomize = ModuleSettings.data.main.windRandomize;
 		ModuleSettings.data.workerMainCalc.windStrength = ModuleSettings.data.main.windStrength;
 
-		ModuleSettings.data.workerParticleVideo.debug = <boolean>ModuleSettings.data.main.gamingCanvas.debug;
-		ModuleSettings.data.workerParticleVideo.edgesWrap = ModuleSettings.data.main.edgesWrap;
-		ModuleSettings.data.workerParticleVideo.fps = ModuleSettings.data.main.fps;
-		ModuleSettings.data.workerParticleVideo.gammaCorrection = ModuleSettings.data.main.gammaCorrection;
-		ModuleSettings.data.workerParticleVideo.grayscale = ModuleSettings.data.main.grayscale;
-		ModuleSettings.data.workerParticleVideo.renderStyle = <GamingCanvasRenderStyle>ModuleSettings.data.main.gamingCanvas.renderStyle;
+		ModuleSettings.data.workerParticlesVideo.debug = <boolean>ModuleSettings.data.main.gamingCanvas.debug;
+		ModuleSettings.data.workerParticlesVideo.edgesWrap = ModuleSettings.data.main.edgesWrap;
+		ModuleSettings.data.workerParticlesVideo.fps = ModuleSettings.data.main.fps;
+		ModuleSettings.data.workerParticlesVideo.gammaCorrection = ModuleSettings.data.main.gammaCorrection;
+		ModuleSettings.data.workerParticlesVideo.grayscale = ModuleSettings.data.main.grayscale;
+		ModuleSettings.data.workerParticlesVideo.renderStyle = <GamingCanvasRenderStyle>ModuleSettings.data.main.gamingCanvas.renderStyle;
 	}
 
 	private static parseURL(): void {
@@ -253,8 +260,9 @@ export class ModuleSettings {
 	}
 
 	private static workersUpdate(): void {
+		WorkerEffectsVideoBus.sendSettings(ModuleSettings.data.workerEffectsVideo);
 		WorkerGridVideoBus.sendSettings(ModuleSettings.data.workerGridVideo);
 		WorkerMainCalcBus.sendSettings(ModuleSettings.data.workerMainCalc);
-		WorkerParticleVideoBus.sendSettings(ModuleSettings.data.workerParticleVideo);
+		WorkerParticlesVideoBus.sendSettings(ModuleSettings.data.workerParticlesVideo);
 	}
 }

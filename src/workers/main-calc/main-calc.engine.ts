@@ -244,6 +244,8 @@ class WorkerMainCalcEngine {
 			physicsResistanceLiquidSurfaceTensionX: number = 0.95, // The closer to 0 the less horizontal motion per swap
 			physicsResistanceLiquidSurfaceTensionY: number = 0.05, // The closer to 1 the less this has effect
 			physicsResistanceSecondary: number = 0.5, // Collision X will reduce velocity Y by this amount
+			physicsSplashes: number[] = [],
+			physicsSplashesEncoded: Uint32Array | undefined,
 			physicsTranslated: boolean,
 			physicsVelocityMin: number = 0.01,
 			posNextIndex: number,
@@ -1164,12 +1166,7 @@ class WorkerMainCalcEngine {
 							// Calc: Liquid Swap (swap liquid with solid as solid moves through the liquid)
 							if (collisionNextResultLiquidSwap === true) {
 								collisionNextResultLiquidSwap = false;
-								// TODO trigger water strike animation at this gridIndex
-								// TODO trigger water strike animation at this gridIndex
-								// TODO trigger water strike animation at this gridIndex
-								// TODO trigger water strike animation at this gridIndex
-								// TODO trigger water strike animation at this gridIndex
-								// TODO trigger water strike animation at this gridIndex
+								physicsSplashes.push(((particle.posX | 0) << 16 ) | (particle.posY | 0));
 
 								if (collisionNextParticle === undefined) {
 									console.error('MainCalc > collision: Liquid swap failed');
@@ -1373,6 +1370,7 @@ class WorkerMainCalcEngine {
 							data: {
 								all: statAllRaw,
 								particleCount: particles.length,
+								particlePoolSize: particlePool.length,
 							},
 						},
 					],
@@ -1423,6 +1421,16 @@ class WorkerMainCalcEngine {
 					particlesEncoded = undefined;
 				}
 
+				// Encode: Splashes
+				if (physicsSplashes.length !== 0) {
+					physicsSplashesEncoded = Uint32Array.from(physicsSplashes);
+					buffers.push(physicsSplashesEncoded.buffer);
+
+					physicsSplashes.length = 0;
+				}else {
+					physicsSplashesEncoded = undefined;
+				}
+
 				// Upload grid
 				WorkerMainCalcEngine.post(
 					[
@@ -1431,6 +1439,7 @@ class WorkerMainCalcEngine {
 							data: {
 								grid: gridClone,
 								particles: particlesEncoded,
+								splashes: physicsSplashesEncoded,
 								worldSize: <WorldSize>gridSideLength,
 							},
 						},

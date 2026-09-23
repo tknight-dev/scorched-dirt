@@ -27,9 +27,10 @@ var config = {
 		index: 'src/index.html',
 		style: 'src/style.scss',
 		script: 'src/script.ts',
+		'effects-video.engine': 'src/workers/effects-video/effects-video.engine.ts', // Worker entry point
 		'grid-video.engine': 'src/workers/grid-video/grid-video.engine.ts', // Worker entry point
 		'main-calc.engine': 'src/workers/main-calc/main-calc.engine.ts', // Worker entry point
-		'particle-video.engine': 'src/workers/particle-video/particle-video.engine.ts', // Worker entry point
+		'particles-video.engine': 'src/workers/particles-video/particles-video.engine.ts', // Worker entry point
 	},
 	loader: {
 		'.html': 'copy',

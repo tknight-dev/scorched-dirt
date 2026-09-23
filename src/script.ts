@@ -1,19 +1,21 @@
-import { World } from './models/world.model.js';
+import { GamingCanvas } from './gaming-canvas/main/gaming-canvas.js';
+import { GamingCanvasGridCamera, GamingCanvasGridViewport } from './gaming-canvas/modules/grid/index.js';
+import { GamingCanvasStat, GamingCanvasStatCalcType } from './gaming-canvas/main/stat.js';
+import { ModuleBridge } from './modules/bridge.js';
 import { ModuleDOM } from './modules/dom.js';
 import { ModuleGame } from './modules/game.js';
-import { ModuleWorld } from './modules/world.js';
+import { ModuleInput } from './modules/input.js';
 import { ModuleSettings } from './modules/settings.js';
-import { GamingCanvasGridCamera, GamingCanvasGridViewport } from './gaming-canvas/modules/grid/index.js';
-import { WorkerMainCalcBus } from './workers/main-calc/main-calc.bus.js';
-import { WorkerMainCalcBusOutputDataStats } from './workers/main-calc/main-calc.model.js';
+import { ModuleWorld } from './modules/world.js';
+import { WorkerEffectsVideoBus } from './workers/effects-video/effects-video.bus.js';
+import { WorkerEffectsVideoBusOutputDataStats } from './workers/effects-video/effects-video.model.js';
 import { WorkerGridVideoBus } from './workers/grid-video/grid-video.bus.js';
 import { WorkerGridVideoBusOutputDataStats } from './workers/grid-video/grid-video.model.js';
-import { WorkerParticleVideoBus } from './workers/particle-video/particle-video.bus.js';
-import { WorkerParticleVideoBusOutputDataStats } from './workers/particle-video/particle-video.model.js';
-import { GamingCanvas } from './gaming-canvas/main/gaming-canvas.js';
-import { GamingCanvasStat, GamingCanvasStatCalcType } from './gaming-canvas/main/stat.js';
-import { ModuleInput } from './modules/input.js';
-import { ModuleBridge } from './modules/bridge.js';
+import { WorkerMainCalcBus } from './workers/main-calc/main-calc.bus.js';
+import { WorkerMainCalcBusOutputDataStats } from './workers/main-calc/main-calc.model.js';
+import { WorkerParticlesVideoBus } from './workers/particles-video/particles-video.bus.js';
+import { WorkerParticlesVideoBusOutputDataStats } from './workers/particles-video/particles-video.model.js';
+import { World } from './models/world.model.js';
 
 /**
  * @author tknight-dev
@@ -86,8 +88,9 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 
 			ModuleDOM.elPerformanceMainCalcAll.innerHTML = displayNumberAll(all, precision);
 			ModuleDOM.elPerformanceMainParticleCount.innerHTML = displayNumber(data.particleCount, 0, '', '');
+			ModuleDOM.elPerformanceMainParticlePoolSize.innerHTML = displayNumber(data.particlePoolSize, 0, '', '');
 		});
-		WorkerParticleVideoBus.setCallbackStats((data: WorkerParticleVideoBusOutputDataStats) => {
+		WorkerParticlesVideoBus.setCallbackStats((data: WorkerParticlesVideoBusOutputDataStats) => {
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
 
 			ModuleDOM.elPerformanceParticleVideoAll.innerHTML = displayNumberAll(all, precision);
@@ -198,21 +201,27 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			world: World = ModuleWorld.worldActive;
 
 		return new Promise<void>((resolve: any) => {
-			WorkerGridVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerGridVideo, world, () => {
-				console.log('WorkerGridVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
-
-				// Done
-				then = performance.now();
-				WorkerParticleVideoBus.initialize(ModuleDOM.canvases[1], gridCamera, gridViewport, ModuleSettings.data.workerParticleVideo, world, () => {
-					console.log('WorkerParticleVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
+			WorkerEffectsVideoBus.initialize(ModuleDOM.canvases[2], gridCamera, gridViewport, ModuleSettings.data.workerEffectsVideo, world, () => {
+				console.log('WorkerEffectsVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
 					// Done
 					then = performance.now();
-					WorkerMainCalcBus.initialize(ModuleSettings.data.workerMainCalc, world, () => {
-						console.log('WorkerMainCalcBus: Loaded in', (performance.now() - then) | 0, 'ms');
+				WorkerGridVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerGridVideo, world, () => {
+					console.log('WorkerGridVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
-						// Resolve initial promise
-						resolve();
+					// Done
+					then = performance.now();
+					WorkerParticlesVideoBus.initialize(ModuleDOM.canvases[1], gridCamera, gridViewport, ModuleSettings.data.workerParticlesVideo, world, () => {
+						console.log('WorkerParticlesVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
+
+						// Done
+						then = performance.now();
+						WorkerMainCalcBus.initialize(ModuleSettings.data.workerMainCalc, world, () => {
+							console.log('WorkerMainCalcBus: Loaded in', (performance.now() - then) | 0, 'ms');
+
+							// Resolve initial promise
+							resolve();
+						});
 					});
 				});
 			});
