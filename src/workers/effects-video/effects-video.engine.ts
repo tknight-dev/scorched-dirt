@@ -3,7 +3,7 @@ import { GamingCanvasGridCamera, GamingCanvasGridUint32Array, GamingCanvasGridVi
 import {
 	ParticleInitialBase,
 } from '../../models/physics.model.js';
-import { World } from '../../models/world.model.js';
+import { SolidType, World } from '../../models/world.model.js';
 import {
 	WorkerEffectsVideoBusInputCmd,
 	WorkerEffectsVideoBusInputDataCalc,
@@ -53,6 +53,8 @@ self.onmessage = (event: MessageEvent) => {
 };
 
 interface Effect {
+	collisionType: SolidType,
+	id: number,
 	node: GamingCanvasDoubleLinkedListNode<Effect>,
 	randomSeed1: number;
 	randomSeed2: number;
@@ -166,10 +168,13 @@ class WorkerEffectsVideoEngine {
 	 */
 	private static animationLoop(): void {
 		let effect: Effect | undefined,
+			effectIdCount: number = 0,
 			effectNode: GamingCanvasDoubleLinkedListNode<Effect> | undefined,
+			effectNodeNext: GamingCanvasDoubleLinkedListNode<Effect> | undefined,
 			effects: GamingCanvasDoubleLinkedList<Effect> = new GamingCanvasDoubleLinkedList<Effect>(),
 			effectsPool: GamingCanvasDoubleLinkedList<Effect> = new GamingCanvasDoubleLinkedList<Effect>(),
 			effectsPoolSize: number = 200,
+			effectTimestampDelta: number,
 			frameCount: number = 0,
 			gridCamera: GamingCanvasGridCamera = new GamingCanvasGridCamera(),
 			gridData: Uint32Array,
@@ -238,19 +243,22 @@ class WorkerEffectsVideoEngine {
 						effectNode = effectsPool.popStartNode();
 						if(effectNode === undefined) {
 							effectNode = {
-								data: <Effect>{},
+								data: <Effect>{
+									id: effectIdCount++,
+								},
 							}
 							effectNode.data.node = effectNode;
 						}
 						effect = effectNode.data;
 
 						// Config
+						effect.collisionType = i & 0xff;
 						effect.randomSeed1 = randomNumbers[randomNumbersIndex++ % randomNumberLength];
 						effect.randomSeed2 = randomNumbers[randomNumbersIndex++ % randomNumberLength];
 						effect.timestamp = timestampNow;
 						effect.type = EffectType.SPLASH;
-						effect.x = (i >> 16) & 0xffff;
-						effect.y = i & 0xffff;
+						effect.x = (i >> 20) & 0xfff;
+						effect.y = (i >> 8) & 0xfff;
 
 						// Done
 						effects.pushEndNode(effectNode);
@@ -353,6 +361,76 @@ class WorkerEffectsVideoEngine {
 
 				// Effects
 				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
+				effectNode = effects.start;
+				let count = 0;
+				while(effectNode !== undefined) {
+					effect = effectNode.data;
+					effectNodeNext = effectNode.next;
+					effectTimestampDelta = timestampNow - effect.timestamp;
+
+					// Effect
+					if(effectTimestampDelta > 1000) {
+						effects.remove(effectNode);
+					}else {
+						x = effect.x;
+						y = effect.y;
+
+						if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
+							offscreenCanvasContext.globalAlpha = 1;
+
+							switch(effect.collisionType) {
+								case SolidType.LAVA:
+									offscreenCanvasContext.fillStyle = "#ff6020";
+									break;
+								case SolidType.WATER:
+									if(effectTimestampDelta % 500 > 250) {
+										if ((x % 2) + (y % 2) > 1) {
+											offscreenCanvasContext.fillStyle = "#0040dd";
+										}else {
+											offscreenCanvasContext.fillStyle = "#1050ee";
+										}
+									}else {
+										if ((x % 2) + (y % 2) > 1) {
+											offscreenCanvasContext.fillStyle = "#1050ee";
+										}else {
+											offscreenCanvasContext.fillStyle = "#0030cc";
+										}
+									}
+									break;
+								default:
+									console.error('EffectsVideo: unexpected splash type "', effect.collisionType,'"');
+									break;
+							}
+
+							offscreenCanvasContext.fillRect(
+								(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+								(y - gridViewportHeightStartEff) * gridViewportCellSizePx,
+								gridViewportCellSizePx,
+								gridViewportCellSizePx,
+							);
+
+							offscreenCanvasContext.fillStyle = "#ffffff";
+							offscreenCanvasContext.globalAlpha = 0.1;
+							for(i = -1; i < 2; i++) {
+								if(i === 0) {
+									offscreenCanvasContext.globalAlpha = 0.15;
+								}else {
+									offscreenCanvasContext.globalAlpha = 0.1;
+								}
+
+								offscreenCanvasContext.fillRect(
+									(x - gridViewportWidthStartEff + i) * gridViewportCellSizePx,
+									(y - gridViewportHeightStartEff - 1) * gridViewportCellSizePx,
+									gridViewportCellSizePx,
+									gridViewportCellSizePx * 2,
+								);
+							}
+						}
+					}
+
+					// Done
+					effectNode = effectNodeNext;
+				}
 
 				// Effects: Final highlight
 				offscreenCanvasContext.globalAlpha = 1;

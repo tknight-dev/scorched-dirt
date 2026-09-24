@@ -1170,7 +1170,6 @@ class WorkerMainCalcEngine {
 							// Calc: Liquid Swap (swap liquid with solid as solid moves through the liquid)
 							if (collisionNextResultLiquidSwap === true) {
 								collisionNextResultLiquidSwap = false;
-								physicsSplashes.push(((particle.posX | 0) << 16 ) | (particle.posY | 0));
 
 								if (collisionNextParticle === undefined) {
 									console.error('MainCalc > collision: Liquid swap failed');
@@ -1213,6 +1212,12 @@ class WorkerMainCalcEngine {
 											particleLiquid.type !== ParticleType.SOLID ||
 											(particleLiquid.typeValue !== SolidType.LAVA && particleLiquid.typeValue !== SolidType.WATER)
 										) {
+											physicsSplashes.push(
+												(((collisionNextParticle.posX | 0) & 0xfff) << 20 ) | 
+												(((collisionNextParticle.posY | 0) & 0xfff) << 8) |
+												(collisionNextParticle.typeValue & 0xff)
+											);
+
 											// Water column must be resting on the ground
 											physicsLiquidAvailable = false;
 											for (yNext = y + 1; yNext < gridYLimit; yNext++) {
