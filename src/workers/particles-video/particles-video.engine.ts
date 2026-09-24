@@ -191,7 +191,6 @@ class WorkerParticlesVideoEngine {
 			gridViewportWidthStopEff: number,
 			gridYLimit: number,
 			health: number,
-			heightMap: Map<number, number> = new Map(),
 			i: number,
 			offscreenCanvas: OffscreenCanvas = WorkerParticlesVideoEngine.offscreenCanvas,
 			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerParticlesVideoEngine.offscreenCanvasContext,
@@ -332,7 +331,7 @@ class WorkerParticlesVideoEngine {
 					cacheParticlesUniversalGradient = cacheParticlesContext.createLinearGradient(0, 0, 0, offscreenCanvasHeightPx);
 					cacheParticlesUniversalGradient.addColorStop(0, 'transparent');
 					cacheParticlesUniversalGradient.addColorStop(0.25, 'transparent');
-					cacheParticlesUniversalGradient.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
+					cacheParticlesUniversalGradient.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
 				}
 			}
 
@@ -360,11 +359,6 @@ class WorkerParticlesVideoEngine {
 			if (cacheUpdate === true) {
 				cacheUpdate = false;
 
-				// Reset height map
-				for (x = 0; x < gridSideLength; x++) {
-					heightMap.set(x, gridSideLength);
-				}
-
 				cacheParticlesContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
 				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
 
@@ -377,11 +371,6 @@ class WorkerParticlesVideoEngine {
 					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
 						particleInitialBase = <ParticleInitialBase>particlesSolid.get(gridIndex);
 
-						// Find the highest particle
-						if (y < <number>heightMap.get(x)) {
-							heightMap.set(x, y);
-						}
-
 						switch (particleInitialBase.typeValue) {
 							case SolidType.DIRT:
 								cacheParticlesContext.fillStyle = '#905015';
@@ -390,7 +379,7 @@ class WorkerParticlesVideoEngine {
 								if ((x % 2) + (y % 2) === (timestampNow % 400 > 200 ? 1 : 0)) {
 									cacheParticlesContext.fillStyle = '#ee0000';
 								} else {
-									cacheParticlesContext.fillStyle = '#e70000';
+									cacheParticlesContext.fillStyle = '#ea0000';
 								}
 								break;
 							case SolidType.ROCK:
@@ -404,7 +393,7 @@ class WorkerParticlesVideoEngine {
 								if ((x % 2) + (y % 2) === (timestampNow % 400 > 200 ? 1 : 0)) {
 									cacheParticlesContext.fillStyle = '#0000ee';
 								} else {
-									cacheParticlesContext.fillStyle = '#0000e7';
+									cacheParticlesContext.fillStyle = '#0000ea';
 								}
 								break;
 						}
@@ -420,7 +409,7 @@ class WorkerParticlesVideoEngine {
 
 				// Draw: Highlights
 				cacheParticlesContext.fillStyle = '#ffffff';
-				for ([x, y] of heightMap.entries()) {
+				for ([x, y] of particlesHeightMap.entries()) {
 					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
 						y = particlesHeightMap[x];
 						y1 = gridHeightMap[x];

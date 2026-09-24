@@ -75,6 +75,14 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			precision: number = 2;
 
 		// Stats
+		WorkerEffectsVideoBus.setCallbackStats((data: WorkerEffectsVideoBusOutputDataStats) => {
+			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
+
+			ModuleDOM.elPerformanceEffectsVideoAll.innerHTML = displayNumberAll(all, precision);
+
+			ScorchedDirt.statFPS['effects-video'] = data.fps;
+			ScorchedDirt.displayStatFPS();
+		});
 		WorkerGridVideoBus.setCallbackStats((data: WorkerGridVideoBusOutputDataStats) => {
 			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
 

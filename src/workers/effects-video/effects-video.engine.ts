@@ -1,23 +1,9 @@
-import { GamingCanvas, GamingCanvasRenderStyle, GamingCanvasReport, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
+import { GamingCanvas, GamingCanvasDoubleLinkedList, GamingCanvasDoubleLinkedListNode, GamingCanvasRenderStyle, GamingCanvasReport, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
 import { GamingCanvasGridCamera, GamingCanvasGridUint32Array, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
 import {
-	particleEncodingMaskHealth,
-	particleEncodingMaskType,
-	particleEncodingMaskTypeValue,
-	particleEncodingMaskX,
-	particleEncodingMaskY,
-	particleEncodingShiftHealth,
-	particleEncodingShiftType,
-	particleEncodingShiftTypeValue,
-	particleEncodingShiftX,
-	ParticleInitial,
 	ParticleInitialBase,
-	ParticleType,
 } from '../../models/physics.model.js';
-import { Tank } from '../../models/tank.model.js';
-import { Weapon } from '../../models/weapon.model.js';
-import { Solid, SolidType, World, worldEncodingMaskType } from '../../models/world.model.js';
-import { WorkerMainCalcBusOutputData } from '../main-calc/main-calc.model.js';
+import { World } from '../../models/world.model.js';
 import {
 	WorkerEffectsVideoBusInputCmd,
 	WorkerEffectsVideoBusInputDataCalc,
@@ -66,6 +52,20 @@ self.onmessage = (event: MessageEvent) => {
 	}
 };
 
+interface Effect {
+	node: GamingCanvasDoubleLinkedListNode<Effect>,
+	randomSeed1: number;
+	randomSeed2: number;
+	timestamp: number;
+	type: EffectType;
+	x: number;
+	y: number;
+}
+
+enum EffectType {
+	SPLASH,
+}
+
 class WorkerEffectsVideoEngine {
 	private static animationFrameRequest: number;
 	private static calc: WorkerEffectsVideoBusInputDataCalc;
@@ -73,7 +73,6 @@ class WorkerEffectsVideoEngine {
 	private static calcHeightMapParticles: Uint32Array | undefined;
 	private static calcHeightMapsNew: boolean;
 	private static calcNew: boolean;
-	private static calcParticles: Uint32Array;
 	private static world: World;
 	private static worldNew: boolean;
 	private static offscreenCanvas: OffscreenCanvas;
@@ -166,15 +165,12 @@ class WorkerEffectsVideoEngine {
 	 * Main Loop
 	 */
 	private static animationLoop(): void {
-		let cacheParticles: OffscreenCanvas = new OffscreenCanvas(1, 1),
-			cacheParticlesContext: OffscreenCanvasRenderingContext2D = cacheParticles.getContext(
-				'2d',
-				WorkerEffectsVideoEngine.offscreenCanvasContextOptions,
-			) as OffscreenCanvasRenderingContext2D,
-			cacheParticlesUniversalGradient: CanvasGradient,
-			cacheUpdate: boolean,
+		let effect: Effect | undefined,
+			effectNode: GamingCanvasDoubleLinkedListNode<Effect> | undefined,
+			effects: GamingCanvasDoubleLinkedList<Effect> = new GamingCanvasDoubleLinkedList<Effect>(),
+			effectsPool: GamingCanvasDoubleLinkedList<Effect> = new GamingCanvasDoubleLinkedList<Effect>(),
+			effectsPoolSize: number = 200,
 			frameCount: number = 0,
-			grid: GamingCanvasGridUint32Array,
 			gridCamera: GamingCanvasGridCamera = new GamingCanvasGridCamera(),
 			gridData: Uint32Array,
 			gridDataValue: number,
@@ -199,12 +195,9 @@ class WorkerEffectsVideoEngine {
 			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerEffectsVideoEngine.offscreenCanvasContext,
 			offscreenCanvasHeightPx: number = -1,
 			offscreenCanvasWidthPx: number = -1,
+			offscreenCanvasUniversalGradient: CanvasGradient,
 			particleInitialBase: ParticleInitialBase,
-			particlesEncoded: Uint32Array,
 			particlesHeightMap: Uint32Array,
-			particlesSolid: Map<number, ParticleInitialBase> = new Map(),
-			particlesTank: Map<number, ParticleInitialBase> = new Map(),
-			particlesWeapon: Map<number, ParticleInitialBase> = new Map(),
 			randomNumberLength: number = 100,
 			randomNumbers: number[] = [...Array(randomNumberLength)].map((e) => Math.random()),
 			randomNumbersIndex: number = 0,
@@ -238,17 +231,35 @@ class WorkerEffectsVideoEngine {
 			// Config
 			if (WorkerEffectsVideoEngine.calcNew === true) {
 				WorkerEffectsVideoEngine.calcNew = false;
-				cacheUpdate = true;
 
 				if(WorkerEffectsVideoEngine.calc.splashes !== undefined) {
-					console.log("SPLASH");
+					for(i of WorkerEffectsVideoEngine.calc.splashes) {
+						// Pull from pool first
+						effectNode = effectsPool.popStartNode();
+						if(effectNode === undefined) {
+							effectNode = {
+								data: <Effect>{},
+							}
+							effectNode.data.node = effectNode;
+						}
+						effect = effectNode.data;
+
+						// Config
+						effect.randomSeed1 = randomNumbers[randomNumbersIndex++ % randomNumberLength];
+						effect.randomSeed2 = randomNumbers[randomNumbersIndex++ % randomNumberLength];
+						effect.timestamp = timestampNow;
+						effect.type = EffectType.SPLASH;
+						effect.x = (i >> 16) & 0xffff;
+						effect.y = i & 0xffff;
+
+						// Done
+						effects.pushEndNode(effectNode);
+					}
 				}
 			}
 
 			if (WorkerEffectsVideoEngine.calcHeightMapsNew === true) {
 				WorkerEffectsVideoEngine.calcHeightMapsNew = false;
-				cacheUpdate = true;
-
 				if (WorkerEffectsVideoEngine.calcHeightMapGrid !== undefined) {
 					gridHeightMap = WorkerEffectsVideoEngine.calcHeightMapGrid;
 				}
@@ -260,7 +271,17 @@ class WorkerEffectsVideoEngine {
 
 			if (WorkerEffectsVideoEngine.worldNew === true) {
 				WorkerEffectsVideoEngine.worldNew = false;
-				cacheUpdate = true;
+
+				// Effects
+				effectNode = effects.popStartNode();
+				while(effectNode !== undefined) {
+					// Return effect to pool if room available
+					if(effectsPool.length < effectsPoolSize) {
+						effectsPool.pushEndNode(effectNode);
+					}
+
+					effectNode = effects.popStartNode();
+				}
 
 				// Grid
 				gridHeightMap = new Uint32Array(WorkerEffectsVideoEngine.world.grid.sideLength).fill(WorkerEffectsVideoEngine.world.grid.sideLength);
@@ -274,8 +295,6 @@ class WorkerEffectsVideoEngine {
 
 			if (WorkerEffectsVideoEngine.settingsNew === true) {
 				WorkerEffectsVideoEngine.settingsNew = false;
-				cacheUpdate = true;
-
 				settingsDebug = WorkerEffectsVideoEngine.settings.debug;
 				settingsFPMS = Math.round((1000 / WorkerEffectsVideoEngine.settings.fps) * 1000) / 1000;
 				settingsGammaCorrection = WorkerEffectsVideoEngine.settings.gammaCorrection;
@@ -285,33 +304,27 @@ class WorkerEffectsVideoEngine {
 
 			if (WorkerEffectsVideoEngine.reportNew === true) {
 				WorkerEffectsVideoEngine.reportNew = false;
-				cacheUpdate = true;
-
 				report = WorkerEffectsVideoEngine.report;
 				if (offscreenCanvasHeightPx !== report.canvasHeight || offscreenCanvasWidthPx !== report.canvasWidth) {
 					offscreenCanvasHeightPx = report.canvasHeight;
 					offscreenCanvasWidthPx = report.canvasWidth;
 
 					// Canvas
-					cacheParticles.height = offscreenCanvasHeightPx;
-					cacheParticles.width = offscreenCanvasWidthPx;
 					offscreenCanvas.height = offscreenCanvasHeightPx;
 					offscreenCanvas.width = offscreenCanvasWidthPx;
 
-					GamingCanvas.renderStyle([cacheParticlesContext, offscreenCanvasContext], settingsRenderStyle);
+					GamingCanvas.renderStyle([offscreenCanvasContext], settingsRenderStyle);
 
 					// Gradient
-					cacheParticlesUniversalGradient = cacheParticlesContext.createLinearGradient(0, 0, 0, offscreenCanvasHeightPx);
-					cacheParticlesUniversalGradient.addColorStop(0, 'transparent');
-					cacheParticlesUniversalGradient.addColorStop(0.25, 'transparent');
-					cacheParticlesUniversalGradient.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
+					offscreenCanvasUniversalGradient = offscreenCanvasContext.createLinearGradient(0, 0, 0, offscreenCanvasHeightPx);
+					offscreenCanvasUniversalGradient.addColorStop(0, 'transparent');
+					offscreenCanvasUniversalGradient.addColorStop(0.25, 'transparent');
+					offscreenCanvasUniversalGradient.addColorStop(1, 'rgba(0, 0, 0, 0.25)');
 				}
 			}
 
 			if (WorkerEffectsVideoEngine.viewNew === true) {
 				WorkerEffectsVideoEngine.viewNew = false;
-				cacheUpdate = true;
-
 				// Camera
 				gridCamera.decode(WorkerEffectsVideoEngine.view.gridCameraEncoded);
 
@@ -328,131 +341,6 @@ class WorkerEffectsVideoEngine {
 				gridViewportWidthStopEff = Math.min(gridSideLength * gridSideLength, (gridViewport.widthStop + 1) | 0);
 			}
 
-			// Cache
-			if (cacheUpdate === true) {
-				cacheUpdate = false;
-
-				// Reset height map
-				for (x = 0; x < gridSideLength; x++) {
-					heightMap.set(x, gridSideLength);
-				}
-
-				cacheParticlesContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
-				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
-
-				// Draw: Base Pass
-				cacheParticlesContext.globalAlpha = 1;
-				for (gridIndex of particlesSolid.keys()) {
-					y = gridIndex % gridSideLength;
-					x = (gridIndex - y) / gridSideLength;
-
-					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
-						particleInitialBase = <ParticleInitialBase>particlesSolid.get(gridIndex);
-
-						// Find the highest particle
-						if (y < <number>heightMap.get(x)) {
-							heightMap.set(x, y);
-						}
-
-						switch (particleInitialBase.typeValue) {
-							case SolidType.DIRT:
-								cacheParticlesContext.fillStyle = '#905015';
-								break;
-							case SolidType.LAVA:
-								if ((x % 2) + (y % 2) === (timestampNow % 400 > 200 ? 1 : 0)) {
-									cacheParticlesContext.fillStyle = '#ee0000';
-								} else {
-									cacheParticlesContext.fillStyle = '#e70000';
-								}
-								break;
-							case SolidType.ROCK:
-								if (timestampNow % 200 > 100 === true) {
-									cacheParticlesContext.fillStyle = '#a01000';
-								} else {
-									cacheParticlesContext.fillStyle = '#901000';
-								}
-								break;
-							case SolidType.WATER:
-								if ((x % 2) + (y % 2) === (timestampNow % 400 > 200 ? 1 : 0)) {
-									cacheParticlesContext.fillStyle = '#0000ee';
-								} else {
-									cacheParticlesContext.fillStyle = '#0000e7';
-								}
-								break;
-						}
-
-						cacheParticlesContext.fillRect(
-							(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
-							(y - gridViewportHeightStartEff) * gridViewportCellSizePx,
-							gridViewportCellSizePx,
-							gridViewportCellSizePx,
-						);
-					}
-				}
-
-				// Draw: Highlights
-				cacheParticlesContext.fillStyle = '#ffffff';
-				for ([x, y] of heightMap.entries()) {
-					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
-						y = particlesHeightMap[x];
-						y1 = gridHeightMap[x];
-
-						if (y1 !== gridSideLength && y - y1 > 0) {
-							continue;
-						}
-
-						// Hightlight
-						for (i = 0; i < shaderDepthHighlight; i++) {
-							if (particlesSolid.get(x * gridSideLength + y + i) !== undefined) {
-								cacheParticlesContext.globalAlpha = 0.15 / (1 + i);
-								cacheParticlesContext.fillRect(
-									(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
-									(y - gridViewportHeightStartEff + i) * gridViewportCellSizePx,
-									gridViewportCellSizePx,
-									gridViewportCellSizePx,
-								);
-							} else {
-								break;
-							}
-						}
-					}
-				}
-
-				// // Draw: Tanks
-				// for(gridIndex of particlesTank.keys()) {
-				// 	y = gridIndex % gridSideLength;
-				// 	x = (gridIndex - y) / gridSideLength;
-
-				// 	if(x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
-				// 		particleInitialBase = <ParticleInitialBase>particlesTank.get(gridIndex);
-				// 	}
-				// }
-
-				// Draw: Weapons
-				cacheParticlesContext.fillStyle = '#ffffff';
-				for (gridIndex of particlesWeapon.keys()) {
-					y = gridIndex % gridSideLength;
-					x = (gridIndex - y) / gridSideLength;
-
-					if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
-						particleInitialBase = <ParticleInitialBase>particlesWeapon.get(gridIndex);
-						cacheParticlesContext.fillRect(
-							(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
-							(y - gridViewportHeightStartEff) * gridViewportCellSizePx,
-							gridViewportCellSizePx,
-							gridViewportCellSizePx,
-						);
-					}
-				}
-
-				// Draw: Final pass (universal shading)
-				cacheParticlesContext.globalAlpha = 1;
-				cacheParticlesContext.globalCompositeOperation = 'source-atop';
-				cacheParticlesContext.fillStyle = cacheParticlesUniversalGradient;
-				cacheParticlesContext.fillRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
-				cacheParticlesContext.globalCompositeOperation = 'source-over';
-			}
-
 			// Animate
 			if (timestampDelta >= settingsFPMS) {
 				// More accurately calculate for more stable FPS
@@ -463,8 +351,15 @@ class WorkerEffectsVideoEngine {
 				frameCount++;
 				offscreenCanvasContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
 
-				// Draw: Dirt Inactive
-				offscreenCanvasContext.drawImage(cacheParticles, 0, 0);
+				// Effects
+				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
+
+				// Effects: Final highlight
+				offscreenCanvasContext.globalAlpha = 1;
+				offscreenCanvasContext.globalCompositeOperation = 'source-atop';
+				offscreenCanvasContext.fillStyle = offscreenCanvasUniversalGradient;
+				offscreenCanvasContext.fillRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
+				offscreenCanvasContext.globalCompositeOperation = 'source-over';
 
 				// Done
 				statAll.watchStop();

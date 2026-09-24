@@ -222,7 +222,7 @@ class WorkerMainCalcEngine {
 			particleLast: Particle<any>,
 			particlePool: GamingCanvasDoubleLinkedList<Particle<any>> = WorkerMainCalcEngine.particlePool,
 			particlePoolInstance: Particle<any> | undefined,
-			particlePoolInstanceNode: GamingCanvasDoubleLinkedListNode<Particle<any>>,
+			particlePoolInstanceNode: GamingCanvasDoubleLinkedListNode<Particle<any>> | undefined,
 			particles: GamingCanvasDoubleLinkedList<Particle<any>> = new GamingCanvasDoubleLinkedList(),
 			particlesEncoded: Uint32Array | undefined,
 			physicsGravity: number = 0.0005,
@@ -317,28 +317,32 @@ class WorkerMainCalcEngine {
 			posX: number = 0,
 			posY: number = 0,
 		): Particle<any> => {
-			particlePoolInstance = particlePool.popStart();
-			if (particlePoolInstance === undefined) {
-				particlePoolInstance = {
-					arctan: 0,
-					arctanOriginal: 0,
-					gridIndex: gridIndex,
-					health: health,
-					id: particleId++,
-					node: <any>undefined,
-					payload: undefined,
-					posX: posX,
-					posXOriginal: posX,
-					posY: posY,
-					posYOriginal: posY,
-					type: particleType,
-					typeValue: particleTypeValue,
-					velX: 0,
-					velXScaled: 0,
-					velY: 0,
-					velYScaled: 0,
+			particlePoolInstanceNode = particlePool.popStartNode();
+			if (particlePoolInstanceNode === undefined) {
+				particlePoolInstanceNode = {
+					data: {
+						arctan: 0,
+						arctanOriginal: 0,
+						gridIndex: gridIndex,
+						health: health,
+						id: particleId++,
+						node: <any>undefined,
+						payload: undefined,
+						posX: posX,
+						posXOriginal: posX,
+						posY: posY,
+						posYOriginal: posY,
+						type: particleType,
+						typeValue: particleTypeValue,
+						velX: 0,
+						velXScaled: 0,
+						velY: 0,
+						velYScaled: 0,
+					},
 				};
+				particlePoolInstance = particlePoolInstanceNode.data;
 			} else {
+				particlePoolInstance = particlePoolInstanceNode.data;
 				particlePoolInstance.arctan = 0;
 				particlePoolInstance.arctanOriginal = 0;
 				particlePoolInstance.gridIndex = gridIndex;
@@ -359,7 +363,7 @@ class WorkerMainCalcEngine {
 
 			// Done
 			particleMap.set(gridIndex, particlePoolInstance);
-			particlePoolInstance.node = particles.pushEnd(particlePoolInstance);
+			particlePoolInstance.node = particles.pushEndNode(particlePoolInstanceNode);
 
 			return particlePoolInstance;
 		};
