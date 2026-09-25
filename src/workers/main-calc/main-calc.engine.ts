@@ -844,6 +844,18 @@ class WorkerMainCalcEngine {
 													collisionNextParticle.velX += particle.velX;
 												}
 												if (collisionY === true) {
+													if(Math.abs(particle.velY) > 1) {
+														xNext = collisionNextParticle.posX | 0;
+														yNext = collisionNextParticle.posY | 0;
+
+														// Splash
+														physicsSplashes.push(
+															((xNext & 0xfff) << 20 ) | 
+															((yNext & 0xfff) << 8) |
+															(collisionNextParticle.typeValue & 0xff)
+														);
+													}
+													
 													particle.posY = posYInteger;
 													particle.velY *= 0.5;
 													collisionNextParticle.velY += particle.velY;
@@ -904,6 +916,18 @@ class WorkerMainCalcEngine {
 													collisionNextParticle.velX += particle.velX;
 												}
 												if (collisionY === true) {
+													if(Math.abs(particle.velY) > 1) {
+														xNext = collisionNextParticle.posX | 0;
+														yNext = collisionNextParticle.posY | 0;
+
+														// Splash
+														physicsSplashes.push(
+															((xNext & 0xfff) << 20 ) | 
+															((yNext & 0xfff) << 8) |
+															(collisionNextParticle.typeValue & 0xff)
+														);
+													}
+
 													particle.posY = posYInteger;
 													particle.velY *= 0.5;
 													collisionNextParticle.velY += particle.velY;
@@ -1174,7 +1198,6 @@ class WorkerMainCalcEngine {
 							// Calc: Liquid Swap (swap liquid with solid as solid moves through the liquid)
 							if (collisionNextResultLiquidSwap === true) {
 								collisionNextResultLiquidSwap = false;
-								console.log("collisionNextResultLiquidSwap");
 
 								if (collisionNextParticle === undefined) {
 									console.error('MainCalc > collision: Liquid swap failed');
