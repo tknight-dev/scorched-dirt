@@ -363,7 +363,6 @@ class WorkerParticlesVideoEngine {
 				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
 
 				// Draw: Base Pass
-				cacheParticlesContext.globalAlpha = 1;
 				for (gridIndex of particlesSolid.keys()) {
 					y = gridIndex % gridSideLength;
 					x = (gridIndex - y) / gridSideLength;
@@ -406,6 +405,7 @@ class WorkerParticlesVideoEngine {
 						);
 					}
 				}
+				cacheParticlesContext.globalAlpha = 1;
 
 				// Draw: Highlights
 				cacheParticlesContext.fillStyle = '#ffffff';
@@ -434,6 +434,7 @@ class WorkerParticlesVideoEngine {
 						}
 					}
 				}
+				cacheParticlesContext.globalAlpha = 1;
 
 				// // Draw: Tanks
 				// for(gridIndex of particlesTank.keys()) {
@@ -463,7 +464,6 @@ class WorkerParticlesVideoEngine {
 				}
 
 				// Draw: Final pass (universal shading)
-				cacheParticlesContext.globalAlpha = 1;
 				cacheParticlesContext.globalCompositeOperation = 'source-atop';
 				cacheParticlesContext.fillStyle = cacheParticlesUniversalGradient;
 				cacheParticlesContext.fillRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);

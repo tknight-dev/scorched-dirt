@@ -174,6 +174,9 @@ class WorkerEffectsVideoEngine {
 			effects: GamingCanvasDoubleLinkedList<Effect> = new GamingCanvasDoubleLinkedList<Effect>(),
 			effectsPool: GamingCanvasDoubleLinkedList<Effect> = new GamingCanvasDoubleLinkedList<Effect>(),
 			effectsPoolSize: number = 200,
+			effectStateRandom1: boolean,
+			effectStateRandom2: boolean,
+			effectStateTimer: boolean,
 			effectTimestampDelta: number,
 			frameCount: number = 0,
 			gridCamera: GamingCanvasGridCamera = new GamingCanvasGridCamera(),
@@ -368,64 +371,71 @@ class WorkerEffectsVideoEngine {
 					effectNodeNext = effectNode.next;
 					effectTimestampDelta = timestampNow - effect.timestamp;
 
+					// Randoms
+					effectStateRandom1 = effect.randomSeed1 > 0.5 === true;
+					effectStateRandom2 = effect.randomSeed2 > 0.5 === true;
+
 					// Effect
-					if(effectTimestampDelta > 1000) {
-						effects.remove(effectNode);
-					}else {
-						x = effect.x;
-						y = effect.y;
+					switch(effect.type) {
+					case EffectType.SPLASH:
+						if(effectStateRandom1 === true ? effectTimestampDelta > 1000 : effectTimestampDelta > 1250) {
+							effects.remove(effectNode);
+						}else {
+							x = effect.x;
+							y = effect.y;
 
-						if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
-							offscreenCanvasContext.globalAlpha = 1;
-
-							switch(effect.collisionType) {
-								case SolidType.LAVA:
-									offscreenCanvasContext.fillStyle = "#ff6020";
-									break;
-								case SolidType.WATER:
-									if(effectTimestampDelta % 500 > 250) {
-										if ((x % 2) + (y % 2) > 1) {
-											offscreenCanvasContext.fillStyle = "#0040dd";
+							if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
+								// Water color
+								switch(effect.collisionType) {
+									case SolidType.LAVA:
+										effectStateTimer = effectTimestampDelta % 500 > 250;
+										if((effectStateRandom1 === true ? effectStateTimer : !effectStateTimer) === true) {
+											offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? "#ff6020" : "#ee5010";
 										}else {
-											offscreenCanvasContext.fillStyle = "#1050ee";
+											offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? "#ff6020" : "#dd4000";
 										}
-									}else {
-										if ((x % 2) + (y % 2) > 1) {
-											offscreenCanvasContext.fillStyle = "#1050ee";
+										break;
+									case SolidType.WATER:
+										effectStateTimer = effectTimestampDelta % 500 > 250;
+										if((effectStateRandom1 === true ? effectStateTimer : !effectStateTimer) === true) {
+											offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? "#1050ee" : "#0040dd";
 										}else {
-											offscreenCanvasContext.fillStyle = "#0030cc";
+											offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? "#1050ee" : "#0030cc";
 										}
-									}
-									break;
-								default:
-									console.error('EffectsVideo: unexpected splash type "', effect.collisionType,'"');
-									break;
-							}
-
-							offscreenCanvasContext.fillRect(
-								(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
-								(y - gridViewportHeightStartEff) * gridViewportCellSizePx,
-								gridViewportCellSizePx,
-								gridViewportCellSizePx,
-							);
-
-							offscreenCanvasContext.fillStyle = "#ffffff";
-							offscreenCanvasContext.globalAlpha = 0.1;
-							for(i = -1; i < 2; i++) {
-								if(i === 0) {
-									offscreenCanvasContext.globalAlpha = 0.15;
-								}else {
-									offscreenCanvasContext.globalAlpha = 0.1;
+										break;
+									default:
+										console.error('EffectsVideo: unexpected splash type "', effect.collisionType,'"');
+										break;
 								}
 
 								offscreenCanvasContext.fillRect(
-									(x - gridViewportWidthStartEff + i) * gridViewportCellSizePx,
-									(y - gridViewportHeightStartEff - 1) * gridViewportCellSizePx,
+									(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+									(y - gridViewportHeightStartEff) * gridViewportCellSizePx,
 									gridViewportCellSizePx,
-									gridViewportCellSizePx * 2,
+									gridViewportCellSizePx,
 								);
+
+								// Bubbles / Foam / Spray
+								offscreenCanvasContext.fillStyle = "#ffffff";
+								for(i = -1; i < 2; i++) {
+									effectStateTimer = effectTimestampDelta % 500 > 250;
+									if((effectStateRandom2 === true ? effectStateTimer : !effectStateTimer) === true) {
+										offscreenCanvasContext.globalAlpha = i === 0 ? 0.1 : 0.05;
+									} else {
+										offscreenCanvasContext.globalAlpha = i === 0 ? 0.15 : 0.1;
+									}
+
+									offscreenCanvasContext.fillRect(
+										(x - gridViewportWidthStartEff + i) * gridViewportCellSizePx,
+										(y - gridViewportHeightStartEff - 1) * gridViewportCellSizePx,
+										gridViewportCellSizePx,
+										gridViewportCellSizePx * 2,
+									);
+								}
+								offscreenCanvasContext.globalAlpha = 1;
 							}
 						}
+						break;
 					}
 
 					// Done

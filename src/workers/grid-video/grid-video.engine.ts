@@ -343,7 +343,6 @@ class WorkerGridVideoEngine {
 				cacheUpdate = false;
 
 				cacheGridContext.clearRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
-				cacheGridContext.globalAlpha = 1;
 				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
 
 				// Draw: Base Pass
@@ -451,9 +450,9 @@ class WorkerGridVideoEngine {
 						);
 					}
 				}
+				cacheGridContext.globalAlpha = 1;
 
 				// Draw: Final pass (universal shading)
-				cacheGridContext.globalAlpha = 1;
 				cacheGridContext.globalCompositeOperation = 'source-atop';
 				cacheGridContext.fillStyle = cacheGridUniversalGradient;
 				cacheGridContext.fillRect(0, 0, offscreenCanvasWidthPx, offscreenCanvasHeightPx);
