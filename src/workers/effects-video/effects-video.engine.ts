@@ -418,6 +418,11 @@ class WorkerEffectsVideoEngine {
 								// Bubbles / Foam / Spray
 								offscreenCanvasContext.fillStyle = "#ffffff";
 								for(i = -1; i < 2; i++) {
+									if(y > gridHeightMap[x + i]) {
+										// Don't splash over grid
+										continue;
+									}
+
 									effectStateTimer = effectTimestampDelta % 500 > 250;
 									if((effectStateRandom2 === true ? effectStateTimer : !effectStateTimer) === true) {
 										offscreenCanvasContext.globalAlpha = i === 0 ? 0.05 : 0.025;
