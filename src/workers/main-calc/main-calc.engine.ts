@@ -469,6 +469,7 @@ class WorkerMainCalcEngine {
 				particleNode = particles.start;
 				while (particleNode !== undefined) {
 					particle = particleNode.data;
+					particleNodeNext = particleNode.next;
 					gridIndex = (particle.posX | 0) * gridSideLength + (particle.posY | 0);
 
 					// Friction: Limit the effect of gravity to simulate terminal velocity
@@ -507,7 +508,7 @@ class WorkerMainCalcEngine {
 					}
 
 					// Done
-					particleNode = particleNode.next;
+					particleNode = particleNodeNext;
 				}
 
 				// Calc: Motion
@@ -517,6 +518,7 @@ class WorkerMainCalcEngine {
 				particleNode = particles.start;
 				while (particleNode !== undefined) {
 					particle = particleNode.data;
+					particleNodeNext = particleNode.next;
 
 					xVel = particle.velX < 0 ? -particle.velX : particle.velX;
 					if (xVel > velMaxAbs === true) {
@@ -529,7 +531,7 @@ class WorkerMainCalcEngine {
 					}
 
 					// Done
-					particleNode = particleNode.next;
+					particleNode = particleNodeNext;
 				}
 
 				/**
@@ -540,6 +542,7 @@ class WorkerMainCalcEngine {
 				particleNode = particles.start;
 				while (particleNode !== undefined) {
 					particle = particleNode.data;
+					particleNodeNext = particleNode.next;
 
 					if (velMaxAbs === 0) {
 						particle.velXScaled = 0;
@@ -564,7 +567,7 @@ class WorkerMainCalcEngine {
 					}
 
 					// Done
-					particleNode = particleNode.next;
+					particleNode = particleNodeNext;
 				}
 
 				// Calc: Physics
@@ -573,6 +576,7 @@ class WorkerMainCalcEngine {
 					collisionX = false;
 					collisionY = false;
 					particle = particleNode.data;
+					particleNodeNext = particleNode.next;
 					particleMapUpdate = true;
 
 					// Position: Current
@@ -639,7 +643,7 @@ class WorkerMainCalcEngine {
 								}
 
 								// Done
-								particleNode = particleNode.next;
+								particleNode = particleNodeNext;
 								continue; // skip the collision logic, the particle doesn't exist anymore
 							}
 						}
@@ -790,7 +794,7 @@ class WorkerMainCalcEngine {
 											if (particleMapUpdate === true) {
 												particleMap.set(particle.gridIndex, particle);
 											}
-											particleNode = particleNode.next;
+											particleNode = particleNodeNext;
 											continue;
 										}
 
@@ -889,7 +893,7 @@ class WorkerMainCalcEngine {
 												// Recover the particle if the pool is low
 												particlePool.pushEndNode(particle.node);
 											}
-											particleNode = particleNode.next;
+											particleNode = particleNodeNext;
 											continue;
 										case SolidType.WATER:
 											// console.log('COLLISION', 'WATER > WATER', particle.id);
@@ -1170,6 +1174,7 @@ class WorkerMainCalcEngine {
 							// Calc: Liquid Swap (swap liquid with solid as solid moves through the liquid)
 							if (collisionNextResultLiquidSwap === true) {
 								collisionNextResultLiquidSwap = false;
+								console.log("collisionNextResultLiquidSwap");
 
 								if (collisionNextParticle === undefined) {
 									console.error('MainCalc > collision: Liquid swap failed');
@@ -1212,15 +1217,20 @@ class WorkerMainCalcEngine {
 											particleLiquid.type !== ParticleType.SOLID ||
 											(particleLiquid.typeValue !== SolidType.LAVA && particleLiquid.typeValue !== SolidType.WATER)
 										) {
+											xNext = collisionNextParticle.posX | 0;
+											yNext = collisionNextParticle.posY | 0;
+
+											// Splash
 											physicsSplashes.push(
-												(((collisionNextParticle.posX | 0) & 0xfff) << 20 ) | 
-												(((collisionNextParticle.posY | 0) & 0xfff) << 8) |
+												((xNext & 0xfff) << 20 ) | 
+												((yNext & 0xfff) << 8) |
 												(collisionNextParticle.typeValue & 0xff)
 											);
 
 											// Water column must be resting on the ground
+											gridIndex = xNext * gridSideLength;
 											physicsLiquidAvailable = false;
-											for (yNext = y + 1; yNext < gridYLimit; yNext++) {
+											for (yNext = yNext + 2; yNext < gridYLimit; yNext++) {
 												gridIndexEff = gridIndex + yNext;
 
 												if (gridData[gridIndexEff] !== 0) {
@@ -1290,7 +1300,7 @@ class WorkerMainCalcEngine {
 						}
 						break;
 					}
-					particleNode = particleNode.next;
+					particleNode = particleNodeNext;
 				}
 
 				// shot = shots.start;
