@@ -378,7 +378,7 @@ class WorkerEffectsVideoEngine {
 					// Effect
 					switch(effect.type) {
 					case EffectType.SPLASH:
-						if(effectStateRandom1 === true ? effectTimestampDelta > 1000 : effectTimestampDelta > 1250) {
+						if(effectStateRandom1 === true ? effectTimestampDelta > 750 : effectTimestampDelta > 600) {
 							effects.remove(effectNode);
 						}else {
 							x = effect.x;
@@ -420,9 +420,9 @@ class WorkerEffectsVideoEngine {
 								for(i = -1; i < 2; i++) {
 									effectStateTimer = effectTimestampDelta % 500 > 250;
 									if((effectStateRandom2 === true ? effectStateTimer : !effectStateTimer) === true) {
-										offscreenCanvasContext.globalAlpha = i === 0 ? 0.1 : 0.05;
+										offscreenCanvasContext.globalAlpha = i === 0 ? 0.05 : 0.025;
 									} else {
-										offscreenCanvasContext.globalAlpha = i === 0 ? 0.15 : 0.1;
+										offscreenCanvasContext.globalAlpha = i === 0 ? 0.075 : 0.05;
 									}
 
 									offscreenCanvasContext.fillRect(

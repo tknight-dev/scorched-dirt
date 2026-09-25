@@ -844,7 +844,8 @@ class WorkerMainCalcEngine {
 													collisionNextParticle.velX += particle.velX;
 												}
 												if (collisionY === true) {
-													if(Math.abs(particle.velY) > 1) {
+													gridIndex = (collisionNextParticle.posX | 0) * gridSideLength + (collisionNextParticle.posY | 0);
+													if(Math.abs(particle.velY) > 0.5 && particleMap.has(gridIndex - 3) !== true && particleMap.has(gridIndex + 1) === true) {
 														xNext = collisionNextParticle.posX | 0;
 														yNext = collisionNextParticle.posY | 0;
 
@@ -916,7 +917,8 @@ class WorkerMainCalcEngine {
 													collisionNextParticle.velX += particle.velX;
 												}
 												if (collisionY === true) {
-													if(Math.abs(particle.velY) > 1) {
+													gridIndex = (collisionNextParticle.posX | 0) * gridSideLength + (collisionNextParticle.posY | 0);
+													if(Math.abs(particle.velY) > 0.5 && particleMap.has(gridIndex - 5) !== true && particleMap.has(gridIndex + 1) === true) {
 														xNext = collisionNextParticle.posX | 0;
 														yNext = collisionNextParticle.posY | 0;
 
