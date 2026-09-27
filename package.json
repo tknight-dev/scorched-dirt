@@ -4,8 +4,8 @@
     "name": "scorched-dirt",
     "license": "CC-BY-NC-4.0",
     "scripts": {
-        "assets:build": "node assets.mjs",
-        "assets:watch": "nodemon --ext \"*\" --exec \"node assets.mjs\" --watch assets",
+        "assets:build": "node ./node_modules/@tknight-dev/gaming-canvas/dist/modules/asset-manager-node/assets.mjs",
+        "assets:watch": "nodemon --ext \"*\" --exec \"node ./node_modules/@tknight-dev/gaming-canvas/dist/modules/asset-manager-node/assets.mjs\" --watch assets",
         "dev": "rimraf dist && concurrently --kill-others \"yarn assets:watch\" \"node esbuild.mjs dev\" -n A,C --pad-prefix",
         "lint": "prettier assets.mjs esbuild.mjs src/. --write",
         "prod": "rimraf dist && yarn assets:build && node esbuild.mjs"

@@ -1,6 +1,7 @@
 import { GamingCanvas } from './gaming-canvas/main/gaming-canvas.js';
 import { GamingCanvasGridCamera, GamingCanvasGridViewport } from './gaming-canvas/modules/grid/index.js';
 import { GamingCanvasStat, GamingCanvasStatCalcType } from './gaming-canvas/main/stat.js';
+import { ModuleAssets } from './modules/assets.js';
 import { ModuleBridge } from './modules/bridge.js';
 import { ModuleDOM } from './modules/dom.js';
 import { ModuleGame } from './modules/game.js';
@@ -212,8 +213,8 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			WorkerEffectsVideoBus.initialize(ModuleDOM.canvases[2], gridCamera, gridViewport, ModuleSettings.data.workerEffectsVideo, world, () => {
 				console.log('WorkerEffectsVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
-					// Done
-					then = performance.now();
+				// Done
+				then = performance.now();
 				WorkerGridVideoBus.initialize(ModuleDOM.canvases[0], gridCamera, gridViewport, ModuleSettings.data.workerGridVideo, world, () => {
 					console.log('WorkerGridVideoBus: Loaded in', (performance.now() - then) | 0, 'ms');
 
@@ -249,6 +250,7 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 		await ModuleInput.initialize();
 
 		// Initialize: Final hooks
+		await ModuleAssets.initialize();
 		await ModuleBridge.initialize();
 		await ScorchedDirt.initializeCallbacks();
 		await ScorchedDirt.initializeDOM();

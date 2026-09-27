@@ -3,6 +3,8 @@ import { mkdir } from 'node:fs/promises';
 import path from 'path';
 import { ZipArchive } from 'archiver';
 
+console.log('process.argv', process.argv);
+
 setTimeout(async () => {
 	// Prep
 	const __dirname = path.resolve(path.dirname(''));
