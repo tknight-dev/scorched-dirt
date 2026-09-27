@@ -1,8 +1,12 @@
-import { GamingCanvas, GamingCanvasDoubleLinkedList, GamingCanvasDoubleLinkedListNode, GamingCanvasRenderStyle, GamingCanvasReport, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
-import { GamingCanvasGridCamera, GamingCanvasGridUint32Array, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
 import {
-	ParticleInitialBase,
-} from '../../models/physics.model.js';
+	GamingCanvas,
+	GamingCanvasDoubleLinkedList,
+	GamingCanvasDoubleLinkedListNode,
+	GamingCanvasRenderStyle,
+	GamingCanvasReport,
+	GamingCanvasStat,
+} from '../../gaming-canvas/main/index.js';
+import { GamingCanvasGridCamera, GamingCanvasGridUint32Array, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
 import { SolidType, World } from '../../models/world.model.js';
 import {
 	WorkerEffectsVideoBusInputCmd,
@@ -53,9 +57,9 @@ self.onmessage = (event: MessageEvent) => {
 };
 
 interface Effect {
-	collisionType: SolidType,
-	id: number,
-	node: GamingCanvasDoubleLinkedListNode<Effect>,
+	collisionType: SolidType;
+	id: number;
+	node: GamingCanvasDoubleLinkedListNode<Effect>;
 	randomSeed1: number;
 	randomSeed2: number;
 	timestamp: number;
@@ -180,10 +184,7 @@ class WorkerEffectsVideoEngine {
 			effectTimestampDelta: number,
 			frameCount: number = 0,
 			gridCamera: GamingCanvasGridCamera = new GamingCanvasGridCamera(),
-			gridData: Uint32Array,
-			gridDataValue: number,
 			gridHeightMap: Uint32Array,
-			gridIndex: number,
 			gridSideLength: number,
 			gridViewport: GamingCanvasGridViewport = new GamingCanvasGridViewport(1),
 			gridViewportCellSizePx: number,
@@ -196,15 +197,12 @@ class WorkerEffectsVideoEngine {
 			gridViewportWidthStartPx: number,
 			gridViewportWidthStopEff: number,
 			gridYLimit: number,
-			health: number,
-			heightMap: Map<number, number> = new Map(),
 			i: number,
 			offscreenCanvas: OffscreenCanvas = WorkerEffectsVideoEngine.offscreenCanvas,
 			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerEffectsVideoEngine.offscreenCanvasContext,
 			offscreenCanvasHeightPx: number = -1,
 			offscreenCanvasWidthPx: number = -1,
 			offscreenCanvasUniversalGradient: CanvasGradient,
-			particleInitialBase: ParticleInitialBase,
 			particlesHeightMap: Uint32Array,
 			randomNumberLength: number = 100,
 			randomNumbers: number[] = [...Array(randomNumberLength)].map((e) => Math.random()),
@@ -215,7 +213,6 @@ class WorkerEffectsVideoEngine {
 			settingsGammaCorrection: number,
 			settingsGrayscale: boolean,
 			settingsRenderStyle: GamingCanvasRenderStyle,
-			shaderDepthHighlight: number = 3,
 			statAll: GamingCanvasStat = WorkerEffectsVideoEngine.stats[WorkerEffectsVideoBusStats.ALL],
 			statAllRaw: Float32Array,
 			timestampDelta: number,
@@ -224,10 +221,7 @@ class WorkerEffectsVideoEngine {
 			world: World,
 			x: number,
 			y: number,
-			y1: number = -10,
-			y2: number = -10,
-			yMax: number,
-			yType: number = -10;
+			yMax: number;
 
 		const go = (timestampNow: number) => {
 			// Always start the request for the next frame first!
@@ -240,16 +234,16 @@ class WorkerEffectsVideoEngine {
 			if (WorkerEffectsVideoEngine.calcNew === true) {
 				WorkerEffectsVideoEngine.calcNew = false;
 
-				if(WorkerEffectsVideoEngine.calc.splashes !== undefined) {
-					for(i of WorkerEffectsVideoEngine.calc.splashes) {
+				if (WorkerEffectsVideoEngine.calc.splashes !== undefined) {
+					for (i of WorkerEffectsVideoEngine.calc.splashes) {
 						// Pull from pool first
 						effectNode = effectsPool.popStartNode();
-						if(effectNode === undefined) {
+						if (effectNode === undefined) {
 							effectNode = {
 								data: <Effect>{
 									id: effectIdCount++,
 								},
-							}
+							};
 							effectNode.data.node = effectNode;
 						}
 						effect = effectNode.data;
@@ -285,9 +279,9 @@ class WorkerEffectsVideoEngine {
 
 				// Effects
 				effectNode = effects.popStartNode();
-				while(effectNode !== undefined) {
+				while (effectNode !== undefined) {
 					// Return effect to pool if room available
-					if(effectsPool.length < effectsPoolSize) {
+					if (effectsPool.length < effectsPoolSize) {
 						effectsPool.pushEndNode(effectNode);
 					}
 
@@ -366,7 +360,7 @@ class WorkerEffectsVideoEngine {
 				yMax = Math.min(gridYLimit + 1, gridViewportHeightStopEff);
 				effectNode = effects.start;
 				let count = 0;
-				while(effectNode !== undefined) {
+				while (effectNode !== undefined) {
 					effect = effectNode.data;
 					effectNodeNext = effectNode.next;
 					effectTimestampDelta = timestampNow - effect.timestamp;
@@ -376,71 +370,71 @@ class WorkerEffectsVideoEngine {
 					effectStateRandom2 = effect.randomSeed2 > 0.5 === true;
 
 					// Effect
-					switch(effect.type) {
-					case EffectType.SPLASH:
-						if(effectStateRandom1 === true ? effectTimestampDelta > 750 : effectTimestampDelta > 600) {
-							effects.remove(effectNode);
-						}else {
-							x = effect.x;
-							y = effect.y;
+					switch (effect.type) {
+						case EffectType.SPLASH:
+							if (effectStateRandom1 === true ? effectTimestampDelta > 750 : effectTimestampDelta > 600) {
+								effects.remove(effectNode);
+							} else {
+								x = effect.x;
+								y = effect.y;
 
-							if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
-								// Water color
-								switch(effect.collisionType) {
-									case SolidType.LAVA:
-										effectStateTimer = effectTimestampDelta % 500 > 250;
-										if((effectStateRandom1 === true ? effectStateTimer : !effectStateTimer) === true) {
-											offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? "#ff6020" : "#ee5010";
-										}else {
-											offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? "#ff6020" : "#dd4000";
-										}
-										break;
-									case SolidType.WATER:
-										effectStateTimer = effectTimestampDelta % 500 > 250;
-										if((effectStateRandom1 === true ? effectStateTimer : !effectStateTimer) === true) {
-											offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? "#1050ee" : "#0040dd";
-										}else {
-											offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? "#1050ee" : "#0030cc";
-										}
-										break;
-									default:
-										console.error('EffectsVideo: unexpected splash type "', effect.collisionType,'"');
-										break;
-								}
-
-								offscreenCanvasContext.fillRect(
-									(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
-									(y - gridViewportHeightStartEff) * gridViewportCellSizePx,
-									gridViewportCellSizePx,
-									gridViewportCellSizePx,
-								);
-
-								// Bubbles / Foam / Spray
-								offscreenCanvasContext.fillStyle = "#ffffff";
-								for(i = -1; i < 2; i++) {
-									if(y > gridHeightMap[x + i]) {
-										// Don't splash over grid
-										continue;
-									}
-
-									effectStateTimer = effectTimestampDelta % 500 > 250;
-									if((effectStateRandom2 === true ? effectStateTimer : !effectStateTimer) === true) {
-										offscreenCanvasContext.globalAlpha = i === 0 ? 0.05 : 0.025;
-									} else {
-										offscreenCanvasContext.globalAlpha = i === 0 ? 0.075 : 0.05;
+								if (x >= gridViewportWidthStartEff && x <= gridViewportWidthStopEff && y >= gridViewportHeightStartEff && y <= yMax) {
+									// Water color
+									switch (effect.collisionType) {
+										case SolidType.LAVA:
+											effectStateTimer = effectTimestampDelta % 500 > 250;
+											if ((effectStateRandom1 === true ? effectStateTimer : !effectStateTimer) === true) {
+												offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? '#ff6020' : '#ee5010';
+											} else {
+												offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? '#ff6020' : '#dd4000';
+											}
+											break;
+										case SolidType.WATER:
+											effectStateTimer = effectTimestampDelta % 500 > 250;
+											if ((effectStateRandom1 === true ? effectStateTimer : !effectStateTimer) === true) {
+												offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? '#1050ee' : '#0040dd';
+											} else {
+												offscreenCanvasContext.fillStyle = (x % 2) + (y % 2) > 1 ? '#1050ee' : '#0030cc';
+											}
+											break;
+										default:
+											console.error('EffectsVideo: unexpected splash type "', effect.collisionType, '"');
+											break;
 									}
 
 									offscreenCanvasContext.fillRect(
-										(x - gridViewportWidthStartEff + i) * gridViewportCellSizePx,
-										(y - gridViewportHeightStartEff - 1) * gridViewportCellSizePx,
+										(x - gridViewportWidthStartEff) * gridViewportCellSizePx,
+										(y - gridViewportHeightStartEff) * gridViewportCellSizePx,
 										gridViewportCellSizePx,
-										gridViewportCellSizePx * 2,
+										gridViewportCellSizePx,
 									);
+
+									// Bubbles / Foam / Spray
+									offscreenCanvasContext.fillStyle = '#ffffff';
+									for (i = -1; i < 2; i++) {
+										if (y > gridHeightMap[x + i]) {
+											// Don't splash over grid
+											continue;
+										}
+
+										effectStateTimer = effectTimestampDelta % 500 > 250;
+										if ((effectStateRandom2 === true ? effectStateTimer : !effectStateTimer) === true) {
+											offscreenCanvasContext.globalAlpha = i === 0 ? 0.05 : 0.025;
+										} else {
+											offscreenCanvasContext.globalAlpha = i === 0 ? 0.075 : 0.05;
+										}
+
+										offscreenCanvasContext.fillRect(
+											(x - gridViewportWidthStartEff + i) * gridViewportCellSizePx,
+											(y - gridViewportHeightStartEff - 1) * gridViewportCellSizePx,
+											gridViewportCellSizePx,
+											gridViewportCellSizePx * 2,
+										);
+									}
+									offscreenCanvasContext.globalAlpha = 1;
 								}
-								offscreenCanvasContext.globalAlpha = 1;
 							}
-						}
-						break;
+							break;
 					}
 
 					// Done

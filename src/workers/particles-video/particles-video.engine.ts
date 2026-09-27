@@ -10,14 +10,10 @@ import {
 	particleEncodingShiftType,
 	particleEncodingShiftTypeValue,
 	particleEncodingShiftX,
-	ParticleInitial,
 	ParticleInitialBase,
 	ParticleType,
 } from '../../models/physics.model.js';
-import { Tank } from '../../models/tank.model.js';
-import { Weapon } from '../../models/weapon.model.js';
-import { Solid, SolidType, World, worldEncodingMaskType } from '../../models/world.model.js';
-import { WorkerMainCalcBusOutputData } from '../main-calc/main-calc.model.js';
+import { SolidType, World } from '../../models/world.model.js';
 import {
 	WorkerParticlesVideoBusInputCmd,
 	WorkerParticlesVideoBusInputDataCalcHeightMaps,
@@ -172,10 +168,7 @@ class WorkerParticlesVideoEngine {
 			cacheParticlesUniversalGradient: CanvasGradient,
 			cacheUpdate: boolean,
 			frameCount: number = 0,
-			grid: GamingCanvasGridUint32Array,
 			gridCamera: GamingCanvasGridCamera = new GamingCanvasGridCamera(),
-			gridData: Uint32Array,
-			gridDataValue: number,
 			gridHeightMap: Uint32Array,
 			gridIndex: number,
 			gridSideLength: number,
@@ -190,7 +183,6 @@ class WorkerParticlesVideoEngine {
 			gridViewportWidthStartPx: number,
 			gridViewportWidthStopEff: number,
 			gridYLimit: number,
-			health: number,
 			i: number,
 			offscreenCanvas: OffscreenCanvas = WorkerParticlesVideoEngine.offscreenCanvas,
 			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerParticlesVideoEngine.offscreenCanvasContext,
@@ -220,10 +212,8 @@ class WorkerParticlesVideoEngine {
 			world: World,
 			x: number,
 			y: number,
-			y1: number = -10,
-			y2: number = -10,
-			yMax: number,
-			yType: number = -10;
+			y1: number,
+			yMax: number;
 
 		const go = (timestampNow: number) => {
 			// Always start the request for the next frame first!

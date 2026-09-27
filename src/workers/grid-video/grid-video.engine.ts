@@ -1,23 +1,7 @@
 import { GamingCanvas, GamingCanvasRenderStyle, GamingCanvasReport, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
 import { GamingCanvasGridCamera, GamingCanvasGridUint32Array, GamingCanvasGridViewport } from '../../gaming-canvas/modules/grid/index.js';
-import {
-	particleEncodingMaskHealth,
-	particleEncodingMaskType,
-	particleEncodingMaskTypeValue,
-	particleEncodingMaskX,
-	particleEncodingMaskY,
-	particleEncodingShiftHealth,
-	particleEncodingShiftType,
-	particleEncodingShiftTypeValue,
-	particleEncodingShiftX,
-	ParticleInitial,
-	ParticleInitialBase,
-	ParticleType,
-} from '../../models/physics.model.js';
-import { Tank } from '../../models/tank.model.js';
-import { Weapon } from '../../models/weapon.model.js';
-import { Solid, SolidType, World, worldEncodingMaskType } from '../../models/world.model.js';
-import { WorkerMainCalcBusOutputData } from '../main-calc/main-calc.model.js';
+import { ParticleInitialBase } from '../../models/physics.model.js';
+import { SolidType, World, worldEncodingMaskType } from '../../models/world.model.js';
 import {
 	WorkerGridVideoBusInputCmd,
 	WorkerGridVideoBusInputDataCalcHeightMaps,
@@ -196,12 +180,7 @@ class WorkerGridVideoEngine {
 			offscreenCanvasContext: OffscreenCanvasRenderingContext2D = WorkerGridVideoEngine.offscreenCanvasContext,
 			offscreenCanvasHeightPx: number = -1,
 			offscreenCanvasWidthPx: number = -1,
-			particleInitialBase: ParticleInitialBase,
-			particlesEncoded: Uint32Array,
 			particlesHeightMap: Uint32Array,
-			particlesSolid: Map<number, ParticleInitialBase> = new Map(),
-			particlesTank: Map<number, ParticleInitialBase> = new Map(),
-			particlesWeapon: Map<number, ParticleInitialBase> = new Map(),
 			report: GamingCanvasReport = WorkerGridVideoEngine.report,
 			settingsDebug: boolean,
 			settingsFPMS: number = 16.666,
@@ -210,7 +189,6 @@ class WorkerGridVideoEngine {
 			settingsRenderStyle: GamingCanvasRenderStyle,
 			shaderDepthHighlight: number = 3,
 			shaderDepthHighlightEff: number,
-			shaderDepthHighlightDim: boolean,
 			statAll: GamingCanvasStat = WorkerGridVideoEngine.stats[WorkerGridVideoBusStats.ALL],
 			statAllRaw: Float32Array,
 			timestampDelta: number,

@@ -1,7 +1,6 @@
 import { GamingCanvasDoubleLinkedList, GamingCanvasDoubleLinkedListNode, GamingCanvasStat } from '../../gaming-canvas/main/index.js';
 import { GamingCanvasGridUint32Array } from '../../gaming-canvas/modules/grid/grid.js';
 import {
-	Solid,
 	SolidType,
 	World,
 	worldEncodingMaskHealth,
@@ -11,13 +10,11 @@ import {
 } from '../../models/world.model.js';
 import {
 	Particle,
-	particleEncodingMaskType,
 	particleEncodingShiftHealth,
 	particleEncodingShiftType,
 	particleEncodingShiftTypeValue,
 	particleEncodingShiftX,
 	ParticleInitial,
-	ParticleInitialBase,
 	ParticleType,
 } from '../../models/physics.model.js';
 import { WindStrength, WorldSize } from '../../models/settings.model.js';
@@ -32,7 +29,7 @@ import {
 	WorkerMainCalcBusOutputPayload,
 	WorkerMainCalcBusStats,
 } from './main-calc.model.js';
-import { Tank, TankType } from '../../models/tank.model.js';
+import { Tank } from '../../models/tank.model.js';
 
 /**
  * @author tknight-dev
@@ -187,11 +184,8 @@ class WorkerMainCalcEngine {
 		let buffers: ArrayBufferLike[] = [],
 			collisionX: boolean,
 			collisionY: boolean,
-			collisionLiquidRedistribution: boolean,
-			collisionNextEdge: boolean,
 			collisionNextGridIndex: number,
 			collisionNextParticle: Particle<any> | undefined,
-			collisionNextResultBrick: boolean,
 			collisionNextResultLiquidSwap: boolean,
 			collisionNextResultHardStop: boolean,
 			collisionNextType: number,
@@ -208,18 +202,13 @@ class WorkerMainCalcEngine {
 			heightMapGrid: number[],
 			heightMapParticles: number[],
 			i: number,
-			j: number,
 			particle: Particle<any>,
 			particleId: number = 0,
 			particleLiquid: Particle<any> | undefined,
 			particleMap: Map<number, Particle<any>> = new Map(), // <gridPostion, particle>
 			particleMapUpdate: boolean,
-			particleMotionComplete: boolean,
-			particleNext: Particle<any> | undefined,
-			particlePrevious: Particle<any> | undefined,
 			particleNode: GamingCanvasDoubleLinkedListNode<Particle<any>> | undefined,
 			particleNodeNext: GamingCanvasDoubleLinkedListNode<Particle<any>> | undefined,
-			particleLast: Particle<any>,
 			particlePool: GamingCanvasDoubleLinkedList<Particle<any>> = WorkerMainCalcEngine.particlePool,
 			particlePoolInstance: Particle<any> | undefined,
 			particlePoolInstanceNode: GamingCanvasDoubleLinkedListNode<Particle<any>> | undefined,
@@ -233,12 +222,8 @@ class WorkerMainCalcEngine {
 			physicsLiquidDirectionMomentum: number = 0.0105,
 			physicsLiquidDirectionMomentumMax: number = 0.01,
 			physicsLiquidDirections: number[] = [1, -1],
-			physicsLiquidGridIndex: number,
-			physicsLiquidGridIndexLeft: number,
-			physicsLiquidGridIndexRight: number,
 			physicsLiquidMoved: boolean,
 			physicsLiquidOverAirCount: number,
-			physicsLiquidParticle: Particle<any> | undefined,
 			physicsResistanceFriction: number = 0.95, // The closer to 1 the less this has effect
 			physicsResistanceLiquidLimitY: number = 0.2,
 			physicsResistanceLiquidSurfaceTensionX: number = 0.95, // The closer to 0 the less horizontal motion per swap
@@ -246,19 +231,11 @@ class WorkerMainCalcEngine {
 			physicsResistanceSecondary: number = 0.5, // Collision X will reduce velocity Y by this amount
 			physicsSplashes: number[] = [],
 			physicsSplashesEncoded: Uint32Array | undefined,
-			physicsTranslated: boolean,
 			physicsVelocityMin: number = 0.01,
-			posNextIndex: number,
-			posX: number,
 			posXInteger: number,
 			posXIntegerNext: number,
-			posXIntegerNextOriginal: number,
-			posXOriginal: number,
-			posY: number,
 			posYInteger: number,
 			posYIntegerNext: number,
-			posYIntegerNextOriginal: number,
-			posYOriginal: number,
 			randomNumberLength: number = 100,
 			randomNumbers: number[] = [...Array(randomNumberLength)].map((e) => Math.random()),
 			randomNumbersIndex: number = 0,
@@ -272,25 +249,15 @@ class WorkerMainCalcEngine {
 			settingsParticlePoolSize: number,
 			settingsWindRandomize: boolean,
 			settingsWindStrength: WindStrength,
-			solidType: number,
 			statAll: GamingCanvasStat = WorkerMainCalcEngine.stats[WorkerMainCalcBusStats.ALL],
 			statAllRaw: Float32Array,
-			velChanged: boolean,
 			velMaxAbs: number,
-			velStep: number,
-			velStepFirst: boolean,
-			velStepOriginal: number,
-			velStepPrevious: number,
-			velStepPreviousOriginal: number,
-			velY: number,
 			world: World,
 			worldBedrock: boolean,
 			x: number,
-			xIncrement: number,
 			xNext: number,
 			xVel: number,
 			y: number,
-			yIncrement: number,
 			yNext: number,
 			yVel: number;
 
@@ -609,7 +576,6 @@ class WorkerMainCalcEngine {
 									particle.posX = gridSideLength;
 								}
 
-								collisionNextEdge = true;
 								collisionX = true;
 								particle.velX = 0;
 							}
@@ -620,7 +586,6 @@ class WorkerMainCalcEngine {
 						// Position: Y max check
 						if (posYIntegerNext >= gridYLimit) {
 							if (worldBedrock === true) {
-								collisionNextEdge = true;
 								collisionNextGridIndex = posXIntegerNext * gridSideLength + posYIntegerNext;
 								collisionNextParticle = undefined;
 								collisionNextType = SolidType.ROCK;
@@ -658,7 +623,6 @@ class WorkerMainCalcEngine {
 								collisionNextParticle = particleMap.get(gridIndex);
 
 								if (gridData[gridIndex] !== 0 || (collisionNextParticle !== undefined && collisionNextParticle.id !== particle.id)) {
-									collisionNextEdge = false;
 									collisionNextGridIndex = gridIndex;
 									collisionX = true;
 
@@ -676,7 +640,6 @@ class WorkerMainCalcEngine {
 								collisionNextParticle = particleMap.get(gridIndex);
 
 								if (gridData[gridIndex] !== 0 || (collisionNextParticle !== undefined && collisionNextParticle.id !== particle.id)) {
-									collisionNextEdge = false;
 									collisionNextGridIndex = gridIndex;
 									collisionY = true;
 
@@ -694,7 +657,6 @@ class WorkerMainCalcEngine {
 								collisionNextParticle = particleMap.get(gridIndex);
 
 								if (gridData[gridIndex] !== 0 || (collisionNextParticle !== undefined && collisionNextParticle.id !== particle.id)) {
-									collisionNextEdge = false;
 									collisionNextGridIndex = gridIndex;
 									collisionX = true;
 									collisionY = true;
@@ -845,18 +807,20 @@ class WorkerMainCalcEngine {
 												}
 												if (collisionY === true) {
 													gridIndex = (collisionNextParticle.posX | 0) * gridSideLength + (collisionNextParticle.posY | 0);
-													if(Math.abs(particle.velY) > 0.5 && particleMap.has(gridIndex - 3) !== true && particleMap.has(gridIndex + 1) === true) {
+													if (
+														Math.abs(particle.velY) > 0.5 &&
+														particleMap.has(gridIndex - 3) !== true &&
+														particleMap.has(gridIndex + 1) === true
+													) {
 														xNext = collisionNextParticle.posX | 0;
 														yNext = collisionNextParticle.posY | 0;
 
 														// Splash
 														physicsSplashes.push(
-															((xNext & 0xfff) << 20 ) | 
-															((yNext & 0xfff) << 8) |
-															(collisionNextParticle.typeValue & 0xff)
+															((xNext & 0xfff) << 20) | ((yNext & 0xfff) << 8) | (collisionNextParticle.typeValue & 0xff),
 														);
 													}
-													
+
 													particle.posY = posYInteger;
 													particle.velY *= 0.5;
 													collisionNextParticle.velY += particle.velY;
@@ -918,15 +882,17 @@ class WorkerMainCalcEngine {
 												}
 												if (collisionY === true) {
 													gridIndex = (collisionNextParticle.posX | 0) * gridSideLength + (collisionNextParticle.posY | 0);
-													if(Math.abs(particle.velY) > 0.5 && particleMap.has(gridIndex - 5) !== true && particleMap.has(gridIndex + 1) === true) {
+													if (
+														Math.abs(particle.velY) > 0.5 &&
+														particleMap.has(gridIndex - 5) !== true &&
+														particleMap.has(gridIndex + 1) === true
+													) {
 														xNext = collisionNextParticle.posX | 0;
 														yNext = collisionNextParticle.posY | 0;
 
 														// Splash
 														physicsSplashes.push(
-															((xNext & 0xfff) << 20 ) | 
-															((yNext & 0xfff) << 8) |
-															(collisionNextParticle.typeValue & 0xff)
+															((xNext & 0xfff) << 20) | ((yNext & 0xfff) << 8) | (collisionNextParticle.typeValue & 0xff),
 														);
 													}
 
@@ -1246,11 +1212,7 @@ class WorkerMainCalcEngine {
 											yNext = collisionNextParticle.posY | 0;
 
 											// Splash
-											physicsSplashes.push(
-												((xNext & 0xfff) << 20 ) | 
-												((yNext & 0xfff) << 8) |
-												(collisionNextParticle.typeValue & 0xff)
-											);
+											physicsSplashes.push(((xNext & 0xfff) << 20) | ((yNext & 0xfff) << 8) | (collisionNextParticle.typeValue & 0xff));
 
 											// Water column must be resting on the ground
 											gridIndex = xNext * gridSideLength;
@@ -1471,7 +1433,7 @@ class WorkerMainCalcEngine {
 					buffers.push(physicsSplashesEncoded.buffer);
 
 					physicsSplashes.length = 0;
-				}else {
+				} else {
 					physicsSplashesEncoded = undefined;
 				}
 
