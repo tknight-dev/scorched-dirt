@@ -93,9 +93,11 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 			ScorchedDirt.displayStatFPS();
 		});
 		WorkerMainCalcBus.setCallbackStats((data: WorkerMainCalcBusOutputDataStats) => {
-			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all);
+			const all: GamingCanvasStat = GamingCanvasStat.decode(data.all),
+				audio: GamingCanvasStat = GamingCanvasStat.decode(data.audio);
 
 			ModuleDOM.elPerformanceMainCalcAll.innerHTML = displayNumberAll(all, precision);
+			ModuleDOM.elPerformanceMainCalcAudio.innerHTML = displayNumberAll(audio, precision);
 			ModuleDOM.elPerformanceMainParticleCount.innerHTML = displayNumber(data.particleCount, 0, '', '');
 			ModuleDOM.elPerformanceMainParticlePoolSize.innerHTML = displayNumber(data.particlePoolSize, 0, '', '');
 		});
@@ -251,6 +253,7 @@ ${displayNumber(<number>GamingCanvasStat.calc(stat, GamingCanvasStatCalcType.MIN
 
 		// Initialize: Final hooks
 		await ModuleAssets.initialize();
+		await ModuleAssets.initializeAudio();
 		await ModuleBridge.initialize();
 		await ScorchedDirt.initializeCallbacks();
 		await ScorchedDirt.initializeDOM();

@@ -3,8 +3,10 @@ import { Weapon } from '../../models/weapon.model.js';
 import { World } from '../../models/world.model.js';
 import {
 	WorkerMainCalcBusInputCmd,
+	WorkerMainCalcBusInputDataAudio,
 	WorkerMainCalcBusInputDataInit,
 	WorkerMainCalcBusInputDataSettings,
+	WorkerMainCalcBusOutputAudio,
 	WorkerMainCalcBusOutputCmd,
 	WorkerMainCalcBusOutputData,
 	WorkerMainCalcBusOutputDataStats,
@@ -16,6 +18,7 @@ import {
  */
 
 export class WorkerMainCalcBus {
+	private static callbackAudio: (data: WorkerMainCalcBusOutputAudio) => void;
 	private static callbackData: (data: WorkerMainCalcBusOutputData) => void;
 	private static callbackInitComplete: (status: boolean) => void;
 	private static callbackStats: (data: WorkerMainCalcBusOutputDataStats) => void;
@@ -58,6 +61,9 @@ export class WorkerMainCalcBus {
 
 			for (payload of payloads) {
 				switch (payload.cmd) {
+					case WorkerMainCalcBusOutputCmd.AUDIO:
+						WorkerMainCalcBus.callbackAudio(<WorkerMainCalcBusOutputAudio>payload.data);
+						break;
 					case WorkerMainCalcBusOutputCmd.DATA:
 						if (WorkerMainCalcBus.callbackData !== undefined) {
 							WorkerMainCalcBus.callbackData(<WorkerMainCalcBusOutputData>payload.data);
@@ -79,6 +85,20 @@ export class WorkerMainCalcBus {
 	/*
 	 * Send
 	 */
+	public static sendAudioStart(data: WorkerMainCalcBusInputDataAudio): void {
+		WorkerMainCalcBus.worker.postMessage({
+			cmd: WorkerMainCalcBusInputCmd.AUDIO_START,
+			data: data,
+		});
+	}
+
+	public static sendAudioStop(data: WorkerMainCalcBusInputDataAudio): void {
+		WorkerMainCalcBus.worker.postMessage({
+			cmd: WorkerMainCalcBusInputCmd.AUDIO_STOP,
+			data: data,
+		});
+	}
+
 	public static sendParticle(data: ParticleInitial<Weapon> | ParticleInitial<Weapon>[]): void {
 		WorkerMainCalcBus.worker.postMessage({
 			cmd: WorkerMainCalcBusInputCmd.PARTICLE,
@@ -91,6 +111,10 @@ export class WorkerMainCalcBus {
 			cmd: WorkerMainCalcBusInputCmd.SETTINGS,
 			data: data,
 		});
+	}
+
+	public static setCallbackAudio(callbackAudio: (data: WorkerMainCalcBusOutputAudio) => void): void {
+		WorkerMainCalcBus.callbackAudio = callbackAudio;
 	}
 
 	public static setCallbackData(callbackData: (data: WorkerMainCalcBusOutputData) => void): void {

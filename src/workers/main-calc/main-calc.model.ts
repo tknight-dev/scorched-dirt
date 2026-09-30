@@ -13,16 +13,24 @@ import { Weapon } from '../../models/weapon.model.js';
  */
 export enum WorkerMainCalcBusStats {
 	ALL,
+	AUDIO,
 }
 
 /*
  * Input
  */
 export enum WorkerMainCalcBusInputCmd {
+	AUDIO_START,
+	AUDIO_STOP,
 	INIT,
 	MAP,
 	PARTICLE,
 	SETTINGS,
+}
+
+export interface WorkerMainCalcBusInputDataAudio {
+	instance: number | null; // null on failure
+	request?: number; // unique to calc engine
 }
 
 export interface WorkerMainCalcBusInputDataInit extends WorkerMainCalcBusInputDataWorld, WorkerMainCalcBusInputDataSettings {}
@@ -44,6 +52,7 @@ export interface WorkerMainCalcBusInputPayload {
 	data:
 		| ParticleInitial<Weapon>
 		| ParticleInitial<Weapon>[]
+		| WorkerMainCalcBusInputDataAudio
 		| WorkerMainCalcBusInputDataInit
 		| WorkerMainCalcBusInputDataWorld
 		| WorkerMainCalcBusInputDataSettings;
@@ -53,9 +62,19 @@ export interface WorkerMainCalcBusInputPayload {
  * Output
  */
 export enum WorkerMainCalcBusOutputCmd {
+	AUDIO,
 	DATA,
 	INIT_COMPLETE,
 	STATS,
+}
+
+export interface WorkerMainCalcBusOutputAudio {
+	assetId?: number; // no assetId is modify existing instance
+	instance?: number; // assetId and instance is stop old instance; assetId and no instance is play new asset
+	pan?: number;
+	stop?: boolean;
+	volume?: number;
+	request?: number; // unique to calc engine
 }
 
 export interface WorkerMainCalcBusOutputData {
@@ -67,11 +86,12 @@ export interface WorkerMainCalcBusOutputData {
 
 export interface WorkerMainCalcBusOutputDataStats {
 	all: Float32Array;
+	audio: Float32Array;
 	particleCount: number;
 	particlePoolSize: number;
 }
 
 export interface WorkerMainCalcBusOutputPayload {
 	cmd: WorkerMainCalcBusOutputCmd;
-	data: boolean | WorkerMainCalcBusOutputData | WorkerMainCalcBusOutputDataStats;
+	data: boolean | WorkerMainCalcBusOutputAudio | WorkerMainCalcBusOutputData | WorkerMainCalcBusOutputDataStats;
 }

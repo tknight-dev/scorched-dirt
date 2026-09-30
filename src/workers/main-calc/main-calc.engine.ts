@@ -28,8 +28,12 @@ import {
 	WorkerMainCalcBusOutputCmd,
 	WorkerMainCalcBusOutputPayload,
 	WorkerMainCalcBusStats,
+	WorkerMainCalcBusOutputAudio,
+	WorkerMainCalcBusInputDataAudio,
 } from './main-calc.model.js';
 import { Tank } from '../../models/tank.model.js';
+import { AssetCategory, AssetCategoryEffect, AssetManagerManifestInstanceAudio, ModuleAssets } from '../../modules/assets.js';
+import { AssetManagerManifestInstance } from '../../gaming-canvas/modules/asset-manager-node/models.js';
 
 /**
  * @author tknight-dev
@@ -42,6 +46,12 @@ self.onmessage = (event: MessageEvent) => {
 	const payload: WorkerMainCalcBusInputPayload = event.data;
 
 	switch (payload.cmd) {
+		case WorkerMainCalcBusInputCmd.AUDIO_START:
+			WorkerMainCalcEngine.inputAudio(true, <WorkerMainCalcBusInputDataAudio>payload.data);
+			break;
+		case WorkerMainCalcBusInputCmd.AUDIO_STOP:
+			WorkerMainCalcEngine.inputAudio(false, <WorkerMainCalcBusInputDataAudio>payload.data);
+			break;
 		case WorkerMainCalcBusInputCmd.INIT:
 			WorkerMainCalcEngine.initialize(<WorkerMainCalcBusInputDataInit>payload.data);
 			break;
@@ -57,7 +67,15 @@ self.onmessage = (event: MessageEvent) => {
 	}
 };
 
+interface AudioInstance {
+	assetId: AssetCategoryEffect;
+	instance: number;
+	x: number;
+	y: number;
+}
+
 class WorkerMainCalcEngine {
+	private static audio: Map<number, AudioInstance> = new Map();
 	private static animationFrameRequest: number;
 	private static particles: GamingCanvasDoubleLinkedList<Particle<any>> = new GamingCanvasDoubleLinkedList();
 	private static particlePool: GamingCanvasDoubleLinkedList<Particle<any>> = new GamingCanvasDoubleLinkedList();
@@ -69,8 +87,12 @@ class WorkerMainCalcEngine {
 	private static worldNew: boolean;
 
 	public static async initialize(data: WorkerMainCalcBusInputDataInit): Promise<void> {
+		// Assets
+		await ModuleAssets.initialize();
+
 		// Stats
 		WorkerMainCalcEngine.stats[WorkerMainCalcBusStats.ALL] = new GamingCanvasStat(50);
+		WorkerMainCalcEngine.stats[WorkerMainCalcBusStats.AUDIO] = new GamingCanvasStat(50);
 
 		// Config: World
 		WorkerMainCalcEngine.inputWorld(data as WorkerMainCalcBusInputDataWorld);
@@ -116,6 +138,21 @@ class WorkerMainCalcEngine {
 	/*
 	 * Input
 	 */
+
+	public static inputAudio(start: boolean, data: WorkerMainCalcBusInputDataAudio): void {
+		if (data.instance !== null && data.request !== undefined) {
+			if (start === true) {
+				const audioInstance: AudioInstance = <AudioInstance>WorkerMainCalcEngine.audio.get(data.request);
+
+				if (audioInstance !== undefined) {
+					audioInstance.instance = data.instance;
+				}
+			} else {
+				WorkerMainCalcEngine.audio.delete(data.request);
+			}
+		}
+	}
+
 	public static inputParticle(data: ParticleInitial<Weapon> | ParticleInitial<Weapon>[]): void {
 		let datam: ParticleInitial<Weapon>, particle: Particle<Weapon>, tank: Tank | undefined;
 
@@ -181,7 +218,11 @@ class WorkerMainCalcEngine {
 	 * Main Loop
 	 */
 	private static animationLoop(): void {
-		let buffers: ArrayBufferLike[] = [],
+		let audio: Map<number, AudioInstance> = WorkerMainCalcEngine.audio,
+			audioInstance: AudioInstance,
+			audioPostStack: WorkerMainCalcBusOutputAudio[],
+			audioRequestCounter: number = 0,
+			buffers: ArrayBufferLike[] = [],
 			collisionX: boolean,
 			collisionY: boolean,
 			collisionNextGridIndex: number,
@@ -231,6 +272,8 @@ class WorkerMainCalcEngine {
 			physicsResistanceSecondary: number = 0.5, // Collision X will reduce velocity Y by this amount
 			physicsSplashes: number[] = [],
 			physicsSplashesEncoded: Uint32Array | undefined,
+			physicsSplashAudioTimestamp: number = performance.now(),
+			physicsSplashAudioLimitInMs: number = 60,
 			physicsVelocityMin: number = 0.01,
 			posXInteger: number,
 			posXIntegerNext: number,
@@ -239,6 +282,7 @@ class WorkerMainCalcEngine {
 			randomNumberLength: number = 100,
 			randomNumbers: number[] = [...Array(randomNumberLength)].map((e) => Math.random()),
 			randomNumbersIndex: number = 0,
+			timestampAudio: number = performance.now(),
 			timestampCPU: number = performance.now(),
 			timestampCPUDelta: number,
 			timestampFPSDelta: number,
@@ -250,7 +294,9 @@ class WorkerMainCalcEngine {
 			settingsWindRandomize: boolean,
 			settingsWindStrength: WindStrength,
 			statAll: GamingCanvasStat = WorkerMainCalcEngine.stats[WorkerMainCalcBusStats.ALL],
+			statAudio: GamingCanvasStat = WorkerMainCalcEngine.stats[WorkerMainCalcBusStats.AUDIO],
 			statAllRaw: Float32Array,
+			statAudioRaw: Float32Array,
 			velMaxAbs: number,
 			world: World,
 			worldBedrock: boolean,
@@ -275,6 +321,58 @@ class WorkerMainCalcEngine {
 		// 	shotComplete: boolean,
 		// 	shotTypeProperty: WeaponTypeProperty,
 		// 	shots: GamingCanvasDoubleLinkedList<ParticleCalculated<Weapon>> = WorkerMainCalcEngine.shots,
+
+		/**
+		 * @param gridIndex allows for 3d audio with live updates
+		 */
+		const audioPlay = (assetCategory: AssetCategory, assetId: AssetCategoryEffect, gridIndex?: number): number | null => {
+			let audioProperties: AssetManagerManifestInstanceAudio = <AssetManagerManifestInstanceAudio>(
+				ModuleAssets.getManifestInstanceById(assetCategory, assetId)
+			);
+
+			if (gridIndex !== undefined) {
+				// Cache
+				const audioY = gridIndex % gridSideLength,
+					audioInstance: AudioInstance = {
+						assetId: assetId,
+						instance: 0,
+						x: (gridIndex - audioY) / gridSideLength + 0.5, // 0.5 center
+						y: audioY + 0.5, // 0.5 center
+					},
+					request: number = audioRequestCounter++;
+
+				// Cache
+				audio.set(request, audioInstance);
+
+				// Post to audio engine thread
+				WorkerMainCalcEngine.post([
+					{
+						cmd: WorkerMainCalcBusOutputCmd.AUDIO,
+						data: {
+							assetId: assetId,
+							pan: Math.max(-1, Math.min(1, (2 * audioInstance.x) / gridSideLength - 1)),
+							volume: audioProperties.volume,
+							request: request,
+						},
+					},
+				]);
+
+				return request;
+			} else {
+				WorkerMainCalcEngine.post([
+					{
+						cmd: WorkerMainCalcBusOutputCmd.AUDIO,
+						data: {
+							assetId: assetId,
+							pan: 0,
+							volume: audioProperties.volume,
+						},
+					},
+				]);
+
+				return null;
+			}
+		};
 
 		const particleFromPool = (
 			gridIndex: number = 0,
@@ -816,6 +914,23 @@ class WorkerMainCalcEngine {
 														yNext = collisionNextParticle.posY | 0;
 
 														// Splash
+														if (timestampNow - physicsSplashAudioTimestamp > physicsSplashAudioLimitInMs) {
+															physicsSplashAudioTimestamp = timestampNow;
+
+															if (randomNumbers[randomNumbersIndex++ % randomNumberLength] > 0.5 === true) {
+																audioPlay(
+																	AssetCategory.AUDIO_EFFECT,
+																	AssetCategoryEffect.WATER_SPLASH_01,
+																	collisionNextParticle.gridIndex,
+																);
+															} else {
+																audioPlay(
+																	AssetCategory.AUDIO_EFFECT,
+																	AssetCategoryEffect.WATER_SPLASH_02,
+																	collisionNextParticle.gridIndex,
+																);
+															}
+														}
 														physicsSplashes.push(
 															((xNext & 0xfff) << 20) | ((yNext & 0xfff) << 8) | (collisionNextParticle.typeValue & 0xff),
 														);
@@ -891,6 +1006,23 @@ class WorkerMainCalcEngine {
 														yNext = collisionNextParticle.posY | 0;
 
 														// Splash
+														if (timestampNow - physicsSplashAudioTimestamp > physicsSplashAudioLimitInMs) {
+															physicsSplashAudioTimestamp = timestampNow;
+
+															if (randomNumbers[randomNumbersIndex++ % randomNumberLength] > 0.5 === true) {
+																audioPlay(
+																	AssetCategory.AUDIO_EFFECT,
+																	AssetCategoryEffect.WATER_SPLASH_01,
+																	collisionNextParticle.gridIndex,
+																);
+															} else {
+																audioPlay(
+																	AssetCategory.AUDIO_EFFECT,
+																	AssetCategoryEffect.WATER_SPLASH_02,
+																	collisionNextParticle.gridIndex,
+																);
+															}
+														}
 														physicsSplashes.push(
 															((xNext & 0xfff) << 20) | ((yNext & 0xfff) << 8) | (collisionNextParticle.typeValue & 0xff),
 														);
@@ -1212,6 +1344,15 @@ class WorkerMainCalcEngine {
 											yNext = collisionNextParticle.posY | 0;
 
 											// Splash
+											if (timestampNow - physicsSplashAudioTimestamp > physicsSplashAudioLimitInMs) {
+												physicsSplashAudioTimestamp = timestampNow;
+
+												if (randomNumbers[randomNumbersIndex++ % randomNumberLength] > 0.5 === true) {
+													audioPlay(AssetCategory.AUDIO_EFFECT, AssetCategoryEffect.WATER_SPLASH_01, collisionNextParticle.gridIndex);
+												} else {
+													audioPlay(AssetCategory.AUDIO_EFFECT, AssetCategoryEffect.WATER_SPLASH_02, collisionNextParticle.gridIndex);
+												}
+											}
 											physicsSplashes.push(((xNext & 0xfff) << 20) | ((yNext & 0xfff) << 8) | (collisionNextParticle.typeValue & 0xff));
 
 											// Water column must be resting on the ground
@@ -1360,11 +1501,41 @@ class WorkerMainCalcEngine {
 				statAll.watchStop();
 			}
 
+			/**
+			 * Audio (Pan and Volume)
+			 */
+			// if (timestampNow - timestampAudio > 20) {
+			// 	statAudio.watchStart();
+			// 	audioPostStack = new Array();
+			// 	timestampAudio = timestampNow;
+
+			// 	for (audioInstance of audio.values()) {
+
+			// 	// 	// Buffer for audio engine thread push
+			// 	// 	audioPostStack.push({
+			// 	// 		cmd: CalcMainBusOutputCmd.AUDIO,
+			// 	// 		data: {
+			// 	// 			instance: audioInstance.instance,
+			// 	// 			pan: x,
+			// 	// 			volume:
+			// 	// 				(<AssetPropertiesAudio>assetsAudio.get(audioInstance.assetId)).volume *
+			// 	// 				GamingCanvasUtilScale(distance, 0, audioDistanceMax, 1, 0),
+			// 	// 		},
+			// 	// 	});
+			// 	}
+
+			// 	// // Push to audio engine thread
+			// 	// CalcMainEngine.post(audioPostStack);
+
+			// 	statAudio.watchStop();
+			// }
+
 			// Stats
 			if (timestampNow - timestampStats > 999) {
 				timestampStats = timestampNow;
 
 				statAllRaw = <Float32Array>statAll.encode();
+				statAudioRaw = <Float32Array>statAudio.encode();
 
 				// console.log('particleCount', particles.length, particlePool.length);
 
@@ -1375,6 +1546,7 @@ class WorkerMainCalcEngine {
 							cmd: WorkerMainCalcBusOutputCmd.STATS,
 							data: {
 								all: statAllRaw,
+								audio: statAudioRaw,
 								particleCount: particles.length,
 								particlePoolSize: particlePool.length,
 							},

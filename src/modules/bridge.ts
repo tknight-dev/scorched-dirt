@@ -1,8 +1,10 @@
+import { GamingCanvas } from '../gaming-canvas/main/gaming-canvas.js';
+import { GamingCanvasAudioType } from '../gaming-canvas/main/index.js';
 import { particleEncodingMaskX, particleEncodingMaskY, particleEncodingShiftX } from '../models/physics.model.js';
 import { WorkerEffectsVideoBus } from '../workers/effects-video/effects-video.bus.js';
 import { WorkerGridVideoBus } from '../workers/grid-video/grid-video.bus.js';
 import { WorkerMainCalcBus } from '../workers/main-calc/main-calc.bus.js';
-import { WorkerMainCalcBusOutputData } from '../workers/main-calc/main-calc.model.js';
+import { WorkerMainCalcBusOutputAudio, WorkerMainCalcBusOutputData } from '../workers/main-calc/main-calc.model.js';
 import { WorkerParticlesVideoBus } from '../workers/particles-video/particles-video.bus.js';
 
 /**
@@ -13,7 +15,44 @@ import { WorkerParticlesVideoBus } from '../workers/particles-video/particles-vi
 
 export class ModuleBridge {
 	public static async initialize(): Promise<void> {
+		ModuleBridge.initializeCalcAudio();
 		ModuleBridge.initializeCalcData();
+	}
+
+	public static initializeCalcAudio(): void {
+		WorkerMainCalcBus.setCallbackAudio(async (data: WorkerMainCalcBusOutputAudio) => {
+			if (data.assetId !== undefined) {
+				const instance: number | null = await GamingCanvas.audioControlPlay(
+					data.assetId,
+					GamingCanvasAudioType.EFFECT,
+					false,
+					data.pan,
+					0,
+					data.volume,
+					(instance: number) => {
+						WorkerMainCalcBus.sendAudioStop({
+							instance: instance,
+							request: data.request,
+						});
+					},
+				);
+				WorkerMainCalcBus.sendAudioStart({
+					instance: instance,
+					request: data.request,
+				});
+			} else if (data.instance !== undefined) {
+				if (data.stop === true) {
+					GamingCanvas.audioControlStop(data.instance);
+				} else {
+					if (data.pan !== undefined) {
+						GamingCanvas.audioControlPan(data.instance, data.pan);
+					}
+					if (data.volume !== undefined) {
+						GamingCanvas.audioControlVolume(data.instance, data.volume);
+					}
+				}
+			}
+		});
 	}
 
 	public static initializeCalcData(): void {
@@ -79,7 +118,7 @@ export class ModuleBridge {
 			/**
 			 * Data Transfer: Height Maps
 			 */
-			if(heightMapGrid !== undefined || heightMapParticles !== undefined) {
+			if (heightMapGrid !== undefined || heightMapParticles !== undefined) {
 				WorkerEffectsVideoBus.sendCalcHeightMaps(
 					heightMapGrid !== undefined ? heightMapGrid.slice() : undefined,
 					heightMapParticles !== undefined ? heightMapParticles.slice() : undefined,
