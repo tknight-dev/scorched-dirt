@@ -64,6 +64,7 @@ interface Effect {
 	randomSeed2: number;
 	timestamp: number;
 	type: EffectType;
+	velocity: number;
 	x: number;
 	y: number;
 }
@@ -213,6 +214,9 @@ class WorkerEffectsVideoEngine {
 			settingsGammaCorrection: number,
 			settingsGrayscale: boolean,
 			settingsRenderStyle: GamingCanvasRenderStyle,
+			splashHeight: number,
+			splashOffset: number,
+			splashWidth: number,
 			statAll: GamingCanvasStat = WorkerEffectsVideoEngine.stats[WorkerEffectsVideoBusStats.ALL],
 			statAllRaw: Float32Array,
 			timestampDelta: number,
@@ -249,13 +253,14 @@ class WorkerEffectsVideoEngine {
 						effect = effectNode.data;
 
 						// Config
-						effect.collisionType = i & 0xff;
+						effect.collisionType = (i >> 4) & 0xff;
 						effect.randomSeed1 = randomNumbers[randomNumbersIndex++ % randomNumberLength];
 						effect.randomSeed2 = randomNumbers[randomNumbersIndex++ % randomNumberLength];
 						effect.timestamp = timestampNow;
 						effect.type = EffectType.SPLASH;
-						effect.x = (i >> 20) & 0xfff;
-						effect.y = (i >> 8) & 0xfff;
+						effect.velocity = (i & 0xf) / 10;
+						effect.x = (i >> 22) & 0x3ff;
+						effect.y = (i >> 12) & 0x3ff;
 
 						// Done
 						effects.pushEndNode(effectNode);
@@ -409,13 +414,31 @@ class WorkerEffectsVideoEngine {
 										gridViewportCellSizePx,
 									);
 
+									// Splash attributes
+									if(effect.velocity > 0.8) {
+										// console.log("BIG", effect.velocity);
+										splashHeight = gridViewportCellSizePx * 5;
+										splashOffset = 3;
+										splashWidth = 3;
+									}else if(effect.velocity > 0.4) {
+										// console.log("MED", effect.velocity);
+										splashHeight = gridViewportCellSizePx * 3;
+										splashOffset = 2;
+										splashWidth = 1;
+									}else {
+										// console.log("SM", effect.velocity);
+										splashOffset = 1;
+										splashHeight = gridViewportCellSizePx;
+										splashWidth = 1;
+									}
+
 									// Bubbles / Foam / Spray
 									offscreenCanvasContext.fillStyle = '#ffffff';
-									for (i = -1; i < 2; i++) {
-										if (y > gridHeightMap[x + i]) {
-											// Don't splash over grid
-											continue;
-										}
+									for (i = -splashWidth; i <= splashWidth; i++) {
+										// if (y > gridHeightMap[x + i]) {
+										// 	// Don't splash over grid
+										// 	continue;
+										// }
 
 										effectStateTimer = effectTimestampDelta % 500 > 250;
 										if ((effectStateRandom2 === true ? effectStateTimer : !effectStateTimer) === true) {
@@ -426,9 +449,9 @@ class WorkerEffectsVideoEngine {
 
 										offscreenCanvasContext.fillRect(
 											(x - gridViewportWidthStartEff + i) * gridViewportCellSizePx,
-											(y - gridViewportHeightStartEff - 1) * gridViewportCellSizePx,
+											(y - gridViewportHeightStartEff - splashOffset) * gridViewportCellSizePx,
 											gridViewportCellSizePx,
-											gridViewportCellSizePx * 2,
+											splashHeight,
 										);
 									}
 									offscreenCanvasContext.globalAlpha = 1;

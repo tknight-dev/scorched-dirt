@@ -272,6 +272,7 @@ class WorkerMainCalcEngine {
 			physicsResistanceSecondary: number = 0.5, // Collision X will reduce velocity Y by this amount
 			physicsSplashes: number[] = [],
 			physicsSplashesEncoded: Uint32Array | undefined,
+			physicsSplashesVelocityMin: number = 0.55,
 			physicsSplashAudioTimestamp: number = performance.now(),
 			physicsSplashAudioLimitInMs: number = 60,
 			physicsVelocityMin: number = 0.01,
@@ -298,6 +299,7 @@ class WorkerMainCalcEngine {
 			statAllRaw: Float32Array,
 			statAudioRaw: Float32Array,
 			velMaxAbs: number,
+			volumeModifier: number,
 			world: World,
 			worldBedrock: boolean,
 			x: number,
@@ -325,7 +327,7 @@ class WorkerMainCalcEngine {
 		/**
 		 * @param gridIndex allows for 3d audio with live updates
 		 */
-		const audioPlay = (assetCategory: AssetCategory, assetId: AssetCategoryEffect, gridIndex?: number): number | null => {
+		const audioPlay = (assetCategory: AssetCategory, assetId: AssetCategoryEffect, volumeModifier: number = 1, gridIndex?: number): number | null => {
 			let audioProperties: AssetManagerManifestInstanceAudio = <AssetManagerManifestInstanceAudio>(
 				ModuleAssets.getManifestInstanceById(assetCategory, assetId)
 			);
@@ -351,7 +353,7 @@ class WorkerMainCalcEngine {
 						data: {
 							assetId: assetId,
 							pan: Math.max(-1, Math.min(1, (2 * audioInstance.x) / gridSideLength - 1)),
-							volume: audioProperties.volume,
+							volume: audioProperties.volume * Math.max(0.1, Math.min(1, audioInstance.y / gridYLimit)) * volumeModifier,
 							request: request,
 						},
 					},
@@ -905,34 +907,45 @@ class WorkerMainCalcEngine {
 												}
 												if (collisionY === true) {
 													gridIndex = (collisionNextParticle.posX | 0) * gridSideLength + (collisionNextParticle.posY | 0);
+
+													// Splash
 													if (
-														Math.abs(particle.velY) > 0.5 &&
+														Math.abs(particle.velY) > physicsSplashesVelocityMin &&
 														particleMap.has(gridIndex - 3) !== true &&
 														particleMap.has(gridIndex + 1) === true
 													) {
 														xNext = collisionNextParticle.posX | 0;
 														yNext = collisionNextParticle.posY | 0;
 
-														// Splash
 														if (timestampNow - physicsSplashAudioTimestamp > physicsSplashAudioLimitInMs) {
 															physicsSplashAudioTimestamp = timestampNow;
+
+															if(Math.abs(particle.velY) > 0.8) {
+																volumeModifier = 3;
+															}else if(Math.abs(particle.velY) > 0.4) {
+																volumeModifier = 2;
+															}else {
+																volumeModifier = 1;
+															}
 
 															if (randomNumbers[randomNumbersIndex++ % randomNumberLength] > 0.5 === true) {
 																audioPlay(
 																	AssetCategory.AUDIO_EFFECT,
 																	AssetCategoryEffect.WATER_SPLASH_01,
+																	volumeModifier,
 																	collisionNextParticle.gridIndex,
 																);
 															} else {
 																audioPlay(
 																	AssetCategory.AUDIO_EFFECT,
 																	AssetCategoryEffect.WATER_SPLASH_02,
+																	volumeModifier,
 																	collisionNextParticle.gridIndex,
 																);
 															}
 														}
 														physicsSplashes.push(
-															((xNext & 0xfff) << 20) | ((yNext & 0xfff) << 8) | (collisionNextParticle.typeValue & 0xff),
+															((xNext & 0x3ff) << 22) | ((yNext & 0x3ff) << 12) | ((collisionNextParticle.typeValue & 0xff) << 4) | Math.min(15, (Math.abs(particle.velY * 10) | 0)),
 														);
 													}
 
@@ -998,7 +1011,7 @@ class WorkerMainCalcEngine {
 												if (collisionY === true) {
 													gridIndex = (collisionNextParticle.posX | 0) * gridSideLength + (collisionNextParticle.posY | 0);
 													if (
-														Math.abs(particle.velY) > 0.5 &&
+														Math.abs(particle.velY) > physicsSplashesVelocityMin &&
 														particleMap.has(gridIndex - 5) !== true &&
 														particleMap.has(gridIndex + 1) === true
 													) {
@@ -1009,22 +1022,32 @@ class WorkerMainCalcEngine {
 														if (timestampNow - physicsSplashAudioTimestamp > physicsSplashAudioLimitInMs) {
 															physicsSplashAudioTimestamp = timestampNow;
 
+															if(Math.abs(particle.velY) > 0.8) {
+																volumeModifier = 3;
+															}else if(Math.abs(particle.velY) > 0.4) {
+																volumeModifier = 2;
+															}else {
+																volumeModifier = 1;
+															}
+
 															if (randomNumbers[randomNumbersIndex++ % randomNumberLength] > 0.5 === true) {
 																audioPlay(
 																	AssetCategory.AUDIO_EFFECT,
 																	AssetCategoryEffect.WATER_SPLASH_01,
+																	volumeModifier,
 																	collisionNextParticle.gridIndex,
 																);
 															} else {
 																audioPlay(
 																	AssetCategory.AUDIO_EFFECT,
 																	AssetCategoryEffect.WATER_SPLASH_02,
+																	volumeModifier,
 																	collisionNextParticle.gridIndex,
 																);
 															}
 														}
 														physicsSplashes.push(
-															((xNext & 0xfff) << 20) | ((yNext & 0xfff) << 8) | (collisionNextParticle.typeValue & 0xff),
+															((xNext & 0x3ff) << 22) | ((yNext & 0x3ff) << 12) | ((collisionNextParticle.typeValue & 0xff) << 4) | Math.min(15, (Math.abs(particle.velY * 10) | 0)),
 														);
 													}
 
@@ -1347,13 +1370,23 @@ class WorkerMainCalcEngine {
 											if (timestampNow - physicsSplashAudioTimestamp > physicsSplashAudioLimitInMs) {
 												physicsSplashAudioTimestamp = timestampNow;
 
+												if(Math.abs(particle.velY) > 0.8) {
+													volumeModifier = 2;
+												}else if(Math.abs(particle.velY) > 0.4) {
+													volumeModifier = 1.5;
+												}else {
+													volumeModifier = 1;
+												}
+
 												if (randomNumbers[randomNumbersIndex++ % randomNumberLength] > 0.5 === true) {
-													audioPlay(AssetCategory.AUDIO_EFFECT, AssetCategoryEffect.WATER_SPLASH_01, collisionNextParticle.gridIndex);
+													audioPlay(AssetCategory.AUDIO_EFFECT, AssetCategoryEffect.WATER_SPLASH_01, volumeModifier, collisionNextParticle.gridIndex);
 												} else {
-													audioPlay(AssetCategory.AUDIO_EFFECT, AssetCategoryEffect.WATER_SPLASH_02, collisionNextParticle.gridIndex);
+													audioPlay(AssetCategory.AUDIO_EFFECT, AssetCategoryEffect.WATER_SPLASH_02, volumeModifier, collisionNextParticle.gridIndex);
 												}
 											}
-											physicsSplashes.push(((xNext & 0xfff) << 20) | ((yNext & 0xfff) << 8) | (collisionNextParticle.typeValue & 0xff));
+											physicsSplashes.push(
+												((xNext & 0x3ff) << 22) | ((yNext & 0x3ff) << 12) | ((collisionNextParticle.typeValue & 0xff) << 4) | Math.min(15, (Math.abs(particle.velY * 10) | 0)),
+											);
 
 											// Water column must be resting on the ground
 											gridIndex = xNext * gridSideLength;
